@@ -240,10 +240,10 @@ function ThemeManager:CreateThemeManager(groupbox)
 		Default = themeNames[1],
 	})
 
-	groupbox:AddButton("Set as default", function()
+	groupbox:AddButton("Set session default", function()
 		local themeName = Library.Options.ThemeManager_ThemeList.Value
 		self:SaveDefault(themeName)
-		Library:Notify(string.format("Set default theme to %q", tostring(themeName)), 4)
+		Library:Notify(string.format("Session default theme: %q", tostring(themeName)), 4)
 	end)
 
 	if Library.Options.ThemeManager_ThemeList then
@@ -349,5 +349,8 @@ end
 function ThemeManager:ApplyToGroupbox(groupbox)
 	self:CreateThemeManager(groupbox)
 end
+
+_G.ObsidianMatchaAddons = _G.ObsidianMatchaAddons or {}
+_G.ObsidianMatchaAddons["addons/ThemeManager.lua"] = ThemeManager
 
 return ThemeManager
