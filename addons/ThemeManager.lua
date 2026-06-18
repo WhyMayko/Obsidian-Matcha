@@ -240,10 +240,10 @@ function ThemeManager:CreateThemeManager(groupbox)
 		Default = themeNames[1],
 	})
 
-	groupbox:AddButton("Set session default", function()
+	groupbox:AddButton("Set Default", function()
 		local themeName = Library.Options.ThemeManager_ThemeList.Value
 		self:SaveDefault(themeName)
-		Library:Notify(string.format("Session default theme: %q", tostring(themeName)), 4)
+		Library:Notify(string.format("Set default theme to %q", tostring(themeName)), 4)
 	end)
 
 	if Library.Options.ThemeManager_ThemeList then

@@ -216,7 +216,7 @@ function SaveManager:BuildConfigSection(tab)
 		Options.SaveManager_ConfigList:SetValue(nil)
 	end)
 
-	groupbox:AddButton("Set session autoload", function()
+	groupbox:AddButton("Set Auto Load", function()
 		local name = Options.SaveManager_ConfigList.Value
 		if not name then
 			Library:Notify("No config selected", 4)
@@ -224,7 +224,7 @@ function SaveManager:BuildConfigSection(tab)
 		end
 
 		self:SaveAutoloadConfig(name)
-		Library:Notify(string.format("Session autoload config: %q", name), 4)
+		Library:Notify(string.format("Autoload config: %q", name), 4)
 	end)
 
 	groupbox:AddButton("Reset autoload", function()
