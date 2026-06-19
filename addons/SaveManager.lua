@@ -59,11 +59,7 @@ local function writeTable(path, data)
 	local folder = tostring(path):match("^(.*)[/\\][^/\\]+$")
 	ensureFolder(folder or SettingsFolder)
 
-	local ok, err = pcall(writefile, path, "return " .. serialize(data))
-	if not ok then
-		return false, err
-	end
-
+	writefile(path, "return " .. serialize(data))
 	return true
 end
 
@@ -76,8 +72,8 @@ local function readTable(path)
 		return nil
 	end
 
-	local ok, source = pcall(readfile, path)
-	if not ok or type(source) ~= "string" then
+	local source = readfile(path)
+	if type(source) ~= "string" then
 		return nil
 	end
 
@@ -86,8 +82,8 @@ local function readTable(path)
 		return nil
 	end
 
-	local loadedOk, data = pcall(chunk)
-	if loadedOk and type(data) == "table" then
+	local data = chunk()
+	if type(data) == "table" then
 		return data
 	end
 
@@ -171,7 +167,7 @@ function SaveManager:Load(name)
 		local object = (Library.Options or {})[index] or (Library.Toggles or {})[index]
 
 		if object and object.Set then
-			pcall(object.Set, object, values[1])
+			object:Set(values[1])
 		end
 	end
 
@@ -236,9 +232,7 @@ end
 function SaveManager:DeleteAutoLoadConfig()
 	self._autoload = ""
 
-	if type(isfile) ~= "function" or isfile(DefaultConfigFile) then
-		delfile(DefaultConfigFile)
-	end
+	writeTable(DefaultConfigFile, { Name = self._autoload })
 
 	return true
 end
@@ -378,24 +372,10 @@ function SaveManager:BuildConfigSection(tab)
 	end)
 
 	groupbox:AddButton("Reset autoload", function()
-		local name = self:GetAutoloadConfig()
-		if name == "none" then
-			Library:Notify("Autoload reset / No config", 4)
-			if self.AutoloadConfigLabel then
-				self.AutoloadConfigLabel:SetText("Current autoload config: none")
-			end
-			return
-		end
-
-		local ok, err = self:Load(name)
-		if not ok then
-			Library:Notify("Failed to load autoload config: " .. tostring(err), 4)
-			return
-		end
-
-		Library:Notify(string.format("Loaded autoload config: %q", name), 4)
+		self:DeleteAutoLoadConfig()
+		Library:Notify("Autoload reset", 4)
 		if self.AutoloadConfigLabel then
-			self.AutoloadConfigLabel:SetText("Current autoload config: " .. name)
+			self.AutoloadConfigLabel:SetText("Current autoload config: none")
 		end
 	end)
 
@@ -406,6 +386,8 @@ function SaveManager:BuildConfigSection(tab)
 		"SaveManager_ConfigName",
 		"SaveManager_ConfigList",
 	})
+
+	self:LoadAutoloadConfig()
 end
 
 _G.ObsidianMatchaAddons = _G.ObsidianMatchaAddons or {}
