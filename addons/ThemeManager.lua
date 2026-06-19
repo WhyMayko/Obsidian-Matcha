@@ -47,19 +47,7 @@ local SettingsFolder = "Galax/Obsidian/Settings"
 local ThemeFolder = SettingsFolder .. "/Themes"
 local DefaultThemeFile = SettingsFolder .. "/DefaultTheme.txt"
 
-local function ensureFolder(path)
-	if type(makefolder) ~= "function" then
-		return
-	end
 
-	local current = ""
-	for part in tostring(path):gmatch("[^/\\]+") do
-		current = current == "" and part or (current .. "/" .. part)
-		if type(isfolder) ~= "function" or not isfolder(current) then
-			pcall(makefolder, current)
-		end
-	end
-end
 
 local function fileName(name)
 	return tostring(name or "Theme"):gsub("[^%w%s_%-]", "_") .. ".txt"
@@ -69,9 +57,6 @@ local function writeTable(path, data)
 	if type(writefile) ~= "function" then
 		return false, "writefile unavailable"
 	end
-
-	local folder = tostring(path):match("^(.*)[/\\][^/\\]+$")
-	ensureFolder(folder or SettingsFolder)
 
 	local encodeOk, encoded = pcall(function()
 		return HttpService:JSONEncode(data)
@@ -287,13 +272,11 @@ function ThemeManager:Delete(name)
 end
 
 function ThemeManager:ReloadCustomThemes()
-	ensureFolder(ThemeFolder)
-
 	if type(listfiles) == "function" then
 		for _, path in ipairs(listfiles(ThemeFolder) or {}) do
 			local pathText = tostring(path)
 			local baseName = pathText:match("([^/\\]+)$") or pathText
-			if baseName:match("%.txt$") then
+			if baseName:match("%.lua$") then
 				local data = readTable(pathText)
 				if data and data.name then
 					self.CustomThemes[data.name] = data
@@ -387,10 +370,14 @@ end
 
 function ThemeManager:ResetDefault()
 	self.DefaultTheme = { Type = "web", Name = "Default" }
-	local ok, err = writeTable(DefaultThemeFile, self.DefaultTheme)
+
+	if type(isfile) ~= "function" or isfile(DefaultThemeFile) then
+		delfile(DefaultThemeFile)
+	end
+
 	self:ApplyTheme("Default", "web")
 
-	return ok, "web", "Default", err
+	return true, "web", "Default"
 end
 
 function ThemeManager:CreateGroupBox(tab)

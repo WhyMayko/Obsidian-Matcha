@@ -9,19 +9,7 @@ local SettingsFolder = "Galax/Obsidian/Settings"
 local ConfigFolder = SettingsFolder .. "/Config"
 local DefaultConfigFile = SettingsFolder .. "/DefaultConfig.lua"
 
-local function ensureFolder(path)
-	if type(makefolder) ~= "function" then
-		return
-	end
 
-	local current = ""
-	for part in tostring(path):gmatch("[^/\\]+") do
-		current = current == "" and part or (current .. "/" .. part)
-		if type(isfolder) ~= "function" or not isfolder(current) then
-			pcall(makefolder, current)
-		end
-	end
-end
 
 local function fileName(name)
 	return tostring(name or "Config"):gsub("[^%w%s_%-]", "_") .. ".lua"
@@ -56,8 +44,6 @@ local function writeTable(path, data)
 		return false, "writefile unavailable"
 	end
 
-	local folder = tostring(path):match("^(.*)[/\\][^/\\]+$")
-	ensureFolder(folder or SettingsFolder)
 	local ok, err = pcall(writefile, path, "return " .. serialize(data))
 	if not ok then
 		return false, err
@@ -184,8 +170,8 @@ function SaveManager:Delete(name)
 
 	self._data[name] = nil
 	local path = ConfigFolder .. "/" .. fileName(name)
-	if type(delfile) == "function" and (type(isfile) ~= "function" or isfile(path)) then
-		pcall(delfile, path)
+	if type(isfile) ~= "function" or isfile(path) then
+		delfile(path)
 	end
 	if self._autoload == name then
 		self:DeleteAutoLoadConfig()
@@ -194,8 +180,6 @@ function SaveManager:Delete(name)
 end
 
 function SaveManager:RefreshConfigList()
-	ensureFolder(ConfigFolder)
-
 	if type(listfiles) == "function" then
 		for _, path in ipairs(listfiles(ConfigFolder) or {}) do
 			local pathText = tostring(path)
@@ -234,7 +218,12 @@ end
 
 function SaveManager:DeleteAutoLoadConfig()
 	self._autoload = ""
-	return writeTable(DefaultConfigFile, { Name = "" })
+
+	if type(isfile) ~= "function" or isfile(DefaultConfigFile) then
+		delfile(DefaultConfigFile)
+	end
+
+	return true
 end
 
 function SaveManager:GetAutoloadConfig()
