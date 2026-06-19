@@ -9,7 +9,19 @@ local SettingsFolder = "Galax/Obsidian/Settings"
 local ConfigFolder = SettingsFolder .. "/Config"
 local DefaultConfigFile = SettingsFolder .. "/DefaultConfig.lua"
 
+local function ensureFolder(path)
+	if type(makefolder) ~= "function" then
+		return
+	end
 
+	local current = ""
+	for part in tostring(path):gmatch("[^/\\]+") do
+		current = current == "" and part or (current .. "/" .. part)
+		if type(isfolder) ~= "function" or not isfolder(current) then
+			makefolder(current)
+		end
+	end
+end
 
 local function fileName(name)
 	return tostring(name or "Config"):gsub("[^%w%s_%-]", "_") .. ".lua"
@@ -43,6 +55,9 @@ local function writeTable(path, data)
 	if type(writefile) ~= "function" then
 		return false, "writefile unavailable"
 	end
+
+	local folder = tostring(path):match("^(.*)[/\\][^/\\]+$")
+	ensureFolder(folder or SettingsFolder)
 
 	local ok, err = pcall(writefile, path, "return " .. serialize(data))
 	if not ok then
@@ -180,6 +195,8 @@ function SaveManager:Delete(name)
 end
 
 function SaveManager:RefreshConfigList()
+	ensureFolder(ConfigFolder)
+
 	if type(listfiles) == "function" then
 		for _, path in ipairs(listfiles(ConfigFolder) or {}) do
 			local pathText = tostring(path)
