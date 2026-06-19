@@ -326,14 +326,20 @@ function SaveManager:BuildConfigSection(tab)
 
 		self:SaveAutoloadConfig(name)
 		Library:Notify(string.format("Autoload config: %q", name), 4)
+		if self.AutoloadConfigLabel then
+			self.AutoloadConfigLabel:SetText("Current autoload config: " .. name)
+		end
 	end)
 
 	groupbox:AddButton("Reset autoload", function()
 		self:DeleteAutoLoadConfig()
 		Library:Notify("Autoload reset", 4)
+		if self.AutoloadConfigLabel then
+			self.AutoloadConfigLabel:SetText("Current autoload config: none")
+		end
 	end)
 
-	groupbox:AddLabel("Current autoload config: " .. tostring(self:GetAutoloadConfig()))
+	self.AutoloadConfigLabel = groupbox:AddLabel("Current autoload config: " .. tostring(self:GetAutoloadConfig()))
 
 	self:SetIgnoreIndexes({
 		"SaveManager_ConfigName",
