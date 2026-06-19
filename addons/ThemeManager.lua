@@ -37,11 +37,87 @@ local BuiltInThemes = {
 
 local ThemeManager = {
 	Library = nil,
-	Folder = nil,
 	CustomThemes = {},
 	BuiltInThemes = {},
-	DefaultThemeName = nil,
+	DefaultTheme = { Type = "web", Name = "Default" },
 }
+
+local ThemeFolder = "Galax/Obsidian/Settings/Themes"
+local DefaultThemeFile = ThemeFolder .. "/__default.lua"
+
+local function ensureFolder(path)
+	if type(makefolder) ~= "function" then
+		return
+	end
+
+	local current = ""
+	for part in tostring(path):gmatch("[^/\\]+") do
+		current = current == "" and part or (current .. "/" .. part)
+		if type(isfolder) ~= "function" or not isfolder(current) then
+			pcall(makefolder, current)
+		end
+	end
+end
+
+local function fileName(name)
+	return tostring(name or "Theme"):gsub("[^%w%s_%-]", "_") .. ".lua"
+end
+
+local function serialize(value, indent)
+	indent = indent or ""
+	local valueType = type(value)
+
+	if valueType == "string" then
+		return string.format("%q", value)
+	elseif valueType == "number" or valueType == "boolean" then
+		return tostring(value)
+	elseif valueType == "table" then
+		local nextIndent = indent .. "\t"
+		local lines = { "{" }
+
+		for key, item in pairs(value) do
+			local keyText = type(key) == "number" and ("[" .. key .. "]") or ("[" .. string.format("%q", key) .. "]")
+			lines[#lines + 1] = nextIndent .. keyText .. " = " .. serialize(item, nextIndent) .. ","
+		end
+
+		lines[#lines + 1] = indent .. "}"
+		return table.concat(lines, "\n")
+	end
+
+	return "nil"
+end
+
+local function writeTable(path, data)
+	ensureFolder(ThemeFolder)
+	return pcall(writefile, path, "return " .. serialize(data))
+end
+
+local function readTable(path)
+	if type(isfile) == "function" and not isfile(path) then
+		return nil
+	end
+
+	if type(readfile) ~= "function" then
+		return nil
+	end
+
+	local ok, source = pcall(readfile, path)
+	if not ok or type(source) ~= "string" then
+		return nil
+	end
+
+	local chunk = loadstring(source)
+	if not chunk then
+		return nil
+	end
+
+	local loadedOk, data = pcall(chunk)
+	if loadedOk and type(data) == "table" then
+		return data
+	end
+
+	return nil
+end
 
 local function colorToHex(color)
 	if not color or typeof(color) ~= "Color3" then
@@ -80,6 +156,31 @@ local function hexToColor3(hex)
 	return Color3.fromRGB(r, g, b)
 end
 
+local function currentThemeSnapshot(Library, name)
+	local theme = { name = name }
+	local current = Library.ActiveWindow and Library.ActiveWindow:GetTheme() or {}
+
+	theme.BackgroundColor = colorToHex(current.Background)
+	theme.MainColor = colorToHex(current.Main)
+	theme.AccentColor = colorToHex(current.Accent)
+	theme.OutlineColor = colorToHex(current.Outline)
+	theme.FontColor = colorToHex(current.Text)
+	theme.Outline2 = colorToHex(current.Outline2)
+	theme.Surface2 = colorToHex(current.Surface2)
+	theme.Muted = colorToHex(current.Muted)
+	theme.DimText = colorToHex(current.DimText)
+	theme.PopupHover = colorToHex(current.PopupHover)
+	theme.Bottombar = colorToHex(current.Bottombar)
+	theme.BottombarBorder = colorToHex(current.BottombarBorder)
+	theme.FooterText = colorToHex(current.FooterText)
+
+	if Library.Options and Library.Options.FontFace then
+		theme.FontFace = Library.Options.FontFace.Value
+	end
+
+	return theme
+end
+
 for index, entry in ipairs(BuiltInThemes) do
 	entry.index = index
 	ThemeManager.BuiltInThemes[entry.name] = entry
@@ -87,10 +188,6 @@ end
 
 function ThemeManager:SetLibrary(library)
 	self.Library = library
-end
-
-function ThemeManager:SetFolder(folder)
-	self.Folder = folder
 end
 
 function ThemeManager:ThemeUpdate()
@@ -144,16 +241,17 @@ end
 
 function ThemeManager:SaveCustomTheme(name)
 	local Library = self.Library
-	local theme = { name = name }
 
 	if not Library then
 		return
 	end
 
+	local theme = currentThemeSnapshot(Library, name)
+
 	for _, field in ipairs(ThemeFields) do
 		local option = Library.Options and Library.Options[field]
 		if option and option.Get then
-			theme[field] = colorToHex(option:Get())
+			theme[field] = colorToHex(option:Get()) or theme[field]
 		end
 	end
 
@@ -162,14 +260,34 @@ function ThemeManager:SaveCustomTheme(name)
 	end
 
 	self.CustomThemes[name] = theme
+	writeTable(ThemeFolder .. "/" .. fileName(name), theme)
 end
 
 function ThemeManager:Delete(name)
 	self.CustomThemes[name] = nil
+	local path = ThemeFolder .. "/" .. fileName(name)
+	if type(delfile) == "function" and (type(isfile) ~= "function" or isfile(path)) then
+		pcall(delfile, path)
+	end
 	return true
 end
 
 function ThemeManager:ReloadCustomThemes()
+	ensureFolder(ThemeFolder)
+
+	if type(listfiles) == "function" then
+		for _, path in ipairs(listfiles(ThemeFolder) or {}) do
+			local pathText = tostring(path)
+			local baseName = pathText:match("([^/\\]+)$") or pathText
+			if baseName ~= "__default.lua" and baseName:match("%.lua$") then
+				local data = readTable(pathText)
+				if data and data.name then
+					self.CustomThemes[data.name] = data
+				end
+			end
+		end
+	end
+
 	local names = {}
 
 	for name in pairs(self.CustomThemes) do
@@ -182,15 +300,47 @@ end
 
 function ThemeManager:LoadDefault()
 	local Library = self.Library
-	local themeName = self.DefaultThemeName or "Default"
+	local saved = readTable(DefaultThemeFile)
+	if saved and saved.Type and saved.Name then
+		self.DefaultTheme = saved
+	end
+
+	local themeType = self.DefaultTheme.Type or "web"
+	local themeName = self.DefaultTheme.Name or "Default"
+
+	self:ReloadCustomThemes()
+
+	if themeType == "custom" then
+		if Library and Library.Options and Library.Options.ThemeManager_CustomThemeList then
+			Library.Options.ThemeManager_CustomThemeList:SetValues(self:ReloadCustomThemes())
+			Library.Options.ThemeManager_CustomThemeList:SetValue(themeName)
+		end
+
+		self:ApplyTheme(themeName)
+		return
+	end
 
 	if Library and Library.Options and Library.Options.ThemeManager_ThemeList then
 		Library.Options.ThemeManager_ThemeList:SetValue(themeName)
 	end
 end
 
-function ThemeManager:SaveDefault(name)
-	self.DefaultThemeName = name
+function ThemeManager:SaveDefault(name, themeType)
+	self.DefaultTheme = {
+		Type = themeType or (self.CustomThemes[name] and "custom" or "web"),
+		Name = name or "Default",
+	}
+
+	writeTable(DefaultThemeFile, self.DefaultTheme)
+	return true
+end
+
+function ThemeManager:ResetDefault()
+	self.DefaultTheme = { Type = "web", Name = "Default" }
+	if type(delfile) == "function" and (type(isfile) ~= "function" or isfile(DefaultThemeFile)) then
+		pcall(delfile, DefaultThemeFile)
+	end
+	self:ApplyTheme("Default")
 	return true
 end
 
@@ -202,6 +352,13 @@ function ThemeManager:CreateThemeManager(groupbox)
 	local Library = self.Library
 	if not Library then
 		return
+	end
+
+	local function refreshCustomThemeList()
+		if Library.Options.ThemeManager_CustomThemeList then
+			Library.Options.ThemeManager_CustomThemeList:SetValues(self:ReloadCustomThemes())
+			Library.Options.ThemeManager_CustomThemeList:SetValue(nil)
+		end
 	end
 
 	groupbox:AddLabel("Background color"):AddColorPicker("BackgroundColor", { Default = Color3.fromRGB(15, 15, 15) })
@@ -240,9 +397,9 @@ function ThemeManager:CreateThemeManager(groupbox)
 		Default = themeNames[1],
 	})
 
-	groupbox:AddButton("Set Default", function()
+	groupbox:AddButton("Set as default", function()
 		local themeName = Library.Options.ThemeManager_ThemeList.Value
-		self:SaveDefault(themeName)
+		self:SaveDefault(themeName, "web")
 		Library:Notify(string.format("Set default theme to %q", tostring(themeName)), 4)
 	end)
 
@@ -268,11 +425,7 @@ function ThemeManager:CreateThemeManager(groupbox)
 
 		self:SaveCustomTheme(name)
 		Library:Notify(string.format("Created theme %q", name), 4)
-
-		if Library.Options.ThemeManager_CustomThemeList then
-			Library.Options.ThemeManager_CustomThemeList:SetValues(self:ReloadCustomThemes())
-			Library.Options.ThemeManager_CustomThemeList:SetValue(nil)
-		end
+		refreshCustomThemeList()
 	end)
 
 	groupbox:AddDivider()
@@ -312,13 +465,33 @@ function ThemeManager:CreateThemeManager(groupbox)
 		end
 
 		Library:Notify(string.format("Deleted theme %q", name), 4)
-		Library.Options.ThemeManager_CustomThemeList:SetValues(self:ReloadCustomThemes())
-		Library.Options.ThemeManager_CustomThemeList:SetValue(nil)
+		refreshCustomThemeList()
 	end)
 
 	groupbox:AddButton("Refresh list", function()
-		Library.Options.ThemeManager_CustomThemeList:SetValues(self:ReloadCustomThemes())
-		Library.Options.ThemeManager_CustomThemeList:SetValue(nil)
+		refreshCustomThemeList()
+	end)
+
+	groupbox:AddButton("Set as default", function()
+		local name = Library.Options.ThemeManager_CustomThemeList.Value
+		if not name then
+			Library:Notify("No custom theme selected", 4)
+			return
+		end
+
+		self:SaveDefault(name, "custom")
+		Library:Notify(string.format("Set default custom theme to %q", name), 4)
+	end)
+
+	groupbox:AddButton("Reset default", function()
+		self:ResetDefault()
+		if Library.Options.ThemeManager_ThemeList then
+			Library.Options.ThemeManager_ThemeList:SetValue("Default")
+		end
+		if Library.Options.ThemeManager_CustomThemeList then
+			Library.Options.ThemeManager_CustomThemeList:SetValue(nil)
+		end
+		Library:Notify("Default theme reset", 4)
 	end)
 
 	local function updateTheme()
