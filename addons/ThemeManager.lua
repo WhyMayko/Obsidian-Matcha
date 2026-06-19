@@ -42,8 +42,9 @@ local ThemeManager = {
 	DefaultTheme = { Type = "web", Name = "Default" },
 }
 
-local ThemeFolder = "Galax/Obsidian/Settings/Themes"
-local DefaultThemeFile = ThemeFolder .. "/__default.lua"
+local SettingsFolder = "Galax/Obsidian/Settings"
+local ThemeFolder = SettingsFolder .. "/Themes"
+local DefaultThemeFile = SettingsFolder .. "/DefaultTheme"
 
 local function ensureFolder(path)
 	if type(makefolder) ~= "function" then
@@ -88,7 +89,8 @@ local function serialize(value, indent)
 end
 
 local function writeTable(path, data)
-	ensureFolder(ThemeFolder)
+	local folder = tostring(path):match("^(.*)[/\\][^/\\]+$")
+	ensureFolder(folder or SettingsFolder)
 	return pcall(writefile, path, "return " .. serialize(data))
 end
 
@@ -220,7 +222,7 @@ function ThemeManager:ApplyTheme(name, themeType)
 
 	if themeType == "web" then
 		data = self.BuiltInThemes[name]
-	elseif themeType == "custom" then
+	elseif themeType == "local" or themeType == "custom" then
 		data = self.CustomThemes[name]
 	else
 		data = self.CustomThemes[name] or self.BuiltInThemes[name]
@@ -287,7 +289,7 @@ function ThemeManager:ReloadCustomThemes()
 		for _, path in ipairs(listfiles(ThemeFolder) or {}) do
 			local pathText = tostring(path)
 			local baseName = pathText:match("([^/\\]+)$") or pathText
-			if baseName ~= "__default.lua" and baseName:match("%.lua$") then
+			if baseName:match("%.lua$") then
 				local data = readTable(pathText)
 				if data and data.name then
 					self.CustomThemes[data.name] = data
@@ -310,13 +312,13 @@ function ThemeManager:LoadDefault()
 	local Library = self.Library
 	local themeType, themeName = self:GetDefaultTheme()
 
-	if themeType == "custom" then
+	if themeType == "local" then
 		if Library and Library.Options and Library.Options.ThemeManager_CustomThemeList then
 			Library.Options.ThemeManager_CustomThemeList:SetValues(self:ReloadCustomThemes())
 			Library.Options.ThemeManager_CustomThemeList:SetValue(themeName)
 		end
 
-		self:ApplyTheme(themeName, "custom")
+		self:ApplyTheme(themeName, "local")
 		return
 	end
 
@@ -334,12 +336,21 @@ function ThemeManager:GetDefaultTheme()
 	local themeType = self.DefaultTheme.Type or "web"
 	local themeName = self.DefaultTheme.Name or "Default"
 
-	self:ReloadCustomThemes()
+	if themeType == "custom" then
+		themeType = "local"
+	end
 
-	if themeType == "custom" and not self.CustomThemes[themeName] then
-		themeType = "web"
-		themeName = "Default"
-	elseif themeType == "web" and not self.BuiltInThemes[themeName] then
+	if themeType == "web" then
+		if not self.BuiltInThemes[themeName] then
+			themeName = "Default"
+		end
+	elseif themeType == "local" then
+		self:ReloadCustomThemes()
+		if not self.CustomThemes[themeName] then
+			themeType = "web"
+			themeName = "Default"
+		end
+	else
 		themeType = "web"
 		themeName = "Default"
 	end
@@ -349,7 +360,7 @@ end
 
 function ThemeManager:SaveDefault(name, themeType)
 	self.DefaultTheme = {
-		Type = themeType or (self.CustomThemes[name] and "custom" or "web"),
+		Type = themeType == "custom" and "local" or (themeType or (self.CustomThemes[name] and "local" or "web")),
 		Name = name or "Default",
 	}
 
@@ -478,7 +489,7 @@ function ThemeManager:CreateThemeManager(groupbox)
 	groupbox:AddButton("Load theme", function()
 		local name = Library.Options.ThemeManager_CustomThemeList.Value
 		if name then
-			self:ApplyTheme(name, "custom")
+			self:ApplyTheme(name, "local")
 			Library:Notify(string.format("Loaded theme %q", name), 4)
 		end
 	end)
@@ -518,8 +529,8 @@ function ThemeManager:CreateThemeManager(groupbox)
 			return
 		end
 
-		self:SaveDefault(name, "custom")
-		Library:Notify(string.format("Set default custom theme to %q", name), 4)
+		self:SaveDefault(name, "local")
+		Library:Notify(string.format("Set default local theme to %q", name), 4)
 	end)
 
 	groupbox:AddButton("Reset default", resetDefaultTheme)
