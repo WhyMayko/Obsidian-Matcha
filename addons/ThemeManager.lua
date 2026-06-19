@@ -415,21 +415,27 @@ function ThemeManager:CreateThemeManager(groupbox)
 	end
 
 	local function resetDefaultTheme()
-		local ok, themeType, themeName, err = self:ResetDefault()
+		local themeType, themeName = self:GetDefaultTheme()
+		self:ApplyTheme(themeName, themeType)
 
-		if Library.Options.ThemeManager_ThemeList then
-			Library.Options.ThemeManager_ThemeList:SetValue(themeName)
-		end
-		if Library.Options.ThemeManager_CustomThemeList then
-			Library.Options.ThemeManager_CustomThemeList:SetValue(nil)
+		if themeType == "local" then
+			if Library.Options.ThemeManager_CustomThemeList then
+				Library.Options.ThemeManager_CustomThemeList:SetValues(self:ReloadCustomThemes())
+				Library.Options.ThemeManager_CustomThemeList:SetValue(themeName)
+			end
+			if Library.Options.ThemeManager_ThemeList then
+				Library.Options.ThemeManager_ThemeList:SetValue(nil)
+			end
+		else
+			if Library.Options.ThemeManager_ThemeList then
+				Library.Options.ThemeManager_ThemeList:SetValue(themeName)
+			end
+			if Library.Options.ThemeManager_CustomThemeList then
+				Library.Options.ThemeManager_CustomThemeList:SetValue(nil)
+			end
 		end
 
-		if not ok then
-			Library:Notify("Failed to reset default theme: " .. tostring(err), 4)
-			return
-		end
-
-		Library:Notify(string.format("Reset theme to default %q", tostring(themeName)), 4)
+		Library:Notify(string.format("Loaded default theme: %q", tostring(themeName)), 4)
 	end
 
 	groupbox:AddLabel("Background color"):AddColorPicker("BackgroundColor", { Default = Color3.fromRGB(15, 15, 15) })

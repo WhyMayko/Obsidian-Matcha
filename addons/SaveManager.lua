@@ -378,17 +378,27 @@ function SaveManager:BuildConfigSection(tab)
 	end)
 
 	groupbox:AddButton("Reset autoload", function()
-		local ok, err = self:DeleteAutoLoadConfig()
-		if not ok then
-			Library:Notify("Failed: " .. tostring(err), 4)
+		local name = self:GetAutoloadConfig()
+		if name == "none" then
+			Library:Notify("Autoload reset / No config", 4)
+			if self.AutoloadConfigLabel then
+				self.AutoloadConfigLabel:SetText("Current autoload config: none")
+			end
 			return
 		end
 
-		Library:Notify("Autoload reset", 4)
+		local ok, err = self:Load(name)
+		if not ok then
+			Library:Notify("Failed to load autoload config: " .. tostring(err), 4)
+			return
+		end
+
+		Library:Notify(string.format("Loaded autoload config: %q", name), 4)
 		if self.AutoloadConfigLabel then
-			self.AutoloadConfigLabel:SetText("Current autoload config: none")
+			self.AutoloadConfigLabel:SetText("Current autoload config: " .. name)
 		end
 	end)
+
 
 	self.AutoloadConfigLabel = groupbox:AddLabel("Current autoload config: " .. tostring(self:GetAutoloadConfig()))
 
