@@ -7,7 +7,7 @@ local SaveManager = {
 
 local SettingsFolder = "Galax/Obsidian/Settings"
 local ConfigFolder = SettingsFolder .. "/Config"
-local DefaultConfigFile = SettingsFolder .. "/DefaultConfig"
+local DefaultConfigFile = SettingsFolder .. "/DefaultConfig.lua"
 
 local function ensureFolder(path)
 	if type(makefolder) ~= "function" then

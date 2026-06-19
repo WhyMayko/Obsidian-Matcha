@@ -42,9 +42,10 @@ local ThemeManager = {
 	DefaultTheme = { Type = "web", Name = "Default" },
 }
 
+local HttpService = game:GetService("HttpService")
 local SettingsFolder = "Galax/Obsidian/Settings"
 local ThemeFolder = SettingsFolder .. "/Themes"
-local DefaultThemeFile = SettingsFolder .. "/DefaultTheme"
+local DefaultThemeFile = SettingsFolder .. "/DefaultTheme.txt"
 
 local function ensureFolder(path)
 	if type(makefolder) ~= "function" then
@@ -61,31 +62,7 @@ local function ensureFolder(path)
 end
 
 local function fileName(name)
-	return tostring(name or "Theme"):gsub("[^%w%s_%-]", "_") .. ".lua"
-end
-
-local function serialize(value, indent)
-	indent = indent or ""
-	local valueType = type(value)
-
-	if valueType == "string" then
-		return string.format("%q", value)
-	elseif valueType == "number" or valueType == "boolean" then
-		return tostring(value)
-	elseif valueType == "table" then
-		local nextIndent = indent .. "\t"
-		local lines = { "{" }
-
-		for key, item in pairs(value) do
-			local keyText = type(key) == "number" and ("[" .. key .. "]") or ("[" .. string.format("%q", key) .. "]")
-			lines[#lines + 1] = nextIndent .. keyText .. " = " .. serialize(item, nextIndent) .. ","
-		end
-
-		lines[#lines + 1] = indent .. "}"
-		return table.concat(lines, "\n")
-	end
-
-	return "nil"
+	return tostring(name or "Theme"):gsub("[^%w%s_%-]", "_") .. ".txt"
 end
 
 local function writeTable(path, data)
@@ -95,7 +72,14 @@ local function writeTable(path, data)
 
 	local folder = tostring(path):match("^(.*)[/\\][^/\\]+$")
 	ensureFolder(folder or SettingsFolder)
-	local ok, err = pcall(writefile, path, "return " .. serialize(data))
+	local encodeOk, encoded = pcall(function()
+		return HttpService:JSONEncode(data)
+	end)
+	if not encodeOk then
+		return false, encoded
+	end
+
+	local ok, err = pcall(writefile, path, encoded)
 	if not ok then
 		return false, err
 	end
@@ -117,13 +101,10 @@ local function readTable(path)
 		return nil
 	end
 
-	local chunk = loadstring(source)
-	if not chunk then
-		return nil
-	end
-
-	local loadedOk, data = pcall(chunk)
-	if loadedOk and type(data) == "table" then
+	local decodeOk, data = pcall(function()
+		return HttpService:JSONDecode(source)
+	end)
+	if decodeOk and type(data) == "table" then
 		return data
 	end
 
