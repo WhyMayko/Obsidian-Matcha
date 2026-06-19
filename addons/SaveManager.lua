@@ -52,9 +52,18 @@ local function serialize(value, indent)
 end
 
 local function writeTable(path, data)
+	if type(writefile) ~= "function" then
+		return false, "writefile unavailable"
+	end
+
 	local folder = tostring(path):match("^(.*)[/\\][^/\\]+$")
 	ensureFolder(folder or SettingsFolder)
-	return pcall(writefile, path, "return " .. serialize(data))
+	local ok, err = pcall(writefile, path, "return " .. serialize(data))
+	if not ok then
+		return false, err
+	end
+
+	return true
 end
 
 local function readTable(path)
@@ -136,7 +145,12 @@ function SaveManager:Save(name)
 	end
 
 	self._data[name] = data
-	writeTable(ConfigFolder .. "/" .. fileName(name), data)
+	local ok, err = writeTable(ConfigFolder .. "/" .. fileName(name), data)
+	if not ok then
+		self._data[name] = nil
+		return false, err
+	end
+
 	return true
 end
 
@@ -164,6 +178,10 @@ function SaveManager:Load(name)
 end
 
 function SaveManager:Delete(name)
+	if not name or name == "" then
+		return false, "no name"
+	end
+
 	self._data[name] = nil
 	local path = ConfigFolder .. "/" .. fileName(name)
 	if type(delfile) == "function" and (type(isfile) ~= "function" or isfile(path)) then
@@ -203,17 +221,20 @@ function SaveManager:RefreshConfigList()
 end
 
 function SaveManager:SaveAutoloadConfig(name)
+	if not name or name == "" then
+		return false, "no name"
+	end
+	if not self._data[name] and not readTable(ConfigFolder .. "/" .. fileName(name)) then
+		return false, "config not found"
+	end
+
 	self._autoload = name or ""
-	writeTable(DefaultConfigFile, { Name = self._autoload })
-	return true
+	return writeTable(DefaultConfigFile, { Name = self._autoload })
 end
 
 function SaveManager:DeleteAutoLoadConfig()
 	self._autoload = ""
-	if type(delfile) == "function" and (type(isfile) ~= "function" or isfile(DefaultConfigFile)) then
-		pcall(delfile, DefaultConfigFile)
-	end
-	return true
+	return writeTable(DefaultConfigFile, { Name = "" })
 end
 
 function SaveManager:GetAutoloadConfig()
@@ -338,7 +359,12 @@ function SaveManager:BuildConfigSection(tab)
 			return
 		end
 
-		self:SaveAutoloadConfig(name)
+		local ok, err = self:SaveAutoloadConfig(name)
+		if not ok then
+			Library:Notify("Failed: " .. tostring(err), 4)
+			return
+		end
+
 		Library:Notify(string.format("Autoload config: %q", name), 4)
 		if self.AutoloadConfigLabel then
 			self.AutoloadConfigLabel:SetText("Current autoload config: " .. name)
@@ -346,7 +372,12 @@ function SaveManager:BuildConfigSection(tab)
 	end)
 
 	groupbox:AddButton("Reset autoload", function()
-		self:DeleteAutoLoadConfig()
+		local ok, err = self:DeleteAutoLoadConfig()
+		if not ok then
+			Library:Notify("Failed: " .. tostring(err), 4)
+			return
+		end
+
 		Library:Notify("Autoload reset", 4)
 		if self.AutoloadConfigLabel then
 			self.AutoloadConfigLabel:SetText("Current autoload config: none")

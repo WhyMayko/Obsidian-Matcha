@@ -89,9 +89,18 @@ local function serialize(value, indent)
 end
 
 local function writeTable(path, data)
+	if type(writefile) ~= "function" then
+		return false, "writefile unavailable"
+	end
+
 	local folder = tostring(path):match("^(.*)[/\\][^/\\]+$")
 	ensureFolder(folder or SettingsFolder)
-	return pcall(writefile, path, "return " .. serialize(data))
+	local ok, err = pcall(writefile, path, "return " .. serialize(data))
+	if not ok then
+		return false, err
+	end
+
+	return true
 end
 
 local function readTable(path)
@@ -253,7 +262,11 @@ function ThemeManager:SaveCustomTheme(name)
 	local Library = self.Library
 
 	if not Library then
-		return
+		return false, "library not set"
+	end
+
+	if not name or name:gsub(" ", "") == "" then
+		return false, "no name"
 	end
 
 	local theme = currentThemeSnapshot(Library, name)
@@ -270,7 +283,13 @@ function ThemeManager:SaveCustomTheme(name)
 	end
 
 	self.CustomThemes[name] = theme
-	writeTable(ThemeFolder .. "/" .. fileName(name), theme)
+	local ok, err = writeTable(ThemeFolder .. "/" .. fileName(name), theme)
+	if not ok then
+		self.CustomThemes[name] = nil
+		return false, err
+	end
+
+	return true
 end
 
 function ThemeManager:Delete(name)
@@ -363,23 +382,33 @@ function ThemeManager:GetDefaultTheme()
 end
 
 function ThemeManager:SaveDefault(name, themeType)
+	local resolvedType = themeType == "custom" and "local" or (themeType or (self.CustomThemes[name] and "local" or "web"))
+	local resolvedName = name or "Default"
+
+	if resolvedType == "web" and not self.BuiltInThemes[resolvedName] then
+		return false, "web theme not found"
+	end
+	if resolvedType == "local" and not self.CustomThemes[resolvedName] then
+		self:ReloadCustomThemes()
+		if not self.CustomThemes[resolvedName] then
+			return false, "local theme not found"
+		end
+	end
+
 	self.DefaultTheme = {
-		Type = themeType == "custom" and "local" or (themeType or (self.CustomThemes[name] and "local" or "web")),
-		Name = name or "Default",
+		Type = resolvedType,
+		Name = resolvedName,
 	}
 
-	writeTable(DefaultThemeFile, self.DefaultTheme)
-	return true
+	return writeTable(DefaultThemeFile, self.DefaultTheme)
 end
 
 function ThemeManager:ResetDefault()
 	self.DefaultTheme = { Type = "web", Name = "Default" }
-	if type(delfile) == "function" and (type(isfile) ~= "function" or isfile(DefaultThemeFile)) then
-		pcall(delfile, DefaultThemeFile)
-	end
+	local ok, err = writeTable(DefaultThemeFile, self.DefaultTheme)
 	self:ApplyTheme("Default", "web")
 
-	return true, "web", "Default"
+	return ok, "web", "Default", err
 end
 
 function ThemeManager:CreateGroupBox(tab)
@@ -400,13 +429,18 @@ function ThemeManager:CreateThemeManager(groupbox)
 	end
 
 	local function resetDefaultTheme()
-		local _, themeType, themeName = self:ResetDefault()
+		local ok, themeType, themeName, err = self:ResetDefault()
 
 		if Library.Options.ThemeManager_ThemeList then
 			Library.Options.ThemeManager_ThemeList:SetValue(themeName)
 		end
 		if Library.Options.ThemeManager_CustomThemeList then
 			Library.Options.ThemeManager_CustomThemeList:SetValue(nil)
+		end
+
+		if not ok then
+			Library:Notify("Failed to reset default theme: " .. tostring(err), 4)
+			return
 		end
 
 		Library:Notify(string.format("Reset theme to default %q", tostring(themeName)), 4)
@@ -450,7 +484,11 @@ function ThemeManager:CreateThemeManager(groupbox)
 
 	groupbox:AddButton("Set as default", function()
 		local themeName = Library.Options.ThemeManager_ThemeList.Value
-		self:SaveDefault(themeName, "web")
+		local ok, err = self:SaveDefault(themeName, "web")
+		if not ok then
+			Library:Notify("Failed to set default theme: " .. tostring(err), 4)
+			return
+		end
 		Library:Notify(string.format("Set default theme to %q", tostring(themeName)), 4)
 	end)
 
@@ -477,7 +515,12 @@ function ThemeManager:CreateThemeManager(groupbox)
 			return
 		end
 
-		self:SaveCustomTheme(name)
+		local ok, err = self:SaveCustomTheme(name)
+		if not ok then
+			Library:Notify("Failed to create theme: " .. tostring(err), 4)
+			return
+		end
+
 		Library:Notify(string.format("Created theme %q", name), 4)
 		refreshCustomThemeList()
 	end)
@@ -501,7 +544,11 @@ function ThemeManager:CreateThemeManager(groupbox)
 	groupbox:AddButton("Overwrite theme", function()
 		local name = Library.Options.ThemeManager_CustomThemeList.Value
 		if name then
-			self:SaveCustomTheme(name)
+			local ok, err = self:SaveCustomTheme(name)
+			if not ok then
+				Library:Notify("Failed to overwrite theme: " .. tostring(err), 4)
+				return
+			end
 			Library:Notify(string.format("Overwrote theme %q", name), 4)
 		end
 	end)
@@ -533,7 +580,11 @@ function ThemeManager:CreateThemeManager(groupbox)
 			return
 		end
 
-		self:SaveDefault(name, "local")
+		local ok, err = self:SaveDefault(name, "local")
+		if not ok then
+			Library:Notify("Failed to set default theme: " .. tostring(err), 4)
+			return
+		end
 		Library:Notify(string.format("Set default local theme to %q", name), 4)
 	end)
 
