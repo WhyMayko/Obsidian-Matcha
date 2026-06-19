@@ -308,15 +308,7 @@ end
 
 function ThemeManager:LoadDefault()
 	local Library = self.Library
-	local saved = readTable(DefaultThemeFile)
-	if saved and saved.Type and saved.Name then
-		self.DefaultTheme = saved
-	end
-
-	local themeType = self.DefaultTheme.Type or "web"
-	local themeName = self.DefaultTheme.Name or "Default"
-
-	self:ReloadCustomThemes()
+	local themeType, themeName = self:GetDefaultTheme()
 
 	if themeType == "custom" then
 		if Library and Library.Options and Library.Options.ThemeManager_CustomThemeList then
@@ -339,7 +331,20 @@ function ThemeManager:GetDefaultTheme()
 		self.DefaultTheme = saved
 	end
 
-	return self.DefaultTheme.Type or "web", self.DefaultTheme.Name or "Default"
+	local themeType = self.DefaultTheme.Type or "web"
+	local themeName = self.DefaultTheme.Name or "Default"
+
+	self:ReloadCustomThemes()
+
+	if themeType == "custom" and not self.CustomThemes[themeName] then
+		themeType = "web"
+		themeName = "Default"
+	elseif themeType == "web" and not self.BuiltInThemes[themeName] then
+		themeType = "web"
+		themeName = "Default"
+	end
+
+	return themeType, themeName
 end
 
 function ThemeManager:SaveDefault(name, themeType)
@@ -353,12 +358,13 @@ function ThemeManager:SaveDefault(name, themeType)
 end
 
 function ThemeManager:ResetDefault()
-	local themeType, themeName = self:GetDefaultTheme()
+	self.DefaultTheme = { Type = "web", Name = "Default" }
+	if type(delfile) == "function" and (type(isfile) ~= "function" or isfile(DefaultThemeFile)) then
+		pcall(delfile, DefaultThemeFile)
+	end
+	self:ApplyTheme("Default", "web")
 
-	self:ReloadCustomThemes()
-	self:ApplyTheme(themeName, themeType)
-
-	return true, themeType, themeName
+	return true, "web", "Default"
 end
 
 function ThemeManager:CreateGroupBox(tab)
@@ -381,18 +387,11 @@ function ThemeManager:CreateThemeManager(groupbox)
 	local function resetDefaultTheme()
 		local _, themeType, themeName = self:ResetDefault()
 
-		if themeType == "custom" then
-			if Library.Options.ThemeManager_CustomThemeList then
-				Library.Options.ThemeManager_CustomThemeList:SetValues(self:ReloadCustomThemes())
-				Library.Options.ThemeManager_CustomThemeList:SetValue(themeName)
-			end
-		else
-			if Library.Options.ThemeManager_ThemeList then
-				Library.Options.ThemeManager_ThemeList:SetValue(themeName)
-			end
-			if Library.Options.ThemeManager_CustomThemeList then
-				Library.Options.ThemeManager_CustomThemeList:SetValue(nil)
-			end
+		if Library.Options.ThemeManager_ThemeList then
+			Library.Options.ThemeManager_ThemeList:SetValue(themeName)
+		end
+		if Library.Options.ThemeManager_CustomThemeList then
+			Library.Options.ThemeManager_CustomThemeList:SetValue(nil)
 		end
 
 		Library:Notify(string.format("Reset theme to default %q", tostring(themeName)), 4)
@@ -440,10 +439,11 @@ function ThemeManager:CreateThemeManager(groupbox)
 		Library:Notify(string.format("Set default theme to %q", tostring(themeName)), 4)
 	end)
 
-	groupbox:AddButton("Reset default", resetDefaultTheme)
-
 	if Library.Options.ThemeManager_ThemeList then
 		Library.Options.ThemeManager_ThemeList:OnChanged(function()
+			if Library.Options.ThemeManager_CustomThemeList then
+				Library.Options.ThemeManager_CustomThemeList:SetValue(nil)
+			end
 			self:ApplyTheme(Library.Options.ThemeManager_ThemeList.Value, "web")
 		end)
 	end
