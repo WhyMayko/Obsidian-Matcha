@@ -279,6 +279,9 @@ function ThemeManager:Delete(name)
 	if type(delfile) == "function" and (type(isfile) ~= "function" or isfile(path)) then
 		pcall(delfile, path)
 	end
+	if self.DefaultTheme.Type == "local" and self.DefaultTheme.Name == name then
+		self:ResetDefault()
+	end
 	return true
 end
 
@@ -347,6 +350,7 @@ function ThemeManager:GetDefaultTheme()
 	elseif themeType == "local" then
 		self:ReloadCustomThemes()
 		if not self.CustomThemes[themeName] then
+			self:ResetDefault()
 			themeType = "web"
 			themeName = "Default"
 		end
