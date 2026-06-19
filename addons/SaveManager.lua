@@ -5,8 +5,9 @@ local SaveManager = {
 	_autoload = "",
 }
 
-local ConfigFolder = "Galax/Obsidian/Settings/Config"
-local AutoloadFile = ConfigFolder .. "/__autoload.lua"
+local SettingsFolder = "Galax/Obsidian/Settings"
+local ConfigFolder = SettingsFolder .. "/Config"
+local DefaultConfigFile = SettingsFolder .. "/DefaultConfig"
 
 local function ensureFolder(path)
 	if type(makefolder) ~= "function" then
@@ -51,7 +52,8 @@ local function serialize(value, indent)
 end
 
 local function writeTable(path, data)
-	ensureFolder(ConfigFolder)
+	local folder = tostring(path):match("^(.*)[/\\][^/\\]+$")
+	ensureFolder(folder or SettingsFolder)
 	return pcall(writefile, path, "return " .. serialize(data))
 end
 
@@ -167,6 +169,9 @@ function SaveManager:Delete(name)
 	if type(delfile) == "function" and (type(isfile) ~= "function" or isfile(path)) then
 		pcall(delfile, path)
 	end
+	if self._autoload == name then
+		self:DeleteAutoLoadConfig()
+	end
 	return true
 end
 
@@ -177,7 +182,7 @@ function SaveManager:RefreshConfigList()
 		for _, path in ipairs(listfiles(ConfigFolder) or {}) do
 			local pathText = tostring(path)
 			local baseName = pathText:match("([^/\\]+)$") or pathText
-			if baseName ~= "__autoload.lua" and baseName:match("%.lua$") then
+			if baseName:sub(1, 2) ~= "__" and baseName:match("%.lua$") then
 				local data = readTable(pathText)
 				local name = baseName:gsub("%.lua$", "")
 				if data then
@@ -199,27 +204,30 @@ end
 
 function SaveManager:SaveAutoloadConfig(name)
 	self._autoload = name or ""
-	writeTable(AutoloadFile, { Name = self._autoload })
+	writeTable(DefaultConfigFile, { Name = self._autoload })
 	return true
 end
 
 function SaveManager:DeleteAutoLoadConfig()
 	self._autoload = ""
-	if type(delfile) == "function" and (type(isfile) ~= "function" or isfile(AutoloadFile)) then
-		pcall(delfile, AutoloadFile)
-	else
-		writeTable(AutoloadFile, { Name = "" })
+	if type(delfile) == "function" and (type(isfile) ~= "function" or isfile(DefaultConfigFile)) then
+		pcall(delfile, DefaultConfigFile)
 	end
 	return true
 end
 
 function SaveManager:GetAutoloadConfig()
-	local saved = readTable(AutoloadFile)
+	local saved = readTable(DefaultConfigFile)
 	if saved and saved.Name ~= nil then
 		self._autoload = saved.Name
 	end
 
 	if self._autoload == "" then
+		return "none"
+	end
+
+	if not self._data[self._autoload] and not readTable(ConfigFolder .. "/" .. fileName(self._autoload)) then
+		self:DeleteAutoLoadConfig()
 		return "none"
 	end
 
@@ -230,7 +238,10 @@ function SaveManager:LoadAutoloadConfig()
 	self:GetAutoloadConfig()
 
 	if self._autoload ~= "" then
-		self:Load(self._autoload)
+		local ok = self:Load(self._autoload)
+		if not ok then
+			self:DeleteAutoLoadConfig()
+		end
 	end
 end
 
@@ -310,6 +321,9 @@ function SaveManager:BuildConfigSection(tab)
 		Library:Notify(string.format("Deleted config: %q", name), 4)
 		Options.SaveManager_ConfigList:SetValues(self:RefreshConfigList())
 		Options.SaveManager_ConfigList:SetValue(nil)
+		if self.AutoloadConfigLabel then
+			self.AutoloadConfigLabel:SetText("Current autoload config: " .. tostring(self:GetAutoloadConfig()))
+		end
 	end)
 
 	groupbox:AddButton("Refresh list", function()
