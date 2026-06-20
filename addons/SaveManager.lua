@@ -120,6 +120,9 @@ function SaveManager:Save(name)
 		if self:IsAllowedIndex(index) and option.Get then
 			if option.Type == "KeyPicker" then
 				data[index] = { Key = option:Get(), Mode = option.Mode, Modifiers = option.Modifiers }
+			elseif option.Type == "ColorPicker" then
+				local color, trans = option:Get()
+				data[index] = { color.R, color.G, color.B, trans or 0 }
 			else
 				data[index] = { option:Get() }
 			end
@@ -157,11 +160,15 @@ function SaveManager:Load(name)
 	for index, values in pairs(data) do
 		local object = self:IsAllowedIndex(index) and ((Library.Options or {})[index] or (Library.Toggles or {})[index])
 
-		if object and object.Set then
-			if values[2] ~= nil or values.Modifiers ~= nil then
-				object:Set(values)
-			else
-				object:Set(values[1])
+		if object then
+			if object.Type == "ColorPicker" and object.SetValueRGB then
+				object:SetValueRGB(Color3.new(values[1], values[2], values[3]), values[4] or 0)
+			elseif object.Set then
+				if values.Key ~= nil or values[2] ~= nil or values.Modifiers ~= nil then
+					object:Set(values)
+				else
+					object:Set(values[1])
+				end
 			end
 		end
 	end
