@@ -63,14 +63,10 @@ local ThemeFolder = SettingsFolder .. "/Themes"
 local DefaultThemeFile = SettingsFolder .. "/DefaultTheme.txt"
 
 local function ensureFolder(path)
-	if type(makefolder) ~= "function" then
-		return
-	end
-
 	local current = ""
 	for part in tostring(path):gmatch("[^/\\]+") do
 		current = current == "" and part or (current .. "/" .. part)
-		if type(isfolder) ~= "function" or not isfolder(current) then
+		if not isfolder(current) then
 			makefolder(current)
 		end
 	end
@@ -81,10 +77,6 @@ local function fileName(name)
 end
 
 local function writeTable(path, data)
-	if type(writefile) ~= "function" then
-		return false, "writefile unavailable"
-	end
-
 	local folder = tostring(path):match("^(.*)[/\\][^/\\]+$")
 	ensureFolder(folder or SettingsFolder)
 
@@ -95,11 +87,7 @@ local function writeTable(path, data)
 end
 
 local function readTable(path)
-	if type(isfile) == "function" and not isfile(path) then
-		return nil
-	end
-
-	if type(readfile) ~= "function" then
+	if not isfile(path) then
 		return nil
 	end
 
@@ -281,7 +269,7 @@ end
 function ThemeManager:Delete(name)
 	self.CustomThemes[name] = nil
 	local path = ThemeFolder .. "/" .. fileName(name)
-	if type(delfile) == "function" and (type(isfile) ~= "function" or isfile(path)) then
+	if isfile(path) then
 		delfile(path)
 	end
 	if self.DefaultTheme.Type == "local" and self.DefaultTheme.Name == name then
@@ -293,9 +281,8 @@ end
 function ThemeManager:ReloadCustomThemes()
 	ensureFolder(ThemeFolder)
 
-	if type(listfiles) == "function" then
-		for _, path in ipairs(listfiles(ThemeFolder) or {}) do
-			local pathText = tostring(path)
+	for _, path in ipairs(listfiles(ThemeFolder) or {}) do
+		local pathText = tostring(path)
 			local baseName = pathText:match("([^/\\]+)$") or pathText
 			if baseName:match("%.lua$") then
 				local data = readTable(pathText)
@@ -304,7 +291,6 @@ function ThemeManager:ReloadCustomThemes()
 				end
 			end
 		end
-	end
 
 	local names = {}
 

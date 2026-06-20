@@ -10,98 +10,46 @@ local SettingsFolder = "Galax/Obsidian/Settings"
 local ConfigFolder = SettingsFolder .. "/Config"
 local DefaultConfigFile = SettingsFolder .. "/DefaultConfig.lua"
 
-local function ensureFolder(path)
-	if type(makefolder) ~= "function" then
-		return
-	end
+local HttpService = game:GetService("HttpService")
 
+local function ensureFolder(path)
 	local current = ""
 	for part in tostring(path):gmatch("[^/\\]+") do
 		current = current == "" and part or (current .. "/" .. part)
-		if type(isfolder) ~= "function" or not isfolder(current) then
+		if not isfolder(current) then
 			makefolder(current)
 		end
 	end
 end
 
 local function fileName(name)
-	return tostring(name or "Config"):gsub("[^%w%s_%-]", "_") .. ".lua"
-end
-
-local function serialize(value, indent)
-	indent = indent or ""
-	local valueType = type(value)
-
-	if valueType == "string" then
-		return string.format("%q", value)
-	elseif valueType == "number" or valueType == "boolean" then
-		return tostring(value)
-	elseif valueType == "table" then
-		local nextIndent = indent .. "\t"
-		local lines = { "{" }
-
-		for key, item in pairs(value) do
-			local keyText = type(key) == "number" and ("[" .. key .. "]") or ("[" .. string.format("%q", key) .. "]")
-			lines[#lines + 1] = nextIndent .. keyText .. " = " .. serialize(item, nextIndent) .. ","
-		end
-
-		lines[#lines + 1] = indent .. "}"
-		return table.concat(lines, "\n")
-	end
-
-	return "nil"
+	return tostring(name or "Config"):gsub("[^%w%s_%-]", "_") .. ".txt"
 end
 
 local function writeTable(path, data)
-	if type(writefile) ~= "function" then
-		return false, "writefile unavailable"
-	end
-
 	local folder = tostring(path):match("^(.*)[/\\][^/\\]+$")
 	ensureFolder(folder or SettingsFolder)
 
-	writefile(path, "return " .. serialize(data))
+	local encoded = HttpService:JSONEncode(data)
+	writefile(path, encoded)
 	return true
 end
 
 local function readTable(path)
-	if type(isfile) == "function" then
-		local exists = isfile(path)
-		print("[SaveManager] isfile(" .. path .. ") = " .. tostring(exists))
-		if not exists then
-			return nil
-		end
-	else
-		print("[SaveManager] isfile não é função, pulando checagem")
-	end
-
-	if type(readfile) ~= "function" then
-		warn("[SaveManager] readfile não é função")
+	if not isfile(path) then
 		return nil
 	end
 
 	local source = readfile(path)
-	print(
-		"[SaveManager] readfile(" .. path .. ") tipo=" .. type(source)
-			.. " len=" .. tostring(type(source) == "string" and #source or -1)
-	)
 	if type(source) ~= "string" then
 		return nil
 	end
 
-	local chunk, loadErr = loadstring(source)
-	if not chunk then
-		warn("[SaveManager] loadstring falhou: " .. tostring(loadErr))
-		return nil
-	end
-
-	local ok, data = pcall(chunk)
+	local ok, data = pcall(function() return HttpService:JSONDecode(source) end)
 	if not ok then
-		warn("[SaveManager] chunk() deu erro: " .. tostring(data))
 		return nil
 	end
 
-	print("[SaveManager] chunk() retornou tipo=" .. type(data))
 	if type(data) == "table" then
 		return data
 	end
@@ -171,7 +119,7 @@ function SaveManager:Save(name)
 	for index, option in pairs(Library.Options or {}) do
 		if self:IsAllowedIndex(index) and option.Get then
 			if option.Type == "KeyPicker" then
-				data[index] = { option:Get(), option.Mode, Modifiers = option.Modifiers }
+				data[index] = { Key = option:Get(), Mode = option.Mode, Modifiers = option.Modifiers }
 			else
 				data[index] = { option:Get() }
 			end
@@ -228,7 +176,7 @@ function SaveManager:Delete(name)
 
 	self._data[name] = nil
 	local path = ConfigFolder .. "/" .. fileName(name)
-	if type(isfile) ~= "function" or isfile(path) then
+	if isfile(path) then
 		delfile(path)
 	end
 	if self._autoload == name then
@@ -240,19 +188,17 @@ end
 function SaveManager:RefreshConfigList()
 	ensureFolder(ConfigFolder)
 
-	if type(listfiles) == "function" then
-		for _, path in ipairs(listfiles(ConfigFolder) or {}) do
-			local pathText = tostring(path)
+	for _, path in ipairs(listfiles(ConfigFolder) or {}) do
+		local pathText = tostring(path)
 			local baseName = pathText:match("([^/\\]+)$") or pathText
-			if baseName:sub(1, 2) ~= "__" and baseName:match("%.lua$") then
+			if baseName:sub(1, 2) ~= "__" and baseName:match("%.txt$") then
 				local data = readTable(pathText)
-				local name = baseName:gsub("%.lua$", "")
+				local name = baseName:gsub("%.txt$", "")
 				if data then
 					self._data[name] = data
 				end
 			end
 		end
-	end
 
 	local names = {}
 
