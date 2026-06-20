@@ -2,6 +2,7 @@ local SaveManager = {
 	Library = nil,
 	_data = {},
 	_ignore = {},
+	_allowed = nil,
 	_autoload = "",
 }
 
@@ -100,6 +101,26 @@ function SaveManager:SetIgnoreIndexes(indexes)
 	end
 end
 
+function SaveManager:SetAllowedIndexes(indexes)
+	self._allowed = {}
+
+	for _, index in ipairs(indexes or {}) do
+		self._allowed[index] = true
+	end
+end
+
+function SaveManager:IsAllowedIndex(index)
+	if self._ignore[index] then
+		return false
+	end
+
+	if self._allowed and not self._allowed[index] then
+		return false
+	end
+
+	return true
+end
+
 function SaveManager:IgnoreThemeSettings()
 	local indexes = {
 		"BackgroundColor",
@@ -130,13 +151,17 @@ function SaveManager:Save(name)
 	local data = {}
 
 	for index, option in pairs(Library.Options or {}) do
-		if not self._ignore[index] and option.Get then
-			data[index] = { option:Get() }
+		if self:IsAllowedIndex(index) and option.Get then
+			if option.Type == "KeyPicker" then
+				data[index] = { option:Get(), option.Mode, Modifiers = option.Modifiers }
+			else
+				data[index] = { option:Get() }
+			end
 		end
 	end
 
 	for index, toggle in pairs(Library.Toggles or {}) do
-		if not self._ignore[index] and toggle.Get then
+		if self:IsAllowedIndex(index) and toggle.Get then
 			data[index] = { toggle:Get() }
 		end
 	end
@@ -164,10 +189,14 @@ function SaveManager:Load(name)
 	end
 
 	for index, values in pairs(data) do
-		local object = (Library.Options or {})[index] or (Library.Toggles or {})[index]
+		local object = self:IsAllowedIndex(index) and ((Library.Options or {})[index] or (Library.Toggles or {})[index])
 
 		if object and object.Set then
-			object:Set(values[1])
+			if values[2] ~= nil or values.Modifiers ~= nil then
+				object:Set(values)
+			else
+				object:Set(values[1])
+			end
 		end
 	end
 
@@ -307,7 +336,7 @@ function SaveManager:BuildConfigSection(tab)
 	})
 
 	groupbox:AddButton("Load config", function()
-		local name = Options.SaveManager_ConfigList.Value
+		local name = Options.SaveManager_ConfigList:Get()
 		local ok, err = self:Load(name)
 
 		if not ok then
@@ -319,7 +348,7 @@ function SaveManager:BuildConfigSection(tab)
 	end)
 
 	groupbox:AddButton("Overwrite config", function()
-		local name = Options.SaveManager_ConfigList.Value
+		local name = Options.SaveManager_ConfigList:Get()
 		local ok, err = self:Save(name)
 
 		if not ok then
@@ -331,7 +360,7 @@ function SaveManager:BuildConfigSection(tab)
 	end)
 
 	groupbox:AddButton("Delete config", function()
-		local name = Options.SaveManager_ConfigList.Value
+		local name = Options.SaveManager_ConfigList:Get()
 		local ok, err = self:Delete(name)
 
 		if not ok then
@@ -353,7 +382,7 @@ function SaveManager:BuildConfigSection(tab)
 	end)
 
 	groupbox:AddButton("Set as autoload", function()
-		local name = Options.SaveManager_ConfigList.Value
+		local name = Options.SaveManager_ConfigList:Get()
 		if not name then
 			Library:Notify("No config selected", 4)
 			return
@@ -365,7 +394,13 @@ function SaveManager:BuildConfigSection(tab)
 			return
 		end
 
-		Library:Notify(string.format("Autoload config: %q", name), 4)
+		local loaded, loadErr = self:Load(name)
+		if not loaded then
+			Library:Notify("Autoload saved, but load failed: " .. tostring(loadErr), 4)
+			return
+		end
+
+		Library:Notify(string.format("Autoload config loaded: %q", name), 4)
 		if self.AutoloadConfigLabel then
 			self.AutoloadConfigLabel:SetText("Current autoload config: " .. name)
 		end
