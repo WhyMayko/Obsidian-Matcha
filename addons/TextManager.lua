@@ -403,11 +403,12 @@ function TextManager:RenderInput(window, value, placeholder, x, y, width, option
 	local font = options.Font or Drawing.Fonts.Monospace
 	local fitted = self:Fit(text, width, size, font)
 	local color = options.Disabled and options.DisabledColor or (empty and options.PlaceholderColor or options.Color)
+	local tx = self:AlignX(fitted, x, width, size, font, options.Align or options.align)
 
-	window:_text(fitted, x, y, color, size, font, false, options.Outline ~= false, options.ZIndex or 1)
+	window:_text(fitted, tx, y, color, size, font, false, options.Outline ~= false, options.ZIndex or 1)
 
 	if options.Focused and not options.Disabled and math.floor(tick() * 2) % 2 == 0 then
-		local caretX = x + math.min(width, math.floor(self:Measure(fitted, size, font) + 2))
+		local caretX = tx + math.min(width, math.floor(self:Measure(fitted, size, font) + 2))
 		window:_line(caretX, y + 1, caretX, y + size + 1, color, 1, (options.ZIndex or 1) + 1)
 	end
 
