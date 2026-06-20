@@ -62,6 +62,13 @@ local function drawPolyline(window, point, points, color, thickness, z)
 		end
 	end
 
+	for index = 2, #points - 1 do
+		local x, y = point(points[index][1], points[index][2])
+		if window:_circle(x, y, math.max(1, thickness / 2), color, true, 1, z) then
+			drawn = true
+		end
+	end
+
 	return drawn
 end
 
