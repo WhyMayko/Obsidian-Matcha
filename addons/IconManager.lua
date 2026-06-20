@@ -209,6 +209,21 @@ icons["move"] = function(window, point, color, thickness, z)
 		end
 	end
 
+	local joints = {
+		{ 12, 2 },
+		{ 22, 12 },
+		{ 12, 22 },
+		{ 2, 12 },
+		{ 12, 12 },
+	}
+
+	for _, joint in ipairs(joints) do
+		local x, y = point(joint[1], joint[2])
+		if window:_circle(x, y, math.max(1, thickness / 2), color, true, 1, z) then
+			drawn = true
+		end
+	end
+
 	return drawn
 end
 
@@ -224,6 +239,18 @@ icons["move-diagonal-2"] = function(window, point, color, thickness, z)
 
 	for _, segment in ipairs(segments) do
 		if drawLine(window, point, segment[1], segment[2], color, thickness, z) then
+			drawn = true
+		end
+	end
+
+	local joints = {
+		{ 5, 5 },
+		{ 19, 19 },
+	}
+
+	for _, joint in ipairs(joints) do
+		local x, y = point(joint[1], joint[2])
+		if window:_circle(x, y, math.max(1, thickness / 2), color, true, 1, z) then
 			drawn = true
 		end
 	end
