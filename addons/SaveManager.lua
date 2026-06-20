@@ -65,25 +65,43 @@ local function writeTable(path, data)
 end
 
 local function readTable(path)
-	if type(isfile) == "function" and not isfile(path) then
-		return nil
+	if type(isfile) == "function" then
+		local exists = isfile(path)
+		print("[SaveManager] isfile(" .. path .. ") = " .. tostring(exists))
+		if not exists then
+			return nil
+		end
+	else
+		print("[SaveManager] isfile não é função, pulando checagem")
 	end
 
 	if type(readfile) ~= "function" then
+		warn("[SaveManager] readfile não é função")
 		return nil
 	end
 
 	local source = readfile(path)
+	print(
+		"[SaveManager] readfile(" .. path .. ") tipo=" .. type(source)
+			.. " len=" .. tostring(type(source) == "string" and #source or -1)
+	)
 	if type(source) ~= "string" then
 		return nil
 	end
 
-	local chunk = loadstring(source)
+	local chunk, loadErr = loadstring(source)
 	if not chunk then
+		warn("[SaveManager] loadstring falhou: " .. tostring(loadErr))
 		return nil
 	end
 
-	local data = chunk()
+	local ok, data = pcall(chunk)
+	if not ok then
+		warn("[SaveManager] chunk() deu erro: " .. tostring(data))
+		return nil
+	end
+
+	print("[SaveManager] chunk() retornou tipo=" .. type(data))
 	if type(data) == "table" then
 		return data
 	end
@@ -250,6 +268,7 @@ function SaveManager:SaveAutoloadConfig(name)
 	if not name or name == "" then
 		return false, "no name"
 	end
+	self:RefreshConfigList()
 	if not self._data[name] and not readTable(ConfigFolder .. "/" .. fileName(name)) then
 		return false, "config not found"
 	end
@@ -276,11 +295,6 @@ function SaveManager:GetAutoloadConfig()
 		return "none"
 	end
 
-	if not self._data[self._autoload] and not readTable(ConfigFolder .. "/" .. fileName(self._autoload)) then
-		self:DeleteAutoLoadConfig()
-		return "none"
-	end
-
 	return self._autoload
 end
 
@@ -288,10 +302,7 @@ function SaveManager:LoadAutoloadConfig()
 	self:GetAutoloadConfig()
 
 	if self._autoload ~= "" then
-		local ok = self:Load(self._autoload)
-		if not ok then
-			self:DeleteAutoLoadConfig()
-		end
+		self:Load(self._autoload)
 	end
 end
 
@@ -394,13 +405,7 @@ function SaveManager:BuildConfigSection(tab)
 			return
 		end
 
-		local loaded, loadErr = self:Load(name)
-		if not loaded then
-			Library:Notify("Autoload saved, but load failed: " .. tostring(loadErr), 4)
-			return
-		end
-
-		Library:Notify(string.format("Autoload config loaded: %q", name), 4)
+		Library:Notify(string.format("Autoload config set: %q", name), 4)
 		if self.AutoloadConfigLabel then
 			self.AutoloadConfigLabel:SetText("Current autoload config: " .. name)
 		end
