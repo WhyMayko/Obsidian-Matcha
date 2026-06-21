@@ -540,6 +540,8 @@ LeftGroupBox:AddLabel("Keybind"):AddKeyPicker("KeyPicker", {
 	Text = "Auto lockpick safes",
 	NoUI = false,
 
+	Popup = true, -- Enables the popup format for keybind mode selection
+
 	Callback = function(Value)
 		print("[cb] Keybind clicked!", Value)
 	end,

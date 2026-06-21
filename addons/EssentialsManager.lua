@@ -192,17 +192,17 @@ function EssentialsManager:BuildSection(tab)
 
 	MenuGroup:AddDivider()
 
-	-- Menu bind — loads from essentials, does NOT show mode popup
+	-- Menu bind — loads from essentials, no mode popup (Popup = false)
 	MenuGroup:AddLabel("Menu bind")
 		:AddKeyPicker("MenuKeybind", {
 			Default = 0x70, -- F1
 			Mode = "Toggle",
+			Popup = false,
 			NoUI = false,
 			Text = "Menu keybind",
 		})
 
 	Library.Options.MenuKeybind:OnChanged(function(Value)
-		Library.Options.MenuKeybind.Mode = "Toggle"
 		Library.ActiveWindow.MenuKey = Value
 		autoSave()
 	end)
