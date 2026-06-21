@@ -30,7 +30,18 @@ local function writeTable(path, data)
 	local folder = tostring(path):match("^(.*)[/\\][^/\\]+$")
 	ensureFolder(folder or SettingsFolder)
 
-	local encoded = HttpService:JSONEncode(data)
+	local encoded
+	local ok, _ = pcall(function()
+		local parts = {}
+		for k, v in pairs(data) do
+			table.insert(parts, string.format('\t%q: %s', tostring(k), HttpService:JSONEncode(v)))
+		end
+		table.sort(parts)
+		encoded = "{\n" .. table.concat(parts, ",\n") .. "\n}"
+	end)
+	if not encoded then
+		encoded = HttpService:JSONEncode(data)
+	end
 	writefile(path, encoded)
 	return true
 end

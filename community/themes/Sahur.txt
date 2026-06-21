@@ -13,8 +13,9 @@
   "Bottombar": "#170f0b",
   "BottombarBorder": "#523c2c",
   "FooterText": "#ffe6cc",
+  "WindowFooter":  "Tung Tung Tung Sahur",
   "SidebarImage": "https://i.postimg.cc/KzrhyDzx/Sahur.png",
-  "SidebarImageScale": 1.0,
+  "SidebarImageScale": 1.5,
   "SidebarImageX": 0,
   "SidebarImageY": 0
 }

@@ -2458,13 +2458,16 @@ function GalaxObsidian:CreateWindow(options)
             16
         )
         self:_tooltip(widget, x, y, w, math.floor(24 * scale), widget)
+        local labelTextSize = math.floor(14 * scale)
+        local rowH = math.floor(32 * scale)
+        local labelCenterY = y + math.floor((rowH - labelTextSize) / 2)
         self:_text(
-            fitTextToWidth(widget.label, w - keyW - math.floor(10 * scale), 14, Theme.Font),
+            fitTextToWidth(widget.label, w - keyW - math.floor(10 * scale), labelTextSize, Theme.Font),
             x,
-            y + math.floor(8 * scale),
+            labelCenterY,
             Theme.Text,
-            14,
-            Drawing.Fonts.Monospace,
+            labelTextSize,
+            Theme.Font,
             false,
             true,
             z + 2
@@ -2474,8 +2477,8 @@ function GalaxObsidian:CreateWindow(options)
         self:_text(
             fitTextToWidth(label, keyW - math.floor(10 * scale), keyTextSize, Theme.Font),
             keyX + math.floor(6 * scale),
-            y + math.floor(8 * scale),
-            widget.listening and Theme.Text or Theme.Text,
+            keyBtnY + math.floor((keyH - keyTextSize) / 2),
+            Theme.Text,
             keyTextSize,
             Theme.Font,
             false,
@@ -3909,6 +3912,7 @@ function GalaxObsidian:CreateWindow(options)
         self.TooltipText = nil
         if not self.Open then
             self:_renderKeybindMenu()
+            self:_renderKeybindModePopup()
             self:_renderNotifications()
             self:_renderTooltip()
             self:_hideUnused()
@@ -4074,7 +4078,7 @@ function GalaxObsidian:CreateWindow(options)
         self:_text(
             chromeTitleText,
             chromeTitleX,
-            y + topH / 2 - chromeTitleSize / 2,
+            y + math.floor(topH / 2) - math.floor(chromeTitleSize / 2),
             Theme.Text,
             chromeTitleSize,
             Drawing.Fonts.Monospace,
