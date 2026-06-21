@@ -4106,11 +4106,23 @@ function GalaxObsidian:CreateWindow(options)
         if self.SidebarImageReady and self.SidebarImageData then
             local topH = 50
             local bottomH = 20
-            local maxImgSize = topH  -- capped to topbar height
-            local rawW = tonumber(self.SidebarImageW)
-            local rawH = tonumber(self.SidebarImageH)
-            local imgW = math.min(rawW or maxImgSize, math.min(maxImgSize, sidebarW))
-            local imgH = math.min(rawH or imgW, maxImgSize)
+            local maxH = h - topH - bottomH
+
+            local scale = tonumber(self.SidebarImageScale) or 1.0
+            local nativeW = tonumber(self.SidebarImageNativeW) or sidebarW
+            local nativeH = tonumber(self.SidebarImageNativeH) or sidebarW
+            local aspectH = nativeH / nativeW
+
+            -- W: scale based on sidebar width
+            local imgW = math.floor(sidebarW * scale)
+            local imgH = math.floor(imgW * aspectH)
+
+            -- Cap to max height to avoid overlapping topbar
+            if imgH > maxH then
+                imgH = maxH
+                imgW = math.floor(imgH / aspectH)
+            end
+
             local rawOX = tonumber(self.SidebarImageX)
             local rawOY = tonumber(self.SidebarImageY)
             local imgX, imgY
@@ -4182,7 +4194,7 @@ function GalaxObsidian:CreateWindow(options)
         self.IconData = data
         self.IconReady = data ~= nil and data ~= ""
     end
-    function Window:SetSidebarImage(url, imgW, imgH, imgX, imgY)
+    function Window:SetSidebarImage(url, scale, imgX, imgY)
         local resolved = url and imageUrl(url) or nil
         if not resolved or resolved == "" then
             self.SidebarImage = nil
@@ -4191,14 +4203,22 @@ function GalaxObsidian:CreateWindow(options)
             return
         end
         self.SidebarImage = resolved
-        self.SidebarImageW = imgW
-        self.SidebarImageH = imgH
+        self.SidebarImageScale = scale or 1.0
         self.SidebarImageX = imgX
         self.SidebarImageY = imgY
         self.SidebarImageReady = false
         self.SidebarImageData = nil
         RequestImage(resolved, function(data)
             self.SidebarImageData = data
+            
+            pcall(function()
+                local img = Drawing.new("Image")
+                img.Data = data
+                self.SidebarImageNativeW = img.Size.X
+                self.SidebarImageNativeH = img.Size.Y
+                img:Remove()
+            end)
+            
             self.SidebarImageReady = true
         end)
     end

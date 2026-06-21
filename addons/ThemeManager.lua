@@ -235,11 +235,24 @@ function ThemeManager:ApplyTheme(name, themeType)
 	if Library.ActiveWindow and Library.ActiveWindow.SetSidebarImage then
 		Library.ActiveWindow:SetSidebarImage(
 			data.SidebarImage or nil,
-			data.SidebarImageW,
-			data.SidebarImageH,
+			data.SidebarImageScale,
 			data.SidebarImageX,
 			data.SidebarImageY
 		)
+	end
+
+	-- Allow themes to override window icon, title and footer
+	local win = Library.ActiveWindow
+	if win then
+		if data.WindowIcon ~= nil then
+			win:SetIconUrl(data.WindowIcon)
+		end
+		if type(data.WindowTitle) == "string" and data.WindowTitle ~= "" then
+			win.Title = data.WindowTitle
+		end
+		if type(data.WindowFooter) == "string" then
+			win.Footer = data.WindowFooter
+		end
 	end
 end
 

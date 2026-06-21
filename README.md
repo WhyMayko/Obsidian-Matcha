@@ -609,7 +609,7 @@ These commands are available as soon as `SaveManager` and `ThemeManager` have be
 
 ## Sidebar Image
 
-You can add an image to the bottom of the sidebar either from code or from a theme file.
+You can add an image to the bottom of the sidebar either from code or from a theme file. The image's aspect ratio is calculated automatically.
 
 ### From code
 
@@ -617,8 +617,7 @@ You can add an image to the bottom of the sidebar either from code or from a the
 -- Accepts a Roblox asset ID, a direct https:// URL, or a rbxassetid:// string
 Window:SetSidebarImage(
     "https://example.com/logo.png",
-    40,   -- width  (max: topbar height ~50px, capped to sidebar width)
-    40,   -- height (max: topbar height ~50px)
+    1.0,  -- scale (1.0 = fills full sidebar width, 0.5 = fills half width)
     0,    -- X offset from sidebar left (0 = centered horizontally)
     0     -- Y offset from sidebar top  (0 = pinned to bottom)
 )
@@ -627,7 +626,7 @@ Window:SetSidebarImage(
 Window:SetSidebarImage(nil)
 ```
 
-When X and Y are both `0` the image is automatically centered horizontally and pinned to the bottom of the sidebar just above the bottom bar.
+When X and Y are both `0` the image is automatically centered horizontally and pinned to the bottom of the sidebar just above the bottom bar. The height is capped automatically so it doesn't overlap the top bar.
 
 ### From a theme file
 
@@ -638,8 +637,7 @@ Add these fields to any theme `.txt` file (JSON):
   "name": "My Theme",
   "AccentColor": "#7d55ff",
   "SidebarImage": "https://example.com/logo.png",
-  "SidebarImageW": 40,
-  "SidebarImageH": 40,
+  "SidebarImageScale": 1.0,
   "SidebarImageX": 0,
   "SidebarImageY": 0
 }
