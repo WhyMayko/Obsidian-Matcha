@@ -868,6 +868,17 @@ local function normalizeKeybindModePopupConfig(config, fallbackModes)
     return enabled ~= false, clean
 end
 
+-- ---- Per-Widget Keybind Popup Override ----
+-- Resolves the `Popup` field accepted by AddKeybind/AddKeyPicker (e.g. Popup = { "Toggle", "Press" }
+-- or Popup = false). Returns nil, nil when not specified so the widget inherits the window-level
+-- KeybindModePopup configuration instead of forcing a value.
+local function resolveKeybindWidgetPopup(popupConfig)
+    if popupConfig == nil then
+        return nil, nil
+    end
+    return normalizeKeybindModePopupConfig(popupConfig)
+end
+
 -- ======================================================================
 -- WINDOW FACTORY (CreateWindow)
 -- ======================================================================
@@ -1364,9 +1375,7 @@ function GalaxObsidian:CreateWindow(options)
         local dropdown = self.DropdownTarget
         local popup = dropdown and dropdown.popup
         if dropdown and dropdown ~= owner and popup then
-            local searchH = (dropdown.searchable == true) and 24 or 0
-            local visibleCount = math.min(#dropdown.options, dropdown.maxVisible or 6)
-            local popupH = searchH + visibleCount * 21 + 4
+            local popupH = popup.h or 0
             if self:_over(popup.x, popup.y - 22, popup.w, popupH + 22) then
                 return false
             end
@@ -1392,9 +1401,7 @@ function GalaxObsidian:CreateWindow(options)
         local dropdown = self.DropdownTarget
         local dropdownPopup = dropdown and dropdown.popup
         if dropdown and dropdownPopup then
-            local searchH = (dropdown.searchable == true) and 24 or 0
-            local visibleCount = math.min(#dropdown.options, dropdown.maxVisible or 6)
-            local popupH = searchH + visibleCount * 21 + 4
+            local popupH = dropdownPopup.h or 0
             local insideDropdown = self:_over(dropdownPopup.x, dropdownPopup.y - 22, dropdownPopup.w, popupH + 22)
             if not insideDropdown then
                 dropdown._searchText = ""
@@ -1485,10 +1492,17 @@ function GalaxObsidian:CreateWindow(options)
         return self:_anim(owner, key, target, speed)
     end
     function Window:_openKeybindModePopup(widget, x, y, w)
-        if not self.KeybindModePopupEnabled or not widget or widget.disabled == true then
+        if not widget or widget.disabled == true then
             return nil
         end
-        local modes = self.KeybindModePopupModes or DefaultKeybindModePopupModes
+        local popupEnabled = widget.popupEnabled
+        if popupEnabled == nil then
+            popupEnabled = self.KeybindModePopupEnabled
+        end
+        if not popupEnabled then
+            return nil
+        end
+        local modes = widget.popupModes or self.KeybindModePopupModes or DefaultKeybindModePopupModes
         if #modes <= 0 then
             return nil
         end
@@ -1929,6 +1943,7 @@ function GalaxObsidian:CreateWindow(options)
                 return Window:_widgetHandle(widget)
             end
             widget.addons = widget.addons or {}
+            local popupEnabled, popupModes = resolveKeybindWidgetPopup(info.Popup)
             local addon = {
                 type = "keybind",
                 id = name,
@@ -1942,6 +1957,8 @@ function GalaxObsidian:CreateWindow(options)
                 noUI = info.NoUI == true,
                 waitForCallback = info.WaitForCallback == true,
                 visible = info.Visible ~= false,
+                popupEnabled = popupEnabled,
+                popupModes = popupModes,
                 _state = false,
                 _prevHeld = false,
                 popup = nil,
@@ -2459,8 +2476,7 @@ function GalaxObsidian:CreateWindow(options)
         )
         self:_tooltip(widget, x, y, w, math.floor(24 * scale), widget)
         local labelTextSize = math.floor(14 * scale)
-        local rowH = math.floor(32 * scale)
-        local labelCenterY = y + math.floor((rowH - labelTextSize) / 2)
+        local labelCenterY = y + math.floor(9 * scale)
         self:_text(
             fitTextToWidth(widget.label, w - keyW - math.floor(10 * scale), labelTextSize, Theme.Font),
             x,
@@ -2474,10 +2490,11 @@ function GalaxObsidian:CreateWindow(options)
         )
         self:_square(keyX, keyBtnY, keyW, keyH, keyBg, true, 1, 2, z + 1)
         self:_square(keyX, keyBtnY, keyW, keyH, keyOutline, false, 1, 2, z + 2)
+        local keyValueTextY = keyBtnY + math.floor(4 * scale)
         self:_text(
             fitTextToWidth(label, keyW - math.floor(10 * scale), keyTextSize, Theme.Font),
             keyX + math.floor(6 * scale),
-            keyBtnY + math.floor((keyH - keyTextSize) / 2),
+            keyValueTextY,
             Theme.Text,
             keyTextSize,
             Theme.Font,
@@ -3060,7 +3077,8 @@ function GalaxObsidian:CreateWindow(options)
         local scrollTrackW = math.floor(10 * scale)
         local scrollGap = math.floor(4 * scale)
         local scrollSlot = scrollTrackW + scrollGap
-        local useTwoColumns = w >= 440
+        local twoColumnThreshold = math.floor(440 * scale)
+        local useTwoColumns = w >= twoColumnThreshold
         local columnW = useTwoColumns and math.floor((w - pad * 2 - columnGap) / 2) or math.floor(w - pad * 2)
         local leftY = y + pad
         local rightY = y + pad
@@ -3251,6 +3269,7 @@ function GalaxObsidian:CreateWindow(options)
         local scrollBarW = hasScroll and math.floor(7 * scale) or 0
         local itemH = math.floor(21 * scale)
         local height = visibleCount * itemH + math.floor(4 * scale)
+        info.h = height
         info.x, info.y = self:_clampToViewport(info.x, info.y, info.w, height, 6, true)
         widget._dropdownScroll = math.max(0, math.min(widget._dropdownScroll or 0, totalCount - visibleCount))
         local scrollOffset = widget._dropdownScroll
@@ -4028,25 +4047,28 @@ function GalaxObsidian:CreateWindow(options)
         self:_line(x, y + h - bottomH, x + w, y + h - bottomH, Theme.BottombarBorder, 1, chromeZ + 2)
         -- Chrome content is emitted before heavier sections for drag/resize responsiveness.
         -- Its higher ZIndex keeps it visually above the content layer.
-        local footerText = fitTextToWidth(self.Footer or "", w - 10, 14, Drawing.Fonts.Monospace)
-        local footerX = x + math.floor((w - estimateTextWidth(footerText, 14, Drawing.Fonts.Monospace)) / 2)
+        local footerTextSize = math.floor(14 * scale)
+        local footerText = fitTextToWidth(self.Footer or "", w - 10, footerTextSize, Drawing.Fonts.Monospace)
+        local footerX = x + math.floor((w - estimateTextWidth(footerText, footerTextSize, Drawing.Fonts.Monospace)) / 2)
         self:_text(
             footerText,
             footerX,
-            y + h - bottomH + math.floor((bottomH - 14) / 2),
+            y + h - bottomH + math.floor(3 * scale),
             Theme.FooterText,
-            14,
+            footerTextSize,
             Drawing.Fonts.Monospace,
             false,
             true,
             chromeZ + 4
         )
         if self.Resizable then
+            local resizeIconSize = math.floor(16 * scale)
+            local resizeIconMargin = math.floor(14 * scale)
             self:_drawIcon(
                 "move-diagonal-2",
-                x + w - 14,
+                x + w - resizeIconMargin,
                 y + h - bottomH / 2,
-                16,
+                resizeIconSize,
                 self.ResizeOffset and Theme.Text or Theme.Muted,
                 chromeZ + 5
             )
@@ -4075,10 +4097,11 @@ function GalaxObsidian:CreateWindow(options)
             )
         end
         chromeTitleX = chromeTitleX + chromeTitleIconSize + chromeTitleGap
+        local chromeTitleTextY = y + math.floor(15 * scale)
         self:_text(
             chromeTitleText,
             chromeTitleX,
-            y + math.floor(topH / 2) - math.floor(chromeTitleSize / 2),
+            chromeTitleTextY,
             Theme.Text,
             chromeTitleSize,
             Drawing.Fonts.Monospace,
@@ -4739,6 +4762,7 @@ function GalaxObsidian:CreateWindow(options)
                 handle.AddKeyPicker = function(_, name, info)
                     info = info or {}
                     widget.addons = widget.addons or {}
+                    local popupEnabled, popupModes = resolveKeybindWidgetPopup(info.Popup)
                     local addon = {
                         type = "keybind",
                         id = name,
@@ -4752,6 +4776,8 @@ function GalaxObsidian:CreateWindow(options)
                         noUI = info.NoUI == true,
                         waitForCallback = info.WaitForCallback == true,
                         visible = info.Visible ~= false,
+                        popupEnabled = popupEnabled,
+                        popupModes = popupModes,
                         _state = false,
                         _prevHeld = false,
                         popup = nil,
@@ -4871,6 +4897,7 @@ function GalaxObsidian:CreateWindow(options)
                 handle.AddKeyPicker = function(_, name, info)
                     info = info or {}
                     widget.addons = widget.addons or {}
+                    local popupEnabled, popupModes = resolveKeybindWidgetPopup(info.Popup)
                     local addon = {
                         type = "keybind",
                         id = name,
@@ -4884,6 +4911,8 @@ function GalaxObsidian:CreateWindow(options)
                         noUI = info.NoUI == true,
                         waitForCallback = info.WaitForCallback == true,
                         visible = info.Visible ~= false,
+                        popupEnabled = popupEnabled,
+                        popupModes = popupModes,
                         _state = false,
                         _prevHeld = false,
                         popup = nil,
@@ -5145,6 +5174,7 @@ function GalaxObsidian:CreateWindow(options)
             function Section:AddKeybind(label, default, callback)
                 local _, info = infoArgs(label, default)
                 local id = info and (info.Index or info.Idx) or label
+                local popupEnabled, popupModes = resolveKeybindWidgetPopup(info and info.Popup)
                 local widget = register({
                     type = "keybind",
                     id = id,
@@ -5159,6 +5189,8 @@ function GalaxObsidian:CreateWindow(options)
                     noUI = info and info.NoUI == true,
                     waitForCallback = info and info.WaitForCallback == true,
                     visible = not (info and info.Visible == false),
+                    popupEnabled = popupEnabled,
+                    popupModes = popupModes,
                     _state = false,
                     _prevHeld = false,
                 })
