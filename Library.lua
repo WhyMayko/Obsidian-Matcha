@@ -1145,9 +1145,8 @@ function GalaxObsidian:CreateWindow(options)
         if center == true then
             tx = tx - estimateTextWidth(content, size or GalaxObsidian.FontSize or 13, resolvedFont) / 2
         end
-        local baselineShift = -math.floor(textSize * 0.1 + 0.5)
-        local scaleShift = scale ~= 1 and -math.floor((scale - 1) * 3) or 0
-        object.Position = Vector2.new(math.floor(tx + 0.5), math.floor(y + baselineShift + scaleShift + 0.5))
+        local yOffset = scale > 1 and -math.floor((scale - 1) * 3) or 0
+        object.Position = Vector2.new(math.floor(tx + 0.5), math.floor(y + yOffset + 0.5))
         if color then
             pcall(function()
                 object.Color = color
@@ -2467,6 +2466,7 @@ function GalaxObsidian:CreateWindow(options)
         local label = widget.listening and "..." or keyName(widget.value)
         local scale = self:GetScale()
         local keyTextSize = 14
+        local scaledKeyTextSize = math.floor(keyTextSize * scale + 0.5)
         local keyH = math.floor(22 * scale)
         local keyBtnY = y + math.floor(5 * scale)
         local keyW = math.max(math.floor(40 * scale), math.floor(estimateTextWidth(label, keyTextSize, Theme.Font) + math.floor(26 * scale)))
@@ -2481,10 +2481,13 @@ function GalaxObsidian:CreateWindow(options)
         )
         self:_tooltip(widget, x, y, w, math.floor(24 * scale), widget)
         local labelTextSize = 14
+        local scaledLabelTextSize = math.floor(labelTextSize * scale + 0.5)
+        local widgetH = math.floor(32 * scale)
+        local yOfs = scale > 1 and -math.floor((scale - 1) * 3) or 0
         self:_text(
             fitTextToWidth(widget.label, w - keyW - math.floor(10 * scale), labelTextSize, Theme.Font),
             x,
-            y + math.floor(9 * scale),
+            y + math.floor(widgetH / 2) - math.floor(scaledLabelTextSize / 2) - yOfs,
             Theme.Text,
             labelTextSize,
             Theme.Font,
@@ -2497,7 +2500,7 @@ function GalaxObsidian:CreateWindow(options)
         self:_text(
             fitTextToWidth(label, keyW - math.floor(10 * scale), keyTextSize, Theme.Font),
             keyX + math.floor(6 * scale),
-            keyBtnY + math.floor(4 * scale),
+            keyBtnY + math.floor(keyH / 2) - math.floor(scaledKeyTextSize / 2) - yOfs,
             Theme.Text,
             keyTextSize,
             Theme.Font,
@@ -2888,12 +2891,14 @@ function GalaxObsidian:CreateWindow(options)
             local addonStartX = addonCount > 0 and (x + w - addonAreaW) or nil
             local labelMaxW = addonCount > 0 and (addonStartX - x - 6) or w
             local lines = wrapTextLines(widget.text or "", math.max(50, labelMaxW), 14, 8, Theme.Font)
-            local yOffset = addonCount > 0 and math.floor(7 * scale) or math.floor(3 * scale)
+            local scaledLabelTextSize = math.floor(14 * scale + 0.5)
+            local yOfs = scale > 1 and -math.floor((scale - 1) * 3) or 0
+            local firstLineY = y + math.floor(addonCount > 0 and math.floor(28 * scale) / 2 or math.floor(20 * scale) / 2) - math.floor(scaledLabelTextSize / 2) - yOfs
             for i, line in ipairs(lines) do
                 self:_text(
                     fitTextToWidth(line, labelMaxW, 14, Theme.Font),
                     x,
-                    y + yOffset + (i - 1) * math.floor(14 * scale),
+                    firstLineY + (i - 1) * math.floor(14 * scale),
                     Theme.Text,
                     14,
                     Drawing.Fonts.Monospace,
@@ -2921,10 +2926,12 @@ function GalaxObsidian:CreateWindow(options)
                                 2,
                                 z + 2
                             )
+                            local scaledAddonTextSize = math.floor(addonTextSize * scale + 0.5)
+                            local yOfs = scale > 1 and -math.floor((scale - 1) * 3) or 0
                             self:_text(
                                 fitTextToWidth(keyLabel, aw - math.floor(10 * scale), addonTextSize, Theme.Font),
                                 ax + math.floor(aw / 2),
-                                y + math.floor(6 * scale),
+                                y + math.floor(3 * scale) + math.floor(addonSize / 2) - math.floor(scaledAddonTextSize / 2) - yOfs,
                                 addon.listening and Theme.Text or Theme.Text,
                                 addonTextSize,
                                 Theme.Font,
@@ -3814,10 +3821,12 @@ function GalaxObsidian:CreateWindow(options)
                     textX = x + math.floor(28 * scale)
                 end
                 local textColor = self:_anim(self, "keybindMenu.text." .. tostring(i), row.checked and Theme.Text or Theme.Muted, 16)
+                local scaledRowTextSize = math.floor(13 * scale + 0.5)
+                local yOfs = scale > 1 and -math.floor((scale - 1) * 3) or 0
                 self:_text(
                     fitTextToWidth(row.text, width - (textX - x) - math.floor(10 * scale), 13, Theme.Font),
                     textX,
-                    ry + math.floor(3 * scale),
+                    ry + math.floor(rowH / 2) - math.floor(scaledRowTextSize / 2) - yOfs,
                     textColor,
                     13,
                     Drawing.Fonts.Monospace,
@@ -3878,7 +3887,9 @@ function GalaxObsidian:CreateWindow(options)
             if selected then
                 self:_drawIcon("check", x + math.floor(12 * scale), ry + math.floor(rowH / 2), math.floor(10 * scale), self.Accent, z + 3)
             end
-            self:_text(mode, x + math.floor(22 * scale), ry + math.floor(4 * scale), selected and Theme.Text or Theme.Muted, 12, Drawing.Fonts.Monospace, false, true, z + 3)
+            local scaledModeTextSize = math.floor(12 * scale + 0.5)
+            local yOfs = scale > 1 and -math.floor((scale - 1) * 3) or 0
+            self:_text(mode, x + math.floor(22 * scale), ry + math.floor(rowH / 2) - math.floor(scaledModeTextSize / 2) - yOfs, selected and Theme.Text or Theme.Muted, 12, Drawing.Fonts.Monospace, false, true, z + 3)
             if self:_click(x + math.floor(3 * scale), ry, w - math.floor(6 * scale), rowH - 1, target) then
                 target.mode = mode
                 safeCall(target.changed, target.value, target.modifiers)
@@ -4052,13 +4063,15 @@ function GalaxObsidian:CreateWindow(options)
         self:_line(x, y + h - bottomH, x + w, y + h - bottomH, Theme.BottombarBorder, 1, chromeZ + 2)
         -- Chrome content is emitted before heavier sections for drag/resize responsiveness.
         -- Its higher ZIndex keeps it visually above the content layer.
-        local footerTextSize = math.floor(14 * scale)
-        local footerText = fitTextToWidth(self.Footer or "", w - 10, footerTextSize, Drawing.Fonts.Monospace)
+        local footerTextSize = 14
+        local scaledFooterTextSize = math.floor(footerTextSize * scale + 0.5)
+        local yOfs = scale > 1 and -math.floor((scale - 1) * 3) or 0
+        local footerText = fitTextToWidth(self.Footer or "", w - math.floor(10 * scale), footerTextSize, Drawing.Fonts.Monospace)
         local footerX = x + math.floor((w - estimateTextWidth(footerText, footerTextSize, Drawing.Fonts.Monospace)) / 2)
         self:_text(
             footerText,
             footerX,
-            y + h - bottomH + math.floor(5 * scale),
+            y + h - bottomH + math.floor((bottomH - scaledFooterTextSize) / 2) - yOfs,
             Theme.FooterText,
             footerTextSize,
             Drawing.Fonts.Monospace,
@@ -4078,7 +4091,8 @@ function GalaxObsidian:CreateWindow(options)
         end -- Title (icon + text).
         local chromeTitleIconSize = (self.IconReady and self.IconData) and math.min(math.floor((self.IconSize or 24) * scale), math.floor(26 * scale)) or 0
         local chromeTitleGap = chromeTitleIconSize > 0 and math.floor(6 * scale) or 0
-        local chromeTitleSize = math.floor(21 * scale)
+        local chromeTitleSize = 21
+        local scaledChromeTitleSize = math.floor(chromeTitleSize * scale + 0.5)
         local chromeTitleText = fitTextToWidth(
             self.Title,
             sidebarW - chromeTitleIconSize - chromeTitleGap - math.floor(24 * scale),
@@ -4100,10 +4114,11 @@ function GalaxObsidian:CreateWindow(options)
             )
         end
         chromeTitleX = chromeTitleX + chromeTitleIconSize + chromeTitleGap
+        local yOfs = scale > 1 and -math.floor((scale - 1) * 3) or 0
         self:_text(
             chromeTitleText,
             chromeTitleX,
-            y + math.floor(13 * scale),
+            y + math.floor((topH - scaledChromeTitleSize) / 2) - yOfs,
             Theme.Text,
             chromeTitleSize,
             Drawing.Fonts.Monospace,
