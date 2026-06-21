@@ -237,7 +237,8 @@ function ThemeManager:ApplyTheme(name, themeType)
 			data.SidebarImage or nil,
 			data.SidebarImageScale,
 			data.SidebarImageX,
-			data.SidebarImageY
+			data.SidebarImageY,
+			data.SidebarImageAspect
 		)
 	end
 
@@ -275,6 +276,7 @@ function ThemeManager:SaveCustomTheme(name)
 	theme.SidebarImageScale = existingTheme.SidebarImageScale or (Library.ActiveWindow and Library.ActiveWindow.SidebarImageScale)
 	theme.SidebarImageX = existingTheme.SidebarImageX or (Library.ActiveWindow and Library.ActiveWindow.SidebarImageX)
 	theme.SidebarImageY = existingTheme.SidebarImageY or (Library.ActiveWindow and Library.ActiveWindow.SidebarImageY)
+	theme.SidebarImageAspect = existingTheme.SidebarImageAspect or (Library.ActiveWindow and Library.ActiveWindow.SidebarImageAspect)
 	theme.WindowIcon = existingTheme.WindowIcon or (Library.ActiveWindow and Library.ActiveWindow.IconUrl)
 	theme.WindowTitle = existingTheme.WindowTitle
 	theme.WindowFooter = existingTheme.WindowFooter
