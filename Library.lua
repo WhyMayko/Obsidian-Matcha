@@ -1828,12 +1828,7 @@ function GalaxObsidian:CreateWindow(options)
                 local keyHeld = resolvedKey ~= nil and iskeypressed(resolvedKey) == true
                 local wasHeld = widget._prevHeld == true
                 local mode = tostring(widget.mode or "Hold")
-                if mode == "Always" then
-                    if widget._state ~= true then
-                        widget._state = true
-                        safeCall(widget.callback, true)
-                    end
-                elseif mode == "Hold" then
+                if mode == "Hold" then
                     if widget._state ~= keyHeld then
                         widget._state = keyHeld
                         safeCall(widget.callback, keyHeld)

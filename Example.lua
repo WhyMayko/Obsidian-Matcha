@@ -4,29 +4,10 @@
 
 local repo = "https://raw.githubusercontent.com/WhyMayko/Obsidian-Matcha/refs/heads/main/"
 
-local function load(path)
-	local chunk, err = loadstring(game:HttpGet(repo .. path))
-
-	if not chunk then
-		error("Failed to load " .. path .. ": " .. tostring(err), 2)
-	end
-
-	local module = chunk()
-
-	if type(module) ~= "table" then
-		error(path .. " did not return a module table.", 2)
-	end
-
-	return module
-end
-
-local loadLibrary = function() return load("Library.lua") end
-local loadTheme = function() return load("addons/ThemeManager.lua") end
-local loadSave = function() return load("addons/SaveManager.lua") end
-
-local Library = loadLibrary()
-local ThemeManager = loadTheme()
-local SaveManager = loadSave()
+-- Load the Library
+local Library = loadstring(game:HttpGet(repo .. "Library.lua"))()
+local ThemeManager = loadstring(game:HttpGet(repo .. "addons/ThemeManager.lua"))()
+local SaveManager = loadstring(game:HttpGet(repo .. "addons/SaveManager.lua"))()
 
 local Options = Library.Options
 local Toggles = Library.Toggles
@@ -546,7 +527,7 @@ LeftGroupBox:AddLabel("Keybind"):AddKeyPicker("KeyPicker", {
 	Default = 0x02,
 	SyncToggleState = false,
 
-	Mode = "Toggle", -- Modes: Always, Toggle, Hold, Press
+	Mode = "Toggle", -- Modes: Toggle, Hold, Press
 
 	Text = "Auto lockpick safes",
 	NoUI = false,
@@ -710,10 +691,6 @@ Library.ToggleKeybind = Options.MenuKeybind -- Allows you to have a custom keybi
 -- Hand the library over to our managers.
 ThemeManager:SetLibrary(Library)
 SaveManager:SetLibrary(Library)
-
--- Ignore keys that are used by ThemeManager.
--- We don't want configs to save themes.
-SaveManager:IgnoreThemeSettings()
 -- Adds our MenuKeybind to the ignore list so it doesn't get saved across configs
 SaveManager:SetIgnoreIndexes({ "MenuKeybind" })
 

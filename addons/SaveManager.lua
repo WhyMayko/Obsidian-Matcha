@@ -59,6 +59,7 @@ end
 
 function SaveManager:SetLibrary(library)
 	self.Library = library
+	self:IgnoreThemeSettings()
 end
 
 function SaveManager:SetIgnoreIndexes(indexes)

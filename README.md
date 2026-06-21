@@ -24,7 +24,6 @@ The API is modeled after Obsidian and LinoriaLib:
 - SaveManager for UI settings/configs
 - Keybind menu and key picker modes
 - External image and icon support
-- No custom cursor dependency
 
 ## Installation
 
@@ -86,9 +85,44 @@ Groupboxes support the common elements:
 - `AddColorPicker`
 - `AddDivider`
 
+## Buttons
+
+You can create buttons with various functionalities like `DoubleClick`, `Disabled`, and even attach sub-buttons to them.
+
+```lua
+local MyButton = LeftGroupBox:AddButton({
+	Text = "Button",
+	Func = function()
+		print("You clicked a button!")
+	end,
+	DoubleClick = false,
+	Tooltip = "This is the main button",
+	Disabled = false,
+})
+
+-- Adding a sub-button
+local MyButton2 = MyButton:AddButton({
+	Text = "Sub button",
+	Func = function()
+		print("You clicked a sub button!")
+	end,
+	DoubleClick = true, -- Requires clicking twice
+	Tooltip = "This is the sub button",
+})
+
+-- Creating a disabled button
+local MyDisabledButton = LeftGroupBox:AddButton({
+	Text = "Disabled Button",
+	Func = function()
+		print("This won't trigger.")
+	end,
+	Disabled = true,
+})
+```
+
 ## Keybinds
 
-Keybinds can use `Toggle`, `Hold`, `Press` or `Always`.
+Keybinds can use `Toggle`, `Hold` or `Press`.
 
 ```lua
 LeftGroupBox:AddLabel("Keybind"):AddKeyPicker("KeyPicker", {
@@ -145,8 +179,13 @@ SaveManager saves config values. Theme values are intentionally kept separate th
 
 ## Example
 
-See `Example.lua` for a full script using:
+You can test the entire library and all its features instantly by running the `Example.lua` script in Matcha:
 
+```lua
+loadstring(game:HttpGet("https://raw.githubusercontent.com/WhyMayko/Obsidian-Matcha/refs/heads/main/Example.lua"))()
+```
+
+This example script contains a full showcase of:
 - hosted Library.lua
 - hosted ThemeManager
 - hosted SaveManager
