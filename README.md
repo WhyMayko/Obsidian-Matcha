@@ -1,24 +1,34 @@
-# 🍵 Obsidian Matcha
+# Obsidian Matcha
 
-Welcome to **Obsidian Matcha**, an external, high-performance UI Library for Roblox exploits.
+Documentation for Obsidian Matcha, a Drawing API version of the Obsidian/Linoria-style UI library adapted for Matcha.
 
-Obsidian Matcha is a reworked version of the original [Obsidian / LinoriaLib](https://github.com/deividcomsono/Obsidian). While the original relied on Roblox's native GUI `Instance` system (ScreenGui, Frames, etc.), **Obsidian Matcha uses the raw `Drawing` API** to render the interface. Because it operates externally, it does not create any instances in `CoreGui` or `PlayerGui`.
+Obsidian Matcha keeps the public scripting style close to the original Obsidian library while avoiding Roblox `Instance` UI objects. The interface is rendered externally with Drawing objects, so some original features are adapted or simplified for the Matcha Lua VM.
 
----
+## Introduction
 
-## 📖 Introduction & Quick Start
+Obsidian Matcha is built for scripts that need a clean UI, themes, configs, keybinds, dropdowns, sliders, color pickers and a keybind menu without creating Roblox UI instances.
 
-Obsidian Matcha follows a clean and logical structure. If you are familiar with LinoriaLib or the original Obsidian, you will feel right at home. 
+The API is modeled after Obsidian and LinoriaLib:
 
-The structure of the UI always follows this hierarchy:
-1. **Window**: The main container for your UI.
-2. **Tabs**: Pages inside your window.
-3. **Groupboxes**: Sections inside your tabs to organize your features.
-4. **Elements**: Toggles, Sliders, Dropdowns, Buttons, etc., that go inside your Groupboxes.
+1. Create a window.
+2. Add tabs.
+3. Add groupboxes.
+4. Add UI elements to groupboxes.
+5. Use ThemeManager and SaveManager from the addons folder when needed.
 
-### 1. Loading the Library
+## Why Obsidian Matcha?
 
-To start, you need to load the library. Because `TextManager` and `IconManager` are now bundled **inside** `Library.lua`, you only need to load the main library file, along with the Theme and Save managers.
+- Drawing API UI for Matcha
+- Obsidian-like scripting style
+- ThemeManager with web and local themes
+- SaveManager for UI settings/configs
+- Keybind menu and key picker modes
+- External image and icon support
+- No custom cursor dependency
+
+## Installation
+
+Use the hosted GitHub files:
 
 ```lua
 local repo = "https://raw.githubusercontent.com/WhyMayko/Obsidian-Matcha/refs/heads/main/"
@@ -28,159 +38,122 @@ local ThemeManager = loadstring(game:HttpGet(repo .. "addons/ThemeManager.lua"))
 local SaveManager = loadstring(game:HttpGet(repo .. "addons/SaveManager.lua"))()
 ```
 
-### 2. Creating a Window
-
-Once the library is loaded, you can create the main window.
+## Quick Start
 
 ```lua
 local Window = Library:CreateWindow({
-    Title = "My Script Hub",
-    Footer = "Matcha Edition",
-    NotifySide = "Right",
-    ShowCustomCursor = true,
+	Title = "mspaint",
+	Footer = "version: example",
+	Icon = 95816097006870,
+	NotifySide = "Right",
+	ShowSearch = true,
+})
+
+local Tabs = {
+	Main = Window:AddTab("Main", "user"),
+	["UI Settings"] = Window:AddTab("UI Settings", "settings"),
+}
+
+local LeftGroupBox = Tabs.Main:AddLeftGroupbox("Groupbox")
+
+LeftGroupBox:AddToggle("MyToggle", {
+	Text = "This is a toggle",
+	Default = true,
+	Callback = function(Value)
+		print("Toggle changed:", Value)
+	end,
 })
 ```
 
-### 3. Creating Tabs & Groupboxes
-
-Inside the window, you create tabs. Then, you divide the tabs into left and right groupboxes to keep things organized.
+## Structure
 
 ```lua
--- Create a Tab
-local MainTab = Window:AddTab("Main", "user") -- "user" is the icon name
-
--- Create Groupboxes inside the Tab
-local LeftGroupBox = MainTab:AddLeftGroupbox("Aimbot")
-local RightGroupBox = MainTab:AddRightGroupbox("Visuals")
+local Tab = Window:AddTab("Main", "user")
+local LeftGroupBox = Tab:AddLeftGroupbox("Left")
+local RightGroupBox = Tab:AddRightGroupbox("Right")
 ```
 
----
+Groupboxes support the common elements:
 
-## 🛠️ Adding UI Elements
+- `AddLabel`
+- `AddButton`
+- `AddToggle`
+- `AddCheckbox`
+- `AddInput`
+- `AddSlider`
+- `AddDropdown`
+- `AddKeyPicker`
+- `AddColorPicker`
+- `AddDivider`
 
-Now you can populate your groupboxes with elements. Obsidian Matcha provides a rich set of interactive widgets.
+## Keybinds
 
-### Toggles (Checkboxes)
-Used for turning features on and off.
+Keybinds can use `Toggle`, `Hold`, `Press` or `Always`.
+
 ```lua
-LeftGroupBox:AddToggle("AimbotToggle", {
-    Text = "Enable Aimbot",
-    Default = false,
-    Tooltip = "Turns on the aimbot feature.",
-    Callback = function(Value)
-        print("Aimbot is now:", Value)
-    end,
-})
-
--- You can fetch the value later using:
--- local state = Library.Toggles.AimbotToggle.Value
-```
-
-### Sliders
-Used for selecting numeric values.
-```lua
-LeftGroupBox:AddSlider("AimbotFOV", {
-    Text = "Field of View",
-    Default = 90,
-    Min = 30,
-    Max = 120,
-    Rounding = 0,
-    Compact = false, -- Set to true to hide the title label
-    Callback = function(Value)
-        print("FOV changed to:", Value)
-    end,
+LeftGroupBox:AddLabel("Keybind"):AddKeyPicker("KeyPicker", {
+	Default = "MB2",
+	Mode = "Toggle",
+	Text = "Auto lockpick safes",
+	NoUI = false,
+	Callback = function(Value)
+		print("Keybind clicked:", Value)
+	end,
 })
 ```
 
-### Dropdowns
-Used for selecting one or multiple options from a list.
+Right-clicking a visible keybind opens the keybind mode popup. You can configure which modes are shown:
+
 ```lua
-RightGroupBox:AddDropdown("TargetPart", {
-    Values = { "Head", "Torso", "Legs" },
-    Default = 1, -- Selects "Head" by default
-    Multi = false, -- Set to true to allow multiple selections
-    Text = "Target Part",
-    Callback = function(Value)
-        print("Selected:", Value)
-    end,
+local Window = Library:CreateWindow({
+	KeybindModePopup = { "Toggle", "Hold", "Press" },
 })
+
+Window:SetKeybindModePopup({ "Toggle", "Press" })
+Window:SetKeybindModePopup(false)
 ```
 
-### Buttons
-Used for executing single actions. You can also attach secondary "Sub-buttons" to them.
-```lua
-local MyButton = RightGroupBox:AddButton({
-    Text = "Kill All",
-    Func = function()
-        print("Executing Kill All...")
-    end,
-    DoubleClick = false,
-})
+## DPI Scale
 
--- Adding a Sub-button right next to it:
-MyButton:AddButton({
-    Text = "Teleport",
-    Func = function()
-        print("Teleporting...")
-    end,
-})
+The DPI scale can resize the active window while keeping it centered.
+
+```lua
+Library:SetDPIScale(150)
+Library:SetDPIScale(100)
+Library:SetDPIScale(75)
 ```
 
-### Color Pickers
-Used to select a custom color. You can add them to Toggles or directly to the Groupbox via a Label.
-```lua
-RightGroupBox:AddLabel("ESP Color"):AddColorPicker("EspColor", {
-    Default = Color3.new(1, 0, 0),
-    Title = "Enemy ESP",
-    Transparency = 0,
-    Callback = function(Color)
-        print("ESP Color changed to:", Color)
-    end,
-})
-```
-
-### Keybinds
-Used to assign custom hotkeys. You can attach them to Toggles or Labels.
-```lua
-LeftGroupBox:AddLabel("Fly Key"):AddKeyPicker("FlyKeybind", {
-    Default = 0x46, -- "F" key in Hex
-    Mode = "Toggle", -- Modes: Always, Toggle, Hold, Press
-    Text = "Toggle Fly",
-    Callback = function(Value)
-        print("Keybind triggered!", Value)
-    end,
-})
-```
-
----
-
-## ⚙️ Configuration via SaveManager
-
-Obsidian Matcha has an incredibly powerful `SaveManager` built-in. It automatically collects every single element (Toggles, Sliders, Keybinds, ColorPickers, etc.) that has an ID and saves them into a JSON file so users don't lose their settings.
-
-To properly setup your config and theme system at the end of your script:
+## ThemeManager
 
 ```lua
--- Add a settings tab
-local SettingsTab = Window:AddTab("UI Settings", "settings")
-
--- Tell ThemeManager and SaveManager to use our library
 ThemeManager:SetLibrary(Library)
-SaveManager:SetLibrary(Library)
-
--- Ignore Theme settings so they don't get mixed into the game configs
-SaveManager:IgnoreThemeSettings()
-
--- Ignore the Menu Keybind itself so users can keep their preferred key across different configs
-SaveManager:SetIgnoreIndexes({ "MenuKeybind" })
-
--- Build the config menus
-SaveManager:BuildConfigSection(SettingsTab)
-ThemeManager:ApplyToTab(SettingsTab)
+ThemeManager:ApplyToTab(Tabs["UI Settings"])
 ```
 
-## 📝 See it in Action
-For a complete, copy-pasteable demonstration of every single feature available in the library, refer to the `Example.lua` file included in this repository.
+Themes are handled separately from configs.
 
----
-*Created by Galax / deivid & based on the legendary LinoriaLib.*
+## SaveManager
+
+```lua
+SaveManager:SetLibrary(Library)
+SaveManager:IgnoreThemeSettings()
+SaveManager:SetIgnoreIndexes({ "MenuKeybind" })
+SaveManager:BuildConfigSection(Tabs["UI Settings"])
+```
+
+SaveManager saves config values. Theme values are intentionally kept separate through ThemeManager.
+
+## Example
+
+See `Example.lua` for a full script using:
+
+- hosted Library.lua
+- hosted ThemeManager
+- hosted SaveManager
+- UI Settings tab
+- keybind menu
+- theme/config setup
+
+## Notes
+
+Obsidian Matcha is not a perfect copy of the original Obsidian because Matcha's Lua VM and Drawing API do not support every Roblox UI feature. The goal is to keep the public API and visual behavior as close as practical while staying compatible with Matcha.

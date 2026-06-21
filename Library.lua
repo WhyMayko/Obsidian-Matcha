@@ -77,8 +77,8 @@ GalaxObsidian.UnloadCallbacks = {}
 GalaxObsidian.NotifySide = "Right"
 GalaxObsidian.KeybindFrame = nil
 GalaxObsidian.ToggleKeybind = nil
-GalaxObsidian.ShowCustomCursor = false
 GalaxObsidian.CornerRadius = 0
+GalaxObsidian.DPIScale = 100
 
 -- ---- Internal Module State ----
 local DraggableLabels = {}
@@ -89,943 +89,32 @@ local Theme
 
 
 
-local TextManager = {}
+local AddonRepo = "https://raw.githubusercontent.com/WhyMayko/Obsidian-Matcha/refs/heads/main/"
 
-local Fonts = {
-	UI = Drawing.Fonts.UI,
-	System = Drawing.Fonts.System,
-	SystemBold = Drawing.Fonts.SystemBold,
-	Minecraft = Drawing.Fonts.Minecraft,
-	Monospace = Drawing.Fonts.Monospace,
-	Pixel = Drawing.Fonts.Pixel,
-	Fortnite = Drawing.Fonts.Fortnite,
-}
+local function loadCoreAddon(path)
+    local source = game:HttpGet(AddonRepo .. path)
+    local chunk, err = loadstring(source)
 
-local FontNamesByValue = {}
-for name, value in pairs(Fonts) do
-	FontNamesByValue[value] = name
+    if not chunk then
+        error("Failed to load " .. path .. ": " .. tostring(err), 2)
+    end
+
+    local module = chunk()
+
+    if type(module) ~= "table" then
+        error("Addon " .. path .. " did not return a module table", 2)
+    end
+
+    return module
 end
 
-local FontMetrics = {
-	UI = {
-		Scale = 0.505,
-		Chars = {
-			A = 1.100, B = 1.060, C = 1.060, D = 1.040, E = 1.060, F = 1.100, G = 1.080,
-			H = 1.040, I = 1.060, J = 1.000, K = 1.120, L = 1.060, M = 1.060, N = 1.060,
-			O = 1.060, P = 1.120, Q = 1.040, R = 1.060, S = 1.060, T = 1.060, U = 1.120,
-			V = 1.060, W = 1.060, X = 1.020, Y = 1.080, Z = 1.120,
-			a = 1.000, b = 1.060, c = 1.040, d = 1.060, e = 1.000, f = 1.180, g = 1.060,
-			h = 1.060, i = 1.060, j = 1.040, k = 1.120, l = 1.000, m = 1.120, n = 1.060,
-			o = 1.060, p = 1.040, q = 1.060, r = 1.060, s = 1.120, t = 1.060, u = 1.060,
-			v = 1.060, w = 1.120, x = 0.980, y = 1.120, z = 1.060,
-			["0"] = 1.060, ["1"] = 1.060, ["2"] = 1.060, ["3"] = 1.040, ["4"] = 1.160,
-			["5"] = 1.020, ["6"] = 1.080, ["7"] = 1.040, ["8"] = 1.120, ["9"] = 1.040,
-			[" "] = 1.070, ["."] = 1.100, ["_"] = 1.040, ["-"] = 0.980, [":"] = 1.100, ["/"] = 1.120,
-		},
-	},
-	System = {
-		Scale = 0.530,
-		Chars = {
-			A = 1.120, B = 1.000, C = 1.120, D = 1.200, E = 0.880, F = 0.880, G = 1.140,
-			H = 1.200, I = 0.480, J = 0.840, K = 1.000, L = 0.880, M = 1.450, N = 1.120,
-			O = 1.200, P = 1.000, Q = 1.200, R = 1.020, S = 1.000, T = 1.000, U = 1.140,
-			V = 1.060, W = 1.570, X = 1.140, Y = 1.060, Z = 0.960,
-			a = 0.880, b = 1.060, c = 0.880, d = 1.000, e = 0.860, f = 0.540, g = 1.060,
-			h = 1.000, i = 0.440, j = 0.440, k = 0.880, l = 0.440, m = 1.450, n = 1.060,
-			o = 0.840, p = 1.000, q = 1.000, r = 0.580, s = 0.880, t = 0.560, u = 1.000,
-			v = 0.880, w = 1.330, x = 0.820, y = 0.880, z = 0.940,
-			["0"] = 1.000, ["1"] = 0.760, ["2"] = 1.000, ["3"] = 1.060, ["4"] = 0.960,
-			["5"] = 1.000, ["6"] = 1.000, ["7"] = 0.880, ["8"] = 1.020, ["9"] = 1.000,
-			[" "] = 0.380, ["."] = 0.380, ["_"] = 0.760, ["-"] = 0.720, [":"] = 0.380, ["/"] = 0.620,
-		},
-	},
-	SystemBold = {
-		Scale = 0.540,
-		Chars = {
-			A = 1.100, B = 0.980, C = 1.100, D = 1.120, E = 0.860, F = 0.860, G = 1.120,
-			H = 1.120, I = 0.420, J = 0.860, K = 1.000, L = 0.800, M = 1.350, N = 1.120,
-			O = 1.240, P = 0.980, Q = 1.240, R = 0.980, S = 0.980, T = 1.000, U = 1.100,
-			V = 1.060, W = 1.470, X = 1.120, Y = 0.980, Z = 1.060,
-			a = 0.900, b = 1.000, c = 0.820, d = 0.980, e = 0.800, f = 0.620, g = 0.980,
-			h = 1.000, i = 0.420, j = 0.380, k = 0.860, l = 0.380, m = 1.350, n = 0.980,
-			o = 0.880, p = 0.980, q = 0.980, r = 0.620, s = 0.860, t = 0.620, u = 0.940,
-			v = 0.920, w = 1.230, x = 0.860, y = 0.880, z = 0.860,
-			["0"] = 0.980, ["1"] = 0.740, ["2"] = 1.000, ["3"] = 1.040, ["4"] = 0.980,
-			["5"] = 0.940, ["6"] = 0.980, ["7"] = 0.900, ["8"] = 1.020, ["9"] = 0.960,
-			[" "] = 0.400, ["."] = 0.400, ["_"] = 0.740, ["-"] = 0.620, [":"] = 0.400, ["/"] = 0.800,
-		},
-	},
-	Minecraft = {
-		Scale = 0.570,
-		Chars = {
-			A = 1.040, B = 1.220, C = 1.340, D = 1.240, E = 1.280, F = 1.060, G = 1.280,
-			H = 1.220, I = 0.720, J = 0.920, K = 1.120, L = 1.040, M = 1.180, N = 1.220,
-			O = 1.460, P = 1.240, Q = 1.460, R = 1.520, S = 1.120, T = 1.220, U = 1.200,
-			V = 1.200, W = 1.160, X = 1.120, Y = 1.280, Z = 1.260,
-			a = 1.020, b = 1.240, c = 1.100, d = 1.000, e = 1.000, f = 0.900, g = 0.940,
-			h = 0.960, i = 0.280, j = 0.880, k = 0.940, l = 0.240, m = 1.580, n = 1.100,
-			o = 1.000, p = 1.060, q = 0.980, r = 0.940, s = 0.940, t = 0.700, u = 0.940,
-			v = 1.220, w = 1.300, x = 1.220, y = 1.000, z = 0.940,
-			["0"] = 0.930, ["1"] = 0.760, ["2"] = 0.990, ["3"] = 0.930, ["4"] = 1.050,
-			["5"] = 1.230, ["6"] = 1.050, ["7"] = 0.950, ["8"] = 0.990, ["9"] = 1.000,
-			[" "] = 0.520, ["."] = 0.300, ["_"] = 0.960, ["-"] = 0.760, [":"] = 0.420, ["/"] = 1.000,
-		},
-	},
-	Monospace = {
-		Scale = 0.480,
-		Chars = {
-			A = 0.940, B = 0.980, C = 0.900, D = 0.980, E = 0.960, F = 0.980, G = 0.980,
-			H = 0.900, I = 0.960, J = 0.900, K = 1.060, L = 0.960, M = 0.980, N = 0.960,
-			O = 0.920, P = 0.960, Q = 0.980, R = 1.040, S = 1.020, T = 0.860, U = 0.960,
-			V = 0.980, W = 0.960, X = 0.980, Y = 0.980, Z = 1.040,
-			a = 0.900, b = 0.900, c = 0.980, d = 0.960, e = 0.900, f = 0.980, g = 0.980,
-			h = 1.040, i = 0.960, j = 0.900, k = 0.980, l = 0.980, m = 0.900, n = 0.960,
-			o = 0.960, p = 0.920, q = 0.980, r = 0.900, s = 0.960, t = 1.060, u = 0.900,
-			v = 0.960, w = 0.980, x = 1.040, y = 0.980, z = 0.900,
-			["0"] = 0.960, ["1"] = 0.980, ["2"] = 0.980, ["3"] = 0.960, ["4"] = 0.900,
-			["5"] = 0.980, ["6"] = 0.980, ["7"] = 0.960, ["8"] = 0.980, ["9"] = 1.000,
-			[" "] = 0.960, ["."] = 0.860, ["_"] = 1.040, ["-"] = 1.000, [":"] = 1.000, ["/"] = 1.000,
-		},
-	},
-	Pixel = {
-		Scale = 0.520,
-		Chars = {
-			A = 1.000, B = 0.960, C = 1.040, D = 1.020, E = 1.080, F = 1.040, G = 1.080,
-			H = 1.020, I = 0.780, J = 0.960, K = 1.080, L = 1.040, M = 1.220, N = 1.020,
-			O = 1.020, P = 1.020, Q = 1.000, R = 1.060, S = 1.080, T = 0.720, U = 1.020,
-			V = 0.760, W = 1.160, X = 1.100, Y = 0.700, Z = 1.020,
-			a = 1.020, b = 1.040, c = 1.020, d = 1.020, e = 1.040, f = 1.020, g = 1.020,
-			h = 1.020, i = 0.780, j = 1.020, k = 1.100, l = 1.020, m = 1.220, n = 1.020,
-			o = 1.020, p = 1.040, q = 1.020, r = 1.020, s = 1.040, t = 0.760, u = 0.960,
-			v = 0.700, w = 1.220, x = 1.100, y = 0.700, z = 1.020,
-			["0"] = 1.040, ["1"] = 0.820, ["2"] = 1.020, ["3"] = 1.040, ["4"] = 1.020,
-			["5"] = 1.020, ["6"] = 1.040, ["7"] = 1.020, ["8"] = 1.020, ["9"] = 1.000,
-			[" "] = 1.120, ["."] = 0.440, ["_"] = 1.040, ["-"] = 0.760, [":"] = 0.460, ["/"] = 1.000,
-		},
-	},
-	Fortnite = {
-		Scale = 0.540,
-		Chars = {
-			A = 0.850, B = 0.850, C = 0.810, D = 0.870, E = 0.670, F = 0.690, G = 0.910,
-			H = 0.870, I = 0.440, J = 0.730, K = 0.810, L = 0.670, M = 1.050, N = 0.810,
-			O = 0.810, P = 0.850, Q = 0.870, R = 0.870, S = 0.790, T = 0.750, U = 0.790,
-			V = 0.890, W = 1.150, X = 0.850, Y = 0.690, Z = 0.750,
-			a = 0.860, b = 0.860, c = 0.740, d = 0.880, e = 0.800, f = 0.680, g = 0.920,
-			h = 0.860, i = 0.380, j = 0.480, k = 0.880, l = 0.480, m = 1.250, n = 0.860,
-			o = 0.840, p = 0.820, q = 0.860, r = 0.800, s = 0.680, t = 0.680, u = 0.820,
-			v = 0.740, w = 1.050, x = 0.740, y = 0.740, z = 0.740,
-			["0"] = 0.850, ["1"] = 0.560, ["2"] = 0.870, ["3"] = 0.870, ["4"] = 0.910,
-			["5"] = 0.870, ["6"] = 0.810, ["7"] = 0.730, ["8"] = 0.870, ["9"] = 0.850,
-			[" "] = 0.320, ["."] = 0.420, ["_"] = 0.500, ["-"] = 0.620, [":"] = 0.360, ["/"] = 1.000,
-		},
-	},
-}
-
-local KeyNameMap = {
-	["1"] = "M1", ["2"] = "M2", ["4"] = "M3", ["5"] = "M4", ["6"] = "M5",
-	["8"] = "BACK", ["9"] = "TAB", ["12"] = "CLEAR", ["13"] = "ENTER",
-	["16"] = "SHIFT", ["17"] = "CTRL", ["18"] = "ALT", ["19"] = "PAUSE",
-	["20"] = "CAPS", ["27"] = "ESC", ["32"] = "SPACE", ["33"] = "PAGEUP",
-	["34"] = "PAGEDOWN", ["35"] = "END", ["36"] = "HOME", ["37"] = "LEFT",
-	["38"] = "UP", ["39"] = "RIGHT", ["40"] = "DOWN", ["41"] = "SELECT",
-	["42"] = "PRINT", ["43"] = "EXECUTE", ["44"] = "PRTSC", ["45"] = "INS",
-	["46"] = "DEL", ["47"] = "HELP",
-	["48"] = "0", ["49"] = "1", ["50"] = "2", ["51"] = "3", ["52"] = "4",
-	["53"] = "5", ["54"] = "6", ["55"] = "7", ["56"] = "8", ["57"] = "9",
-	["65"] = "A", ["66"] = "B", ["67"] = "C", ["68"] = "D", ["69"] = "E",
-	["70"] = "F", ["71"] = "G", ["72"] = "H", ["73"] = "I", ["74"] = "J",
-	["75"] = "K", ["76"] = "L", ["77"] = "M", ["78"] = "N", ["79"] = "O",
-	["80"] = "P", ["81"] = "Q", ["82"] = "R", ["83"] = "S", ["84"] = "T",
-	["85"] = "U", ["86"] = "V", ["87"] = "W", ["88"] = "X", ["89"] = "Y",
-	["90"] = "Z", ["91"] = "LWIN", ["92"] = "RWIN", ["93"] = "APPS", ["95"] = "SLEEP",
-	["96"] = "NUM0", ["97"] = "NUM1", ["98"] = "NUM2", ["99"] = "NUM3",
-	["100"] = "NUM4", ["101"] = "NUM5", ["102"] = "NUM6", ["103"] = "NUM7",
-	["104"] = "NUM8", ["105"] = "NUM9", ["106"] = "NUM*", ["107"] = "NUM+",
-	["108"] = "NUMSEP", ["109"] = "NUM-", ["110"] = "NUM.", ["111"] = "NUM/",
-	["112"] = "F1", ["113"] = "F2", ["114"] = "F3", ["115"] = "F4",
-	["116"] = "F5", ["117"] = "F6", ["118"] = "F7", ["119"] = "F8",
-	["120"] = "F9", ["121"] = "F10", ["122"] = "F11", ["123"] = "F12",
-	["124"] = "F13", ["125"] = "F14", ["126"] = "F15", ["127"] = "F16",
-	["128"] = "F17", ["129"] = "F18", ["130"] = "F19", ["131"] = "F20",
-	["132"] = "F21", ["133"] = "F22", ["134"] = "F23", ["135"] = "F24",
-	["144"] = "NUMLOCK", ["145"] = "SCROLL",
-	["160"] = "LSHIFT", ["161"] = "RSHIFT", ["162"] = "LCTRL", ["163"] = "RCTRL",
-	["164"] = "LALT", ["165"] = "RALT",
-	["166"] = "BROWSER_BACK", ["167"] = "BROWSER_FORWARD", ["168"] = "BROWSER_REFRESH",
-	["169"] = "BROWSER_STOP", ["170"] = "BROWSER_SEARCH", ["171"] = "BROWSER_FAVORITES",
-	["172"] = "BROWSER_HOME", ["173"] = "VOLUME_MUTE", ["174"] = "VOLUME_DOWN",
-	["175"] = "VOLUME_UP", ["176"] = "MEDIA_NEXT", ["177"] = "MEDIA_PREV",
-	["178"] = "MEDIA_STOP", ["179"] = "MEDIA_PLAY", ["180"] = "MAIL",
-	["181"] = "MEDIA_SELECT", ["182"] = "APP1", ["183"] = "APP2",
-	["186"] = ";", ["187"] = "=", ["188"] = ",", ["189"] = "-",
-	["190"] = ".", ["191"] = "/", ["192"] = "`", ["219"] = "[",
-	["220"] = "\\", ["221"] = "]", ["222"] = "'", ["226"] = "OEM102",
-	["229"] = "PROCESS", ["246"] = "ATTN", ["247"] = "CRSEL", ["248"] = "EXSEL",
-	["249"] = "EREOF", ["250"] = "PLAY", ["251"] = "ZOOM", ["252"] = "NONAME",
-	["253"] = "PA1", ["254"] = "CLEAR2",
-}
-
-local TextChars = {}
-for i = 48, 57 do
-	TextChars[i] = string.char(i)
-end
-for i = 65, 90 do
-	TextChars[i] = string.char(i + 32)
-end
-
-TextManager.Fonts = Fonts
-TextManager.FontMetrics = FontMetrics
-TextManager.KeyNameMap = KeyNameMap
-TextManager.TextChars = TextChars
-
-local NativeMeasureText
-
-local function fontNameFromValue(font)
-	if type(font) == "string" and FontMetrics[font] then
-		return font
-	end
-
-	return FontNamesByValue[font] or "Monospace"
-end
-
-local function vectorX(value)
-	if type(value) == "number" then
-		return value
-	end
-
-	if type(value) == "table" then
-		return value.X or value.x or value[1]
-	end
-
-	return nil
-end
-
-local function nativeMeasure(text, size, font)
-	if NativeMeasureText == false then
-		return nil
-	end
-
-	if not NativeMeasureText then
-		local ok, object = pcall(function()
-			return Drawing.new("Text")
-		end)
-		if not ok or not object then
-			NativeMeasureText = false
-			return nil
-		end
-
-		NativeMeasureText = object
-	end
-
-	local object = NativeMeasureText
-	local ok = pcall(function()
-		object.Text = tostring(text or "")
-		object.Size = size or 13
-		object.Font = font or Drawing.Fonts.Monospace
-		object.Position = Vector2.new(-10000, -10000)
-		object.Visible = true
-	end)
-	if not ok then
-		return nil
-	end
-
-	for _, property in ipairs({ "TextBounds", "TextSize", "Bounds", "SizeBounds", "AbsoluteSize" }) do
-		local readOk, value = pcall(function()
-			return object[property]
-		end)
-		local x = readOk and vectorX(value) or nil
-		if x and x > 0 then
-			return x
-		end
-	end
-
-	return nil
-end
-
-local function charUnit(char, metrics)
-	local chars = metrics and metrics.Chars
-	if chars and chars[char] then
-		return chars[char]
-	end
-
-	if char == " " then
-		return 0.75
-	elseif char:find("[ilI1%|%.%,:;!'`]", 1) then
-		return 0.5
-	elseif char:find("[mwMW@#%%&]", 1) then
-		return 1.25
-	elseif char:find("[%u]", 1) then
-		return 1.05
-	elseif char:find("[%d]", 1) then
-		return 0.95
-	elseif char:find("[%p]", 1) then
-		return 0.5
-	end
-
-	return 1
-end
-
-function TextManager:Measure(text, size, font)
-	text = tostring(text or "")
-	size = size or 13
-	font = font or Drawing.Fonts.Monospace
-
-	local native = nativeMeasure(text, size, font)
-	if native then
-		return native
-	end
-
-	local metrics = FontMetrics[fontNameFromValue(font)] or FontMetrics.Monospace
-	local units = 0
-
-	for i = 1, #text do
-		units = units + charUnit(text:sub(i, i), metrics)
-	end
-
-	return units * size * (metrics.Scale or 0.5)
-end
-
-function TextManager:Fit(text, maxWidth, size, font)
-	text = tostring(text or "")
-	if not maxWidth or maxWidth <= 0 then
-		return ""
-	end
-
-	if self:Measure(text, size, font) <= maxWidth then
-		return text
-	end
-
-	local suffix = "..."
-	local available = maxWidth - self:Measure(suffix, size, font)
-	if available <= 0 then
-		return suffix
-	end
-
-	local result = ""
-	for i = 1, #text do
-		local nextText = text:sub(1, i)
-		if self:Measure(nextText, size, font) > available then
-			break
-		end
-		result = nextText
-	end
-
-	return result .. suffix
-end
-
-function TextManager:AlignX(text, x, width, size, font, align)
-	align = tostring(align or "Left"):lower()
-	if align == "center" or align == "centre" then
-		return x + (width - self:Measure(text, size, font)) / 2
-	elseif align == "right" then
-		return x + width - self:Measure(text, size, font)
-	end
-
-	return x
-end
-
-function TextManager:KeyName(key)
-	if key == nil or key == false or key == "" or key == "None" then
-		return "None"
-	end
-
-	local numberKey = tonumber(key)
-	if numberKey then
-		return KeyNameMap[tostring(numberKey)] or ("0x" .. string.format("%X", numberKey))
-	end
-
-	return tostring(key)
-end
-
-function TextManager:ReadKeyName(key)
-	return self:KeyName(key)
-end
-
-function TextManager:ReadTextKey(key, shift)
-	local char = TextChars[key]
-	if not char then
-		return nil
-	end
-
-	if shift then
-		return string.upper(char)
-	end
-
-	return char
-end
-
-function TextManager:FormatKeybind(key, label, mode)
-	local parts = { "[" .. self:KeyName(key) .. "]" }
-	if label and label ~= "" then
-		parts[#parts + 1] = tostring(label)
-	end
-	if mode and mode ~= "" then
-		parts[#parts + 1] = "(" .. tostring(mode) .. ")"
-	end
-	return table.concat(parts, " ")
-end
-
-function TextManager:Draw(drawText, text, x, y, width, options)
-	options = options or {}
-	local size = options.Size or options.size or 13
-	local font = options.Font or options.font or Drawing.Fonts.Monospace
-	local display = options.Fit == false and tostring(text or "") or self:Fit(text, width or math.huge, size, font)
-	local tx = self:AlignX(display, x or 0, width or 0, size, font, options.Align or options.align)
-
-	return drawText(
-		display,
-		math.floor(tx + 0.5),
-		y or 0,
-		options.Color or options.color,
-		size,
-		font,
-		false,
-		options.Outline ~= false,
-		options.ZIndex or options.z or 1
-	), display, tx
-end
-
-function TextManager:RenderInput(window, value, placeholder, x, y, width, options)
-	options = options or {}
-	local raw = tostring(value or "")
-	local empty = raw == ""
-	local text = empty and tostring(placeholder or "") or raw
-	local size = options.Size or 13
-	local font = options.Font or Drawing.Fonts.Monospace
-	local fitted = self:Fit(text, width, size, font)
-	local color = options.Disabled and options.DisabledColor or (empty and options.PlaceholderColor or options.Color)
-	local tx = self:AlignX(fitted, x, width, size, font, options.Align or options.align)
-
-	window:_text(fitted, tx, y, color, size, font, false, options.Outline ~= false, options.ZIndex or 1)
-
-	if options.Focused and not options.Disabled and math.floor(tick() * 2) % 2 == 0 then
-		local caretX = tx + math.min(width, math.floor(self:Measure(fitted, size, font) + 2))
-		window:_line(caretX, y + 1, caretX, y + size + 1, color, 1, (options.ZIndex or 1) + 1)
-	end
-
-	return fitted
-end
-
-function TextManager:GetMetrics(font)
-	return FontMetrics[fontNameFromValue(font)] or FontMetrics.Monospace
-end
-
-function TextManager:IsNativeMeasureAvailable()
-	return nativeMeasure("Test", 13, Drawing.Fonts.Monospace) ~= nil
-end
-
-
-
-
-
+local TextManager = loadCoreAddon("addons/TextManager.lua")
+local IconManager = loadCoreAddon("addons/IconManager.lua")
+local AnimationManager = loadCoreAddon("addons/AnimationManager.lua")
 
 GalaxObsidian.TextManager = TextManager
-
--- Recolorable vector icons for Matcha Drawing.
--- Icons are drawn from simple 24x24 Lucide-like geometry using Drawing.Line/Circle/Square.
-
-local IconManager = {}
-
-IconManager.Version = "0.1.0"
-IconManager.DefaultStrokeWidth = 2
-
-local aliases = {
-	["chevron"] = "chevron-down",
-	["chevrondown"] = "chevron-down",
-	["chevron_down"] = "chevron-down",
-	["chevron-up"] = "chevron-up",
-	["chevronup"] = "chevron-up",
-	["chevron-left"] = "chevron-left",
-	["chevronleft"] = "chevron-left",
-	["chevron-right"] = "chevron-right",
-	["chevronright"] = "chevron-right",
-	["move"] = "move",
-	["drag"] = "move",
-	["resize"] = "move-diagonal-2",
-	["movediagonal2"] = "move-diagonal-2",
-	["move-diagonal"] = "move-diagonal-2",
-	["settings"] = "settings",
-	["search"] = "search",
-	["user"] = "user",
-	["key"] = "key",
-	["check"] = "check",
-	["x"] = "x",
-	["close"] = "x",
-	["plus"] = "plus",
-	["minus"] = "minus",
-}
-
-local function normalizeName(name)
-	name = tostring(name or ""):lower()
-	return aliases[name] or name
-end
-
-local function makeScale(x, y, size)
-	local scale = (size or 24) / 24
-	local left = x - (size or 24) / 2
-	local top = y - (size or 24) / 2
-
-	return function(px, py)
-		return left + px * scale, top + py * scale
-	end, scale
-end
-
-local function drawLine(window, point, a, b, color, thickness, z)
-	local x1, y1 = point(a[1], a[2])
-	local x2, y2 = point(b[1], b[2])
-	return window:_line(x1, y1, x2, y2, color, thickness, z)
-end
-
-local function drawPolyline(window, point, points, color, thickness, z)
-	local drawn = false
-
-	for index = 1, #points - 1 do
-		if drawLine(window, point, points[index], points[index + 1], color, thickness, z) then
-			drawn = true
-		end
-	end
-
-	for index = 2, #points - 1 do
-		local x, y = point(points[index][1], points[index][2])
-		if window:_circle(x, y, math.max(1, thickness / 2), color, true, 1, z) then
-			drawn = true
-		end
-	end
-
-	return drawn
-end
-
-local function drawCircle(window, point, cx, cy, radius, color, thickness, z)
-	local x, y = point(cx, cy)
-	return window:_circle(x, y, radius, color, false, thickness, z)
-end
-
-local function drawRect(window, point, x, y, w, h, color, thickness, z)
-	local x1, y1 = point(x, y)
-	local x2, y2 = point(x + w, y + h)
-	local drawn = false
-
-	if window:_square(x1, y1, x2 - x1, y2 - y1, color, false, 1, 0, z) then
-		drawn = true
-	end
-
-	return drawn
-end
-
-local icons = {}
-
-icons["check"] = function(window, point, color, thickness, z)
-	return drawPolyline(window, point, {
-		{ 20, 6 },
-		{ 9, 17 },
-		{ 4, 12 },
-	}, color, thickness, z)
-end
-
-icons["chevron-down"] = function(window, point, color, thickness, z)
-	return drawPolyline(window, point, {
-		{ 6, 9 },
-		{ 12, 15 },
-		{ 18, 9 },
-	}, color, thickness, z)
-end
-
-icons["chevron-up"] = function(window, point, color, thickness, z)
-	return drawPolyline(window, point, {
-		{ 18, 15 },
-		{ 12, 9 },
-		{ 6, 15 },
-	}, color, thickness, z)
-end
-
-icons["chevron-left"] = function(window, point, color, thickness, z)
-	return drawPolyline(window, point, {
-		{ 15, 18 },
-		{ 9, 12 },
-		{ 15, 6 },
-	}, color, thickness, z)
-end
-
-icons["chevron-right"] = function(window, point, color, thickness, z)
-	return drawPolyline(window, point, {
-		{ 9, 18 },
-		{ 15, 12 },
-		{ 9, 6 },
-	}, color, thickness, z)
-end
-
-icons["x"] = function(window, point, color, thickness, z)
-	local first = drawLine(window, point, { 18, 6 }, { 6, 18 }, color, thickness, z)
-	local second = drawLine(window, point, { 6, 6 }, { 18, 18 }, color, thickness, z)
-	return first or second
-end
-
-icons["plus"] = function(window, point, color, thickness, z)
-	local first = drawLine(window, point, { 12, 5 }, { 12, 19 }, color, thickness, z)
-	local second = drawLine(window, point, { 5, 12 }, { 19, 12 }, color, thickness, z)
-	return first or second
-end
-
-icons["minus"] = function(window, point, color, thickness, z)
-	return drawLine(window, point, { 5, 12 }, { 19, 12 }, color, thickness, z)
-end
-
-icons["search"] = function(window, point, color, thickness, z, scale)
-	local circle = drawCircle(window, point, 11, 11, 8 * scale, color, thickness, z)
-	local handle = drawLine(window, point, { 21, 21 }, { 16.66, 16.66 }, color, thickness, z)
-	return circle or handle
-end
-
-icons["user"] = function(window, point, color, thickness, z, scale)
-	local head = drawCircle(window, point, 12, 7, 4 * scale, color, thickness, z)
-	local body = drawPolyline(window, point, {
-		{ 5, 21 },
-		{ 5, 19 },
-		{ 5.5, 17.6 },
-		{ 6.7, 16.3 },
-		{ 9, 15 },
-		{ 15, 15 },
-		{ 17.3, 16.3 },
-		{ 18.5, 17.6 },
-		{ 19, 19 },
-		{ 19, 21 },
-	}, color, thickness, z)
-	return head or body
-end
-
-icons["grip"] = function(window, point, color, thickness, z)
-	local drawn = false
-	local points = {
-		{ 9, 5 }, { 15, 5 },
-		{ 9, 12 }, { 15, 12 },
-		{ 9, 19 }, { 15, 19 },
-	}
-
-	for _, dot in ipairs(points) do
-		local x, y = point(dot[1], dot[2])
-		if window:_circle(x, y, math.max(1, thickness), color, true, 1, z) then
-			drawn = true
-		end
-	end
-
-	return drawn
-end
-
-icons["move"] = function(window, point, color, thickness, z)
-	local drawn = false
-	local segments = {
-		{ { 12, 2 }, { 12, 22 } },
-		{ { 15, 19 }, { 12, 22 } },
-		{ { 12, 22 }, { 9, 19 } },
-		{ { 19, 9 }, { 22, 12 } },
-		{ { 22, 12 }, { 19, 15 } },
-		{ { 2, 12 }, { 22, 12 } },
-		{ { 5, 9 }, { 2, 12 } },
-		{ { 2, 12 }, { 5, 15 } },
-		{ { 9, 5 }, { 12, 2 } },
-		{ { 12, 2 }, { 15, 5 } },
-	}
-
-	for _, segment in ipairs(segments) do
-		if drawLine(window, point, segment[1], segment[2], color, thickness, z) then
-			drawn = true
-		end
-	end
-
-	local joints = {
-		{ 12, 2 },
-		{ 22, 12 },
-		{ 12, 22 },
-		{ 2, 12 },
-		{ 12, 12 },
-	}
-
-	for _, joint in ipairs(joints) do
-		local x, y = point(joint[1], joint[2])
-		if window:_circle(x, y, math.max(1, thickness / 2), color, true, 1, z) then
-			drawn = true
-		end
-	end
-
-	return drawn
-end
-
-icons["move-diagonal-2"] = function(window, point, color, thickness, z)
-	local drawn = false
-	local segments = {
-		{ { 19, 13 }, { 19, 19 } },
-		{ { 19, 19 }, { 13, 19 } },
-		{ { 5, 11 }, { 5, 5 } },
-		{ { 5, 5 }, { 11, 5 } },
-		{ { 5, 5 }, { 19, 19 } },
-	}
-
-	for _, segment in ipairs(segments) do
-		if drawLine(window, point, segment[1], segment[2], color, thickness, z) then
-			drawn = true
-		end
-	end
-
-	local joints = {
-		{ 5, 5 },
-		{ 19, 19 },
-	}
-
-	for _, joint in ipairs(joints) do
-		local x, y = point(joint[1], joint[2])
-		if window:_circle(x, y, math.max(1, thickness / 2), color, true, 1, z) then
-			drawn = true
-		end
-	end
-
-	return drawn
-end
-
-icons["key"] = function(window, point, color, thickness, z, scale)
-	local head = drawCircle(window, point, 7.5, 15.5, 5.5 * scale, color, thickness, z)
-	local shaft = drawLine(window, point, { 21, 2 }, { 11.4, 11.6 }, color, thickness, z)
-	local top = drawPolyline(window, point, {
-		{ 15.5, 7.5 },
-		{ 17.8, 9.8 },
-		{ 19.2, 9.8 },
-		{ 21.3, 7.7 },
-		{ 21.3, 6.3 },
-		{ 19, 4 },
-	}, color, thickness, z)
-	return head or shaft or top
-end
-
-icons["settings"] = function(window, point, color, thickness, z, scale)
-	local center = drawCircle(window, point, 12, 12, 3 * scale, color, thickness, z)
-	local gear = drawPolyline(window, point, {
-		{ 9.67, 4.14 },
-		{ 10.18, 2.82 },
-		{ 11.06, 2.16 },
-		{ 12.00, 2.00 },
-		{ 12.94, 2.16 },
-		{ 13.82, 2.82 },
-		{ 14.33, 4.14 },
-		{ 14.92, 5.58 },
-		{ 16.20, 6.15 },
-		{ 17.65, 6.05 },
-		{ 18.95, 5.72 },
-		{ 20.01, 6.26 },
-		{ 20.67, 7.30 },
-		{ 20.75, 8.48 },
-		{ 19.98, 10.08 },
-		{ 19.15, 11.10 },
-		{ 19.15, 12.90 },
-		{ 19.98, 13.92 },
-		{ 20.75, 15.52 },
-		{ 20.67, 16.70 },
-		{ 20.01, 17.74 },
-		{ 18.95, 18.28 },
-		{ 17.65, 17.95 },
-		{ 16.20, 17.85 },
-		{ 14.92, 18.42 },
-		{ 14.33, 19.86 },
-		{ 13.82, 21.18 },
-		{ 12.94, 21.84 },
-		{ 12.00, 22.00 },
-		{ 11.06, 21.84 },
-		{ 10.18, 21.18 },
-		{ 9.67, 19.86 },
-		{ 9.08, 18.42 },
-		{ 7.80, 17.85 },
-		{ 6.35, 17.95 },
-		{ 5.05, 18.28 },
-		{ 3.99, 17.74 },
-		{ 3.33, 16.70 },
-		{ 3.25, 15.52 },
-		{ 4.02, 13.92 },
-		{ 4.85, 12.90 },
-		{ 4.85, 11.10 },
-		{ 4.02, 10.08 },
-		{ 3.25, 8.48 },
-		{ 3.33, 7.30 },
-		{ 3.99, 6.26 },
-		{ 5.05, 5.72 },
-		{ 6.35, 6.05 },
-		{ 7.80, 6.15 },
-		{ 9.08, 5.58 },
-		{ 9.67, 4.14 },
-	}, color, thickness, z)
-	return center or gear
-end
-
-icons["square"] = function(window, point, color, thickness, z)
-	return drawRect(window, point, 5, 5, 14, 14, color, thickness, z)
-end
-
-function IconManager:Has(name)
-	return icons[normalizeName(name)] ~= nil
-end
-
-function IconManager:Draw(window, name, x, y, size, color, z, options)
-	if not window then
-		return false
-	end
-
-	local icon = icons[normalizeName(name)]
-	if not icon then
-		return false
-	end
-
-	options = options or {}
-	local point, scale = makeScale(x or 0, y or 0, size or 24)
-	local thickness = options.Thickness or options.StrokeWidth or math.max(1, math.floor((size or 24) / 24 * self.DefaultStrokeWidth + 0.5))
-
-	return icon(window, point, color, thickness, z, scale) == true
-end
-
-function IconManager:Register(name, draw)
-	if type(name) ~= "string" or type(draw) ~= "function" then
-		return false
-	end
-
-	icons[normalizeName(name)] = draw
-	return true
-end
-
-function IconManager:List()
-	local list = {}
-
-	for name in pairs(icons) do
-		list[#list + 1] = name
-	end
-
-	table.sort(list)
-	return list
-end
-
-
-
-
-
-
 GalaxObsidian.IconManager = IconManager
-
--- ======================================================================
--- ANIMATION SYSTEM
--- ======================================================================
-local AnimationManager = { Version = "0.1.0", DefaultSpeed = 14 }
-
--- ---- Internal Helpers ----
-local function animationNow()
-    if type(tick) == "function" then
-        return tick()
-    end
-    return os.clock()
-end
-local function animationClamp(value, minValue, maxValue)
-    if value < minValue then
-        return minValue
-    end
-    if value > maxValue then
-        return maxValue
-    end
-    return value
-end
-local function animationColorComponents(color)
-    return color.R or color.r or 0, color.G or color.g or 0, color.B or color.b or 0
-end
-local function animationValueKind(value)
-    if type(value) == "number" then
-        return "number"
-    end
-    if typeof then
-        local kind = typeof(value)
-        if kind == "Color3" or kind == "Vector2" or kind == "Vector3" then
-            return kind
-        end
-    end
-    if type(value) == "table" then
-        if value.R or value.r then
-            return "Color3"
-        end
-        if value.X and value.Y and value.Z then
-            return "Vector3"
-        end
-        if value.X and value.Y then
-            return "Vector2"
-        end
-    end
-    return type(value)
-end
-
--- ---- Public API ----
-function AnimationManager:Lerp(fromValue, toValue, alpha)
-    alpha = animationClamp(alpha or 0, 0, 1)
-    local kind = animationValueKind(toValue)
-    if kind == "number" then
-        return fromValue + (toValue - fromValue) * alpha
-    end
-    if kind == "Color3" then
-        local fr, fg, fb = animationColorComponents(fromValue)
-        local tr, tg, tb = animationColorComponents(toValue)
-        return Color3.new(fr + (tr - fr) * alpha, fg + (tg - fg) * alpha, fb + (tb - fb) * alpha)
-    end
-    if kind == "Vector2" then
-        return Vector2.new(
-            fromValue.X + (toValue.X - fromValue.X) * alpha,
-            fromValue.Y + (toValue.Y - fromValue.Y) * alpha
-        )
-    end
-    if kind == "Vector3" then
-        return Vector3.new(
-            fromValue.X + (toValue.X - fromValue.X) * alpha,
-            fromValue.Y + (toValue.Y - fromValue.Y) * alpha,
-            fromValue.Z + (toValue.Z - fromValue.Z) * alpha
-        )
-    end
-    return toValue
-end
-function AnimationManager:Approach(owner, key, target, speed)
-    if owner == nil or key == nil then
-        return target
-    end
-    owner._animations = owner._animations or {}
-    key = tostring(key)
-    local timeNow = animationNow()
-    local kind = animationValueKind(target)
-    local state = owner._animations[key]
-    if not state or state.kind ~= kind then
-        state = { kind = kind, value = target, target = target, time = timeNow }
-        owner._animations[key] = state
-        return target
-    end
-    local dt = animationClamp(timeNow - (state.time or timeNow), 0, 0.1)
-    state.time = timeNow
-    state.target = target
-    local alpha = 1 - math.exp(-(speed or self.DefaultSpeed) * dt)
-    state.value = self:Lerp(state.value, target, alpha)
-    return state.value
-end
-AnimationManager.Tween = AnimationManager.Approach
-function AnimationManager:Color(owner, key, target, speed)
-    return self:Approach(owner, key, target, speed)
-end
-function AnimationManager:Number(owner, key, target, speed)
-    return self:Approach(owner, key, target, speed)
-end
-function AnimationManager:Vector2(owner, key, target, speed)
-    return self:Approach(owner, key, target, speed)
-end
-function AnimationManager:Vector3(owner, key, target, speed)
-    return self:Approach(owner, key, target, speed)
-end
-function AnimationManager:Reset(owner, key)
-    if not owner or not owner._animations then
-        return nil
-    end
-    if key == nil then
-        owner._animations = {}
-    else
-        owner._animations[tostring(key)] = nil
-    end
-end
 GalaxObsidian.AnimationManager = AnimationManager
-
 -- ======================================================================
 -- MATH & COLOR HELPERS
 -- ======================================================================
@@ -1376,7 +465,13 @@ function GalaxObsidian:SetNotifySide(side)
         self.ActiveWindow.NotifySide = self.NotifySide
     end
 end
-function GalaxObsidian:SetDPIScale(percent) -- Matcha Drawing API does not support DPI scaling natively; this is a no-op.
+function GalaxObsidian:SetDPIScale(percent)
+    percent = tonumber(percent) or 100
+    percent = math.floor(clamp(percent, 50, 200) + 0.5)
+    self.DPIScale = percent
+    if self.ActiveWindow and self.ActiveWindow.SetDPIScale then
+        self.ActiveWindow:SetDPIScale(percent)
+    end
 end
 
 -- ======================================================================
@@ -1800,6 +895,8 @@ function GalaxObsidian:CreateWindow(options)
     -- ---- Window State Table ----
     local keybindMenuOptions = options.KeybindMenu or {}
     local keybindPopupEnabled, keybindPopupModes = normalizeKeybindModePopupConfig(options.KeybindModePopup or options.KeybindPopup)
+    local initialDPIScale = tonumber(GalaxObsidian.DPIScale) or 100
+    local initialScale = clamp(initialDPIScale / 100, 0.5, 2)
     local Window = {
         Title = options.Title or "",
         Subtitle = options.Subtitle or "",
@@ -1810,8 +907,10 @@ function GalaxObsidian:CreateWindow(options)
         IconSize = options.IconSize or 24,
         ImagesEnabled = options.EnableImages ~= false,
         TransparencyTextureData = GalaxObsidian.ImageCache[GalaxObsidian.TransparencyTextureUrl],
-        Size = resolvedSize,
+        LogicalSize = resolvedSize,
+        Size = Vector2.new(math.floor(resolvedSize.X * initialScale + 0.5), math.floor(resolvedSize.Y * initialScale + 0.5)),
         MinSize = resolvedMinSize,
+        DPIScale = initialDPIScale,
         Resizable = options.Resizable ~= false,
         MenuKey = options.MenuKey or 0x70,
         Position = Vector2.new(options.X or 180, options.Y or 130),
@@ -2683,7 +1782,7 @@ function GalaxObsidian:CreateWindow(options)
         if self.SearchFocused or self.TextTarget or self.KeyListenTarget or self.DropdownSearch then
             return nil
         end
-        if not self.ActiveTab then
+        if #self.Tabs <= 0 then
             return nil
         end
         local function processWidget(widget)
@@ -2763,9 +1862,9 @@ function GalaxObsidian:CreateWindow(options)
                 widget._prevHeld = keyHeld
             end
         end
-        for _, section in ipairs(self.ActiveTab.Sections) do
-            for _, widget in ipairs(section.widgets) do
-                if self:_matchesSearch(widget, section) then
+        for _, tab in ipairs(self.Tabs) do
+            for _, section in ipairs(tab.Sections or {}) do
+                for _, widget in ipairs(section.widgets or {}) do
                     processWidget(widget)
                 end
             end
@@ -4835,6 +3934,8 @@ function GalaxObsidian:CreateWindow(options)
                     nextH = math.min(nextH, math.max(minSize.Y, camera.ViewportSize.Y - y - 4))
                 end
                 self.Size = Vector2.new(math.floor(nextW + 0.5), math.floor(nextH + 0.5))
+                local dpiScale = clamp((self.DPIScale or 100) / 100, 0.5, 2)
+                self.LogicalSize = Vector2.new(self.Size.X / dpiScale, self.Size.Y / dpiScale)
                 w, h = self.Size.X, self.Size.Y
             elseif self.ResizeOffset then
                 self.ResizeOffset = nil
@@ -5081,6 +4182,25 @@ function GalaxObsidian:CreateWindow(options)
     end
     function Window:SetKeybindMenuWidth(width)
         self.KeybindMenuWidth = width
+    end
+    function Window:SetDPIScale(percent)
+        percent = tonumber(percent) or 100
+        percent = math.floor(clamp(percent, 50, 200) + 0.5)
+        local oldSize = self.Size or self.LogicalSize or Vector2.new(820, 600)
+        local center = Vector2.new(self.Position.X + oldSize.X / 2, self.Position.Y + oldSize.Y / 2)
+        local oldScale = clamp((self.DPIScale or 100) / 100, 0.5, 2)
+        local logical = self.LogicalSize
+        if not logical then
+            logical = Vector2.new(oldSize.X / oldScale, oldSize.Y / oldScale)
+        end
+        local scale = clamp(percent / 100, 0.5, 2)
+        local newSize = Vector2.new(math.floor(logical.X * scale + 0.5), math.floor(logical.Y * scale + 0.5))
+
+        self.DPIScale = percent
+        self.LogicalSize = logical
+        self.Size = newSize
+        self.Position = Vector2.new(math.floor(center.X - newSize.X / 2 + 0.5), math.floor(center.Y - newSize.Y / 2 + 0.5))
+        GalaxObsidian.DPIScale = percent
     end
     function Window:SetKeybindModePopup(config, modes)
         if type(config) == "boolean" and modes ~= nil then
@@ -6218,4 +5338,5 @@ function GalaxObsidian:Notify(message, title, duration)
     return self.ActiveWindow:Notify(message, title, duration)
 end
 return GalaxObsidian
+
 
