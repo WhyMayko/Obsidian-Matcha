@@ -14,6 +14,9 @@ ThemeManager = (_G.Galax["addons/ThemeManager.lua"])
 local SaveManager = loadstring(game:HttpGet(repo .. "addons/SaveManager.lua"))()
 SaveManager = (_G.Galax["addons/SaveManager.lua"])
 
+local EssentialsManager = loadstring(game:HttpGet(repo .. "addons/EssentialsManager.lua"))()
+EssentialsManager = (_G.Galax["addons/EssentialsManager.lua"])
+
 local Options = Library.Options
 local Toggles = Library.Toggles
 
@@ -627,87 +630,25 @@ end)
 -- DraggableLabel
 Library:AddDraggableLabel("This is a Draggable Label")
 
--- UI Settings
-local MenuGroup = Tabs["UI Settings"]:AddLeftGroupbox("Menu", "wrench")
+-- UI Settings — Essentials (MenuKeybind, DPI, Corner Radius, Notif Side)
+EssentialsManager:SetLibrary(Library)
+EssentialsManager:BuildSection(Tabs["UI Settings"])
 
-MenuGroup:AddToggle("KeybindMenuOpen", {
-	Default = false,
-	Text = "Open Keybind Menu",
-	Callback = function(Value)
-		Window:SetKeybindMenuVisible(Value)
-	end,
-})
-
-MenuGroup:AddDropdown("NotificationSide", {
-	Values = { "Left", "Right" },
-	Default = "Right",
-
-	Text = "Notification Side",
-
-	Callback = function(Value)
-		Library:SetNotifySide(Value)
-	end,
-})
-
-MenuGroup:AddDropdown("DPIDropdown", {
-	Values = { "50%", "75%", "100%", "125%", "150%", "175%", "200%" },
-	Default = "100%",
-
-	Text = "DPI Scale",
-
-	Callback = function(Value)
-		Value = Value:gsub("%%", "")
-		local DPI = tonumber(Value)
-
-		Library:SetDPIScale(DPI)
-	end,
-})
-
-MenuGroup:AddSlider("UICornerSlider", {
-	Text = "Corner Radius",
-	Default = Library.CornerRadius,
-	Min = 0,
-	Max = 10,
-	Rounding = 0,
-	Callback = function(Value)
-		Window:SetCornerRadius(Value)
-	end,
-})
-
-MenuGroup:AddDivider()
-MenuGroup:AddLabel("Menu bind")
-	:AddKeyPicker("MenuKeybind", { Default = 0x70, Mode = "Toggle", NoUI = true, Text = "Menu keybind" })
-
-Options.MenuKeybind:OnChanged(function(Value)
-	Options.MenuKeybind.Mode = "Toggle"
-	Window.MenuKey = Value
-end)
-
-MenuGroup:AddButton("Unload", function()
-	Library:Unload()
-end)
-
-Library.ToggleKeybind = Options.MenuKeybind -- Allows you to have a custom keybind for the menu
-
--- Addons:
--- SaveManager (Allows you to have a configuration system)
--- ThemeManager (Allows you to have a menu theme system)
-
--- Hand the library over to our managers.
+-- Hand the library over to theme/config managers.
 ThemeManager:SetLibrary(Library)
 SaveManager:SetLibrary(Library)
--- Adds our MenuKeybind to the ignore list so it doesn't get saved across configs
-SaveManager:SetIgnoreIndexes({ "MenuKeybind" })
+
+-- Ignore essentials keys so they don't pollute per-game configs.
+SaveManager:SetIgnoreIndexes({
+	"MenuKeybind",
+	"DPIDropdown",
+	"UICornerSlider",
+	"NotificationSide",
+	"KeybindMenuOpen",
+})
 
 -- Builds our config menu on the right side of our tab.
 SaveManager:BuildConfigSection(Tabs["UI Settings"])
 
 -- Builds our theme menu on the left side.
--- NOTE: you can also call ThemeManager:ApplyToGroupbox to add it to a specific groupbox.
 ThemeManager:ApplyToTab(Tabs["UI Settings"])
-
--- NOTE: SaveManager:BuildConfigSection already calls LoadAutoloadConfig
--- internally, so the autoload config is loaded as soon as the config
--- section is built above. No extra call is needed here.
-
-

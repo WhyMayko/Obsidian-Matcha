@@ -80,7 +80,18 @@ local function writeTable(path, data)
 	local folder = tostring(path):match("^(.*)[/\\][^/\\]+$")
 	ensureFolder(folder or SettingsFolder)
 
-	local encoded = HttpService:JSONEncode(data)
+	local encoded
+	local ok, _ = pcall(function()
+		local parts = {}
+		for k, v in pairs(data) do
+			table.insert(parts, string.format('\t%q: %s', tostring(k), HttpService:JSONEncode(v)))
+		end
+		table.sort(parts)
+		encoded = "{\n" .. table.concat(parts, ",\n") .. "\n}"
+	end)
+	if not encoded then
+		encoded = HttpService:JSONEncode(data)
+	end
 
 	writefile(path, encoded)
 	return true
@@ -237,8 +248,7 @@ function ThemeManager:ApplyTheme(name, themeType)
 			data.SidebarImage or nil,
 			data.SidebarImageScale,
 			data.SidebarImageX,
-			data.SidebarImageY,
-			data.SidebarImageAspect
+			data.SidebarImageY
 		)
 	end
 
@@ -276,7 +286,6 @@ function ThemeManager:SaveCustomTheme(name)
 	theme.SidebarImageScale = existingTheme.SidebarImageScale or (Library.ActiveWindow and Library.ActiveWindow.SidebarImageScale)
 	theme.SidebarImageX = existingTheme.SidebarImageX or (Library.ActiveWindow and Library.ActiveWindow.SidebarImageX)
 	theme.SidebarImageY = existingTheme.SidebarImageY or (Library.ActiveWindow and Library.ActiveWindow.SidebarImageY)
-	theme.SidebarImageAspect = existingTheme.SidebarImageAspect or (Library.ActiveWindow and Library.ActiveWindow.SidebarImageAspect)
 	theme.WindowIcon = existingTheme.WindowIcon or (Library.ActiveWindow and Library.ActiveWindow.IconUrl)
 	theme.WindowTitle = existingTheme.WindowTitle
 	theme.WindowFooter = existingTheme.WindowFooter
