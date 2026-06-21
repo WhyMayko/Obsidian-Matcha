@@ -267,7 +267,17 @@ function ThemeManager:SaveCustomTheme(name)
 		return false, "no name"
 	end
 
+	local existingTheme = self.CustomThemes[name] or {}
 	local theme = currentThemeSnapshot(Library, name)
+
+	-- Preserve custom image and window properties from existing theme or active window
+	theme.SidebarImage = existingTheme.SidebarImage or (Library.ActiveWindow and Library.ActiveWindow.SidebarImage)
+	theme.SidebarImageScale = existingTheme.SidebarImageScale or (Library.ActiveWindow and Library.ActiveWindow.SidebarImageScale)
+	theme.SidebarImageX = existingTheme.SidebarImageX or (Library.ActiveWindow and Library.ActiveWindow.SidebarImageX)
+	theme.SidebarImageY = existingTheme.SidebarImageY or (Library.ActiveWindow and Library.ActiveWindow.SidebarImageY)
+	theme.WindowIcon = existingTheme.WindowIcon or (Library.ActiveWindow and Library.ActiveWindow.IconUrl)
+	theme.WindowTitle = existingTheme.WindowTitle
+	theme.WindowFooter = existingTheme.WindowFooter
 
 	for _, field in ipairs(ThemeFields) do
 		local option = Library.Options and Library.Options[field]
