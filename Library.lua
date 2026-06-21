@@ -1137,7 +1137,8 @@ function GalaxObsidian:CreateWindow(options)
         if center == true then
             tx = tx - estimateTextWidth(content, size or GalaxObsidian.FontSize or 13, resolvedFont) / 2
         end
-        object.Position = Vector2.new(math.floor(tx + 0.5), math.floor(y + 0.5))
+        local yOffset = scale > 1 and -math.floor((scale - 1) * 3) or 0
+        object.Position = Vector2.new(math.floor(tx + 0.5), math.floor(y + yOffset + 0.5))
         if color then
             pcall(function()
                 object.Color = color
@@ -3965,13 +3966,14 @@ function GalaxObsidian:CreateWindow(options)
                 self.Mouse1Clicked = false
             end
             if self.ResizeOffset and self.Mouse1Held then
-                local minSize = self.MinSize or Vector2.new(560, 360)
-                local nextW = math.max(minSize.X, mouse.X - x + self.ResizeOffset.X)
-                local nextH = math.max(minSize.Y, mouse.Y - y + self.ResizeOffset.Y)
+                local minSizeX = math.floor((self.MinSize and self.MinSize.X or 560) * scale)
+                local minSizeY = math.floor((self.MinSize and self.MinSize.Y or 360) * scale)
+                local nextW = math.max(minSizeX, mouse.X - x + self.ResizeOffset.X)
+                local nextH = math.max(minSizeY, mouse.Y - y + self.ResizeOffset.Y)
                 local camera = workspace.CurrentCamera
                 if camera and camera.ViewportSize then
-                    nextW = math.min(nextW, math.max(minSize.X, camera.ViewportSize.X - x - 4))
-                    nextH = math.min(nextH, math.max(minSize.Y, camera.ViewportSize.Y - y - 4))
+                    nextW = math.min(nextW, math.max(minSizeX, camera.ViewportSize.X - x - 4))
+                    nextH = math.min(nextH, math.max(minSizeY, camera.ViewportSize.Y - y - 4))
                 end
                 self.Size = Vector2.new(math.floor(nextW + 0.5), math.floor(nextH + 0.5))
                 local dpiScale = clamp((self.DPIScale or 100) / 100, 0.5, 2)
@@ -4045,7 +4047,7 @@ function GalaxObsidian:CreateWindow(options)
                 chromeZ + 5
             )
         end -- Title (icon + text).
-        local chromeTitleIconSize = (self.IconReady and self.IconData) and math.min(self.IconSize or math.floor(26 * scale), math.floor(26 * scale)) or 0
+        local chromeTitleIconSize = (self.IconReady and self.IconData) and math.min(math.floor((self.IconSize or 24) * scale), math.floor(26 * scale)) or 0
         local chromeTitleGap = chromeTitleIconSize > 0 and math.floor(6 * scale) or 0
         local chromeTitleSize = math.floor(21 * scale)
         local chromeTitleText = fitTextToWidth(

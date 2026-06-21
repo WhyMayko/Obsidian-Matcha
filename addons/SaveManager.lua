@@ -119,7 +119,7 @@ function SaveManager:Save(name)
 
 	for index, option in pairs(Library.Options or {}) do
 		if self:IsAllowedIndex(index) and option.Get then
-			if option.Type == "KeyPicker" then
+			if option.Type == "KeyPicker" or option.Type == "Keybind" then
 				data[index] = { Key = option:Get(), Mode = option.Mode, Modifiers = option.Modifiers }
 			elseif option.Type == "ColorPicker" then
 				local color, trans = option:Get()
