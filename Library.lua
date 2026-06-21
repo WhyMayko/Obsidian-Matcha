@@ -4159,15 +4159,11 @@ function GalaxObsidian:CreateWindow(options)
 
             local imgScale = tonumber(self.SidebarImageScale) or 1.0
 
-            -- aspectRatio stores width/height (e.g. 1.7777 for 16:9 landscape)
-            local aspectRatio = tonumber(self.SidebarImageAspect)
-            if not aspectRatio then
-                local nativeW = tonumber(self.SidebarImageNativeW)
-                local nativeH = tonumber(self.SidebarImageNativeH)
-                if not nativeW or nativeW <= 0 then nativeW = sidebarW end
-                if not nativeH or nativeH <= 0 then nativeH = sidebarW end
-                aspectRatio = nativeW / nativeH  -- width / height
-            end
+            local nativeW = tonumber(self.SidebarImageNativeW)
+            local nativeH = tonumber(self.SidebarImageNativeH)
+            if not nativeW or nativeW <= 0 then nativeW = sidebarW end
+            if not nativeH or nativeH <= 0 then nativeH = sidebarW end
+            local aspectRatio = nativeW / nativeH  -- width / height
 
             -- W: scale based on sidebar width; H derived from W/H aspect
             local imgW = math.floor(sidebarW * imgScale)
@@ -4250,7 +4246,7 @@ function GalaxObsidian:CreateWindow(options)
         self.IconData = data
         self.IconReady = data ~= nil and data ~= ""
     end
-    function Window:SetSidebarImage(url, scale, imgX, imgY, aspect)
+    function Window:SetSidebarImage(url, scale, imgX, imgY)
         local resolved = url and imageUrl(url) or nil
         if not resolved or resolved == "" then
             self.SidebarImage = nil
@@ -4262,19 +4258,29 @@ function GalaxObsidian:CreateWindow(options)
         self.SidebarImageScale = scale or 1.0
         self.SidebarImageX = imgX
         self.SidebarImageY = imgY
-        self.SidebarImageAspect = aspect -- Use explicit aspect if provided
         self.SidebarImageReady = false
         self.SidebarImageData = nil
         RequestImage(resolved, function(data)
             self.SidebarImageData = data
             
-            pcall(function()
-                local img = Drawing.new("Image")
-                img.Data = data
-                self.SidebarImageNativeW = img.Size.X
-                self.SidebarImageNativeH = img.Size.Y
-                img:Remove()
-            end)
+            local parsedW, parsedH
+            if data and data:sub(2, 4) == "PNG" then
+                parsedW = string.unpack(">I4", data:sub(17, 20))
+                parsedH = string.unpack(">I4", data:sub(21, 24))
+            end
+            
+            if parsedW and parsedH and parsedW > 0 and parsedH > 0 then
+                self.SidebarImageNativeW = parsedW
+                self.SidebarImageNativeH = parsedH
+            else
+                pcall(function()
+                    local img = Drawing.new("Image")
+                    img.Data = data
+                    self.SidebarImageNativeW = img.Size.X
+                    self.SidebarImageNativeH = img.Size.Y
+                    img:Remove()
+                end)
+            end
             
             self.SidebarImageReady = true
         end)
