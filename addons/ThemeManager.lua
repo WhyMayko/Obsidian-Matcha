@@ -308,7 +308,7 @@ function ThemeManager:ReloadCustomThemes()
 	for _, path in ipairs(listfiles(ThemeFolder) or {}) do
 		local pathText = tostring(path)
 			local baseName = pathText:match("([^/\\]+)$") or pathText
-			if baseName:match("%.lua$") then
+			if baseName:match("%.txt$") then
 				local data = readTable(pathText)
 				if data and data.name then
 					self.CustomThemes[data.name] = data
