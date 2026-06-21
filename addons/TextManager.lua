@@ -423,7 +423,7 @@ function TextManager:IsNativeMeasureAvailable()
 	return nativeMeasure("Test", 13, Drawing.Fonts.Monospace) ~= nil
 end
 
-_G.ObsidianMatchaAddons = _G.ObsidianMatchaAddons or {}
-_G.ObsidianMatchaAddons["addons/TextManager.lua"] = TextManager
+_G.Galax = _G.Galax or {}
+_G.Galax["addons/TextManager.lua"] = TextManager
 
 return TextManager

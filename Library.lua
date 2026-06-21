@@ -97,7 +97,7 @@ local function loadCoreAddon(path)
     local chunk, err = loadstring(source)
     if not chunk then error(path .. ": " .. tostring(err), 2) end
     chunk()
-    local module = _G.ObsidianMatchaAddons and _G.ObsidianMatchaAddons[path]
+    local module = _G.Galax and _G.Galax[path]
     if type(module) ~= "table" then error(path .. " did not load", 2) end
     return module
 end
@@ -3198,7 +3198,9 @@ function GalaxObsidian:CreateWindow(options)
         else
             filteredOptions = widget.options
         end
-        local maxVisible = widget.maxVisible or 6
+        local dpiScale = math.max(1, (self.DPIScale or 100) / 100)
+        local defaultMaxVisible = math.floor(6 * dpiScale + 0.5)
+        local maxVisible = widget.maxVisible or defaultMaxVisible
         local totalCount = #filteredOptions
         local visibleCount = math.min(totalCount, maxVisible)
         local hasScroll = totalCount > maxVisible
@@ -4109,8 +4111,12 @@ function GalaxObsidian:CreateWindow(options)
             local maxH = h - topH - bottomH
 
             local scale = tonumber(self.SidebarImageScale) or 1.0
-            local nativeW = tonumber(self.SidebarImageNativeW) or sidebarW
-            local nativeH = tonumber(self.SidebarImageNativeH) or sidebarW
+            local nativeW = tonumber(self.SidebarImageNativeW)
+            local nativeH = tonumber(self.SidebarImageNativeH)
+            
+            if not nativeW or nativeW <= 0 then nativeW = sidebarW end
+            if not nativeH or nativeH <= 0 then nativeH = sidebarW end
+
             local aspectH = nativeH / nativeW
 
             -- W: scale based on sidebar width
@@ -5390,7 +5396,7 @@ function GalaxObsidian:Notify(message, title, duration)
     end
     return self.ActiveWindow:Notify(message, title, duration)
 end
-_G.ObsidianMatchaAddons = _G.ObsidianMatchaAddons or {}
-_G.ObsidianMatchaAddons["Library.lua"] = GalaxObsidian
+_G.Galax = _G.Galax or {}
+_G.Galax["Library.lua"] = GalaxObsidian
 
 return GalaxObsidian

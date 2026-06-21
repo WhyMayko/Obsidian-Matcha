@@ -6,13 +6,13 @@ local repo = "https://raw.githubusercontent.com/WhyMayko/Obsidian-Matcha/refs/he
 
 -- Load the Library
 local Library = loadstring(game:HttpGet(repo .. "Library.lua"))()
-Library = (_G.ObsidianMatchaAddons["Library.lua"])
+Library = Library or (_G.Galax and _G.Galax["Library.lua"])
 
 local ThemeManager = loadstring(game:HttpGet(repo .. "addons/ThemeManager.lua"))()
-ThemeManager = (_G.ObsidianMatchaAddons["addons/ThemeManager.lua"])
+ThemeManager = ThemeManager or (_G.Galax and _G.Galax["addons/ThemeManager.lua"])
 
 local SaveManager = loadstring(game:HttpGet(repo .. "addons/SaveManager.lua"))()
-SaveManager = (_G.ObsidianMatchaAddons["addons/SaveManager.lua"])
+SaveManager = SaveManager or (_G.Galax and _G.Galax["addons/SaveManager.lua"])
 
 local Options = Library.Options
 local Toggles = Library.Toggles

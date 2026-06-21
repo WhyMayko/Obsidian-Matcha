@@ -134,7 +134,7 @@ function AnimationManager:Reset(owner, key)
 	end
 end
 
-_G.ObsidianMatchaAddons = _G.ObsidianMatchaAddons or {}
-_G.ObsidianMatchaAddons["addons/AnimationManager.lua"] = AnimationManager
+_G.Galax = _G.Galax or {}
+_G.Galax["addons/AnimationManager.lua"] = AnimationManager
 
 return AnimationManager

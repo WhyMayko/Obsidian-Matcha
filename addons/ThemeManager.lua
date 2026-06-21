@@ -628,8 +628,8 @@ function ThemeManager:ApplyToGroupbox(groupbox)
 	self:CreateThemeManager(groupbox)
 end
 
-_G.ObsidianMatchaAddons = _G.ObsidianMatchaAddons or {}
-_G.ObsidianMatchaAddons["addons/ThemeManager.lua"] = ThemeManager
+_G.Galax = _G.Galax or {}
+_G.Galax["addons/ThemeManager.lua"] = ThemeManager
 
 -- Community system: allows loading community themes from GitHub
 -- Usage (with script open in Matcha console):
@@ -655,7 +655,7 @@ _G.community.loadTheme = function(name)
 		warn("community.loadTheme: failed to save file")
 		return
 	end
-	local tm = _G.ObsidianMatchaAddons and _G.ObsidianMatchaAddons["addons/ThemeManager.lua"]
+	local tm = _G.Galax and _G.Galax["addons/ThemeManager.lua"]
 	if tm then
 		local HttpService = game:GetService("HttpService")
 		local data = HttpService:JSONDecode(source)

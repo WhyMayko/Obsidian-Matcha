@@ -384,8 +384,8 @@ function SaveManager:BuildConfigSection(tab)
 	self:LoadAutoloadConfig()
 end
 
-_G.ObsidianMatchaAddons = _G.ObsidianMatchaAddons or {}
-_G.ObsidianMatchaAddons["addons/SaveManager.lua"] = SaveManager
+_G.Galax = _G.Galax or {}
+_G.Galax["addons/SaveManager.lua"] = SaveManager
 
 -- Community system: allows loading community configs from GitHub
 -- Usage (with script open in Matcha console):
@@ -411,7 +411,7 @@ _G.community.loadConfig = function(name)
 		warn("community.loadConfig: failed to save file")
 		return
 	end
-	local sm = _G.ObsidianMatchaAddons and _G.ObsidianMatchaAddons["addons/SaveManager.lua"]
+	local sm = _G.Galax and _G.Galax["addons/SaveManager.lua"]
 	if sm then
 		sm:Load(name)
 		print("community.loadConfig: loaded '" .. name .. "'")

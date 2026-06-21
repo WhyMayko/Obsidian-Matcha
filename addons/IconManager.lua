@@ -375,7 +375,7 @@ function IconManager:List()
 	return list
 end
 
-_G.ObsidianMatchaAddons = _G.ObsidianMatchaAddons or {}
-_G.ObsidianMatchaAddons["addons/IconManager.lua"] = IconManager
+_G.Galax = _G.Galax or {}
+_G.Galax["addons/IconManager.lua"] = IconManager
 
 return IconManager
