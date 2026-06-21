@@ -93,20 +93,12 @@ local AddonRepo = "https://raw.githubusercontent.com/WhyMayko/Obsidian-Matcha/re
 
 
 local function loadCoreAddon(path)
-    local url = AddonRepo .. path .. "?t=" .. tostring(os.time())
-    local source = game:HttpGet(url)
+    local source = game:HttpGet(AddonRepo .. path)
     local chunk, err = loadstring(source)
-
-    if not chunk then
-        error("Failed to load " .. path .. ": " .. tostring(err), 2)
-    end
-
-    local module = chunk()
-
-    if type(module) ~= "table" then
-        error("Addon " .. path .. " did not return a module table", 2)
-    end
-
+    if not chunk then error(path .. ": " .. tostring(err), 2) end
+    chunk()
+    local module = _G.ObsidianMatchaAddons and _G.ObsidianMatchaAddons[path]
+    if type(module) ~= "table" then error(path .. " did not load", 2) end
     return module
 end
 
