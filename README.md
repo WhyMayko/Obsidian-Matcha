@@ -6,14 +6,19 @@ Obsidian Matcha is a Drawing API UI library for Matcha external. It keeps the pu
 
 The library gives you windows, tabs, groupboxes and all the common UI elements — toggles, sliders, dropdowns, color pickers, key pickers, inputs, buttons and more — without touching the Roblox UI tree.
 
-Scripts load only three files:
+Scripts load only three files. Because Matcha's `loadstring` does not return values the same way as standard Lua, always use the `_G` fallback after each load:
 
 ```lua
 local repo = "https://raw.githubusercontent.com/WhyMayko/Obsidian-Matcha/refs/heads/main/"
 
 local Library = loadstring(game:HttpGet(repo .. "Library.lua"))()
+Library = Library or (_G.ObsidianMatchaAddons and _G.ObsidianMatchaAddons["Library.lua"])
+
 local ThemeManager = loadstring(game:HttpGet(repo .. "addons/ThemeManager.lua"))()
+ThemeManager = ThemeManager or (_G.ObsidianMatchaAddons and _G.ObsidianMatchaAddons["addons/ThemeManager.lua"])
+
 local SaveManager = loadstring(game:HttpGet(repo .. "addons/SaveManager.lua"))()
+SaveManager = SaveManager or (_G.ObsidianMatchaAddons and _G.ObsidianMatchaAddons["addons/SaveManager.lua"])
 ```
 
 `Library.lua` automatically downloads `TextManager`, `IconManager` and `AnimationManager` from the repository at runtime. You do not need to load them manually.
@@ -579,8 +584,75 @@ ThemeManager:ApplyToTab(Tabs["UI Settings"])
 
 ---
 
+---
+
+## Community Configs and Themes
+
+While a script is running in Matcha you can pull configs and themes directly from the community repository and apply them instantly with one command in the Matcha console.
+
+```lua
+-- Load a community config by name
+community.loadConfig("ConfigName")
+
+-- Load a community theme by name
+community.loadTheme("ThemeName")
+```
+
+What happens when you run these commands:
+1. The file is downloaded from the community folder on GitHub
+2. It is saved to your local `Galax/Obsidian/Settings/` folder
+3. It is applied to the current running script immediately
+
+These commands are available as soon as `SaveManager` and `ThemeManager` have been loaded by your script. Community files are curated — users can request configs and themes and they will be added to the repository manually.
+
+---
+
+## Sidebar Image
+
+You can add an image to the bottom of the sidebar either from code or from a theme file.
+
+### From code
+
+```lua
+-- Accepts a Roblox asset ID, a direct https:// URL, or a rbxassetid:// string
+Window:SetSidebarImage(
+    "https://example.com/logo.png",
+    40,   -- width  (max: topbar height ~50px, capped to sidebar width)
+    40,   -- height (max: topbar height ~50px)
+    0,    -- X offset from sidebar left (0 = centered horizontally)
+    0     -- Y offset from sidebar top  (0 = pinned to bottom)
+)
+
+-- Clear the sidebar image
+Window:SetSidebarImage(nil)
+```
+
+When X and Y are both `0` the image is automatically centered horizontally and pinned to the bottom of the sidebar just above the bottom bar.
+
+### From a theme file
+
+Add these fields to any theme `.txt` file (JSON):
+
+```json
+{
+  "name": "My Theme",
+  "AccentColor": "#7d55ff",
+  "SidebarImage": "https://example.com/logo.png",
+  "SidebarImageW": 40,
+  "SidebarImageH": 40,
+  "SidebarImageX": 0,
+  "SidebarImageY": 0
+}
+```
+
+When the theme is applied (via ThemeManager or `community.loadTheme`) the image is loaded and displayed automatically.
+
+---
+
 ## Notes
 
 - Obsidian Matcha is built exclusively for Matcha. It does not target other executors.
 - The Drawing API does not support rich text. Labels render plain strings only.
 - Icons accept a Roblox asset ID (number or numeric string), a direct `https://` image URL, or a `rbxassetid://` string. The library resolves asset IDs to thumbnail URLs automatically using the Roblox Thumbnails API.
+- Configs are saved locally under `Galax/Obsidian/Settings/Configs/`.
+- Themes are saved locally under `Galax/Obsidian/Settings/Themes/`.

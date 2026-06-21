@@ -7,7 +7,7 @@ local SaveManager = {
 }
 
 local SettingsFolder = "Galax/Obsidian/Settings"
-local ConfigFolder = SettingsFolder .. "/Config"
+local ConfigFolder = SettingsFolder .. "/Configs"
 local DefaultConfigFile = SettingsFolder .. "/DefaultConfig.lua"
 
 local HttpService = game:GetService("HttpService")
@@ -386,5 +386,36 @@ end
 
 _G.ObsidianMatchaAddons = _G.ObsidianMatchaAddons or {}
 _G.ObsidianMatchaAddons["addons/SaveManager.lua"] = SaveManager
+
+-- Community system: allows loading community configs from GitHub
+-- Usage (with script open in Matcha console):
+--   community.loadConfig("ConfigName")
+local CommunityRepo = "https://raw.githubusercontent.com/WhyMayko/Obsidian-Matcha/refs/heads/main/community/"
+
+_G.community = _G.community or {}
+
+_G.community.loadConfig = function(name)
+	if not name or name == "" then
+		warn("community.loadConfig: name is required")
+		return
+	end
+	local url = CommunityRepo .. "configs/" .. tostring(name) .. ".txt"
+	local ok, source = pcall(game.HttpGet, game, url)
+	if not ok or not source or source == "" then
+		warn("community.loadConfig: failed to download '" .. name .. "'")
+		return
+	end
+	local path = ConfigFolder .. "/" .. tostring(name):gsub("[^%w%s_%-]", "_") .. ".txt"
+	local writeOk = pcall(writefile, path, source)
+	if not writeOk then
+		warn("community.loadConfig: failed to save file")
+		return
+	end
+	local sm = _G.ObsidianMatchaAddons and _G.ObsidianMatchaAddons["addons/SaveManager.lua"]
+	if sm then
+		sm:Load(name)
+		print("community.loadConfig: loaded '" .. name .. "'")
+	end
+end
 
 return SaveManager

@@ -4102,6 +4102,27 @@ function GalaxObsidian:CreateWindow(options)
             end
             chromeTabY = chromeTabY + 40
         end
+        -- Sidebar image (rendered after tabs, at the bottom of the sidebar)
+        if self.SidebarImageReady and self.SidebarImageData then
+            local topH = 50
+            local bottomH = 20
+            local maxImgSize = topH  -- capped to topbar height
+            local rawW = tonumber(self.SidebarImageW)
+            local rawH = tonumber(self.SidebarImageH)
+            local imgW = math.min(rawW or maxImgSize, math.min(maxImgSize, sidebarW))
+            local imgH = math.min(rawH or imgW, maxImgSize)
+            local rawOX = tonumber(self.SidebarImageX)
+            local rawOY = tonumber(self.SidebarImageY)
+            local imgX, imgY
+            if rawOX and rawOY and (rawOX ~= 0 or rawOY ~= 0) then
+                imgX = x + rawOX
+                imgY = y + topH + rawOY
+            else
+                imgX = x + math.floor((sidebarW - imgW) / 2)
+                imgY = y + h - bottomH - imgH
+            end
+            self:_image(self.SidebarImageData, imgX, imgY, imgW, imgH, chromeZ + 3)
+        end
         -- Render content sections after chrome updates; ZIndex keeps them below.
         if self.ActiveTab then
             self:_renderSections(self.ActiveTab, x + sidebarW, y + topH, w - sidebarW, h - topH - bottomH, 10, y, y + h)
@@ -4160,6 +4181,26 @@ function GalaxObsidian:CreateWindow(options)
         self.IconUrl = nil
         self.IconData = data
         self.IconReady = data ~= nil and data ~= ""
+    end
+    function Window:SetSidebarImage(url, imgW, imgH, imgX, imgY)
+        local resolved = url and imageUrl(url) or nil
+        if not resolved or resolved == "" then
+            self.SidebarImage = nil
+            self.SidebarImageData = nil
+            self.SidebarImageReady = false
+            return
+        end
+        self.SidebarImage = resolved
+        self.SidebarImageW = imgW
+        self.SidebarImageH = imgH
+        self.SidebarImageX = imgX
+        self.SidebarImageY = imgY
+        self.SidebarImageReady = false
+        self.SidebarImageData = nil
+        RequestImage(resolved, function(data)
+            self.SidebarImageData = data
+            self.SidebarImageReady = true
+        end)
     end
     function Window:SetNotifySide(side)
         side = tostring(side or "Right")
@@ -5329,6 +5370,7 @@ function GalaxObsidian:Notify(message, title, duration)
     end
     return self.ActiveWindow:Notify(message, title, duration)
 end
+_G.ObsidianMatchaAddons = _G.ObsidianMatchaAddons or {}
+_G.ObsidianMatchaAddons["Library.lua"] = GalaxObsidian
+
 return GalaxObsidian
-
-

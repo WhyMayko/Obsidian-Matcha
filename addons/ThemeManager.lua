@@ -230,6 +230,17 @@ function ThemeManager:ApplyTheme(name, themeType)
 	if data.FontFace and Library.Options and Library.Options.FontFace then
 		Library.Options.FontFace:SetValue(data.FontFace)
 	end
+
+	-- Apply sidebar image if defined in the theme
+	if Library.ActiveWindow and Library.ActiveWindow.SetSidebarImage then
+		Library.ActiveWindow:SetSidebarImage(
+			data.SidebarImage or nil,
+			data.SidebarImageW,
+			data.SidebarImageH,
+			data.SidebarImageX,
+			data.SidebarImageY
+		)
+	end
 end
 
 function ThemeManager:SaveCustomTheme(name)
@@ -606,5 +617,42 @@ end
 
 _G.ObsidianMatchaAddons = _G.ObsidianMatchaAddons or {}
 _G.ObsidianMatchaAddons["addons/ThemeManager.lua"] = ThemeManager
+
+-- Community system: allows loading community themes from GitHub
+-- Usage (with script open in Matcha console):
+--   community.loadTheme("ThemeName")
+local CommunityRepo = "https://raw.githubusercontent.com/WhyMayko/Obsidian-Matcha/refs/heads/main/community/"
+
+_G.community = _G.community or {}
+
+_G.community.loadTheme = function(name)
+	if not name or name == "" then
+		warn("community.loadTheme: name is required")
+		return
+	end
+	local url = CommunityRepo .. "themes/" .. tostring(name) .. ".txt"
+	local ok, source = pcall(game.HttpGet, game, url)
+	if not ok or not source or source == "" then
+		warn("community.loadTheme: failed to download '" .. name .. "'")
+		return
+	end
+	local path = ThemeFolder .. "/" .. tostring(name):gsub("[^%w%s_%-]", "_") .. ".txt"
+	local writeOk = pcall(writefile, path, source)
+	if not writeOk then
+		warn("community.loadTheme: failed to save file")
+		return
+	end
+	local tm = _G.ObsidianMatchaAddons and _G.ObsidianMatchaAddons["addons/ThemeManager.lua"]
+	if tm then
+		local HttpService = game:GetService("HttpService")
+		local data = HttpService:JSONDecode(source)
+		if type(data) == "table" then
+			data.name = data.name or name
+			tm.CustomThemes[data.name] = data
+			tm:ApplyTheme(data.name, "local")
+			print("community.loadTheme: loaded '" .. data.name .. "'")
+		end
+	end
+end
 
 return ThemeManager
