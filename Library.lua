@@ -4139,7 +4139,7 @@ function GalaxObsidian:CreateWindow(options)
                 imgX = x + math.floor((sidebarW - imgW) / 2)
                 imgY = y + h - bottomH - imgH
             end
-            self:_image(self.SidebarImageData, imgX, imgY, imgW, imgH, chromeZ + 3)
+            self:_image(self.SidebarImageData, imgX, imgY, imgW, imgH, 0, chromeZ + 3)
         end
         -- Render content sections after chrome updates; ZIndex keeps them below.
         if self.ActiveTab then
