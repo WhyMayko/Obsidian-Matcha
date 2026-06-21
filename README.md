@@ -375,8 +375,6 @@ Left:AddLabel("Keybind"):AddKeyPicker("MyKeybind", {
 
     SyncToggleState = false,
 
-    Popup = true,    -- enables popup format for keybind mode selection
-
     Callback = function(Value)
         print("Active:", Value)
     end,
@@ -398,24 +396,11 @@ end)
 Options.MyKeybind:SetValue({ 0x02, "Hold" })
 ```
 
-### Popup Mode Selection
+Right-clicking a keybind label opens a popup to change the mode. You can control which modes appear:
 
-Right-clicking a keybind label opens a popup to change the mode. You can control which modes appear globally or per-keybind:
-
-**Global control (affects all keybinds):**
 ```lua
 Window:SetKeybindModePopup({ "Toggle", "Press" })
-Window:SetKeybindModePopup(false)   -- disable popup entirely
-```
-
-**Per-keybind control (enables popup format):**
-```lua
-Left:AddLabel("Keybind"):AddKeyPicker("MyKeybind", {
-    Default = 0x02,
-    Mode    = "Toggle",
-    Popup   = true,    -- enable popup for this specific keybind
-    -- ... other options
-})
+Window:SetKeybindModePopup(false)   -- disable popup
 ```
 
 ---

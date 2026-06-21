@@ -30,18 +30,7 @@ local function writeTable(path, data)
 	local folder = tostring(path):match("^(.*)[/\\][^/\\]+$")
 	ensureFolder(folder or SettingsFolder)
 
-	local encoded
-	local ok, _ = pcall(function()
-		local parts = {}
-		for k, v in pairs(data) do
-			table.insert(parts, string.format('\t%q: %s', tostring(k), HttpService:JSONEncode(v)))
-		end
-		table.sort(parts)
-		encoded = "{\n" .. table.concat(parts, ",\n") .. "\n}"
-	end)
-	if not encoded then
-		encoded = HttpService:JSONEncode(data)
-	end
+	local encoded = HttpService:JSONEncode(data)
 	writefile(path, encoded)
 	return true
 end
@@ -130,7 +119,7 @@ function SaveManager:Save(name)
 
 	for index, option in pairs(Library.Options or {}) do
 		if self:IsAllowedIndex(index) and option.Get then
-			if option.Type == "KeyPicker" or option.Type == "Keybind" then
+			if option.Type == "KeyPicker" then
 				data[index] = { Key = option:Get(), Mode = option.Mode, Modifiers = option.Modifiers }
 			elseif option.Type == "ColorPicker" then
 				local color, trans = option:Get()

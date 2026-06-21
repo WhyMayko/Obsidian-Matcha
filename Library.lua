@@ -868,17 +868,6 @@ local function normalizeKeybindModePopupConfig(config, fallbackModes)
     return enabled ~= false, clean
 end
 
--- ---- Per-Widget Keybind Popup Override ----
--- Resolves the `Popup` field accepted by AddKeybind/AddKeyPicker (e.g. Popup = { "Toggle", "Press" }
--- or Popup = false). Returns nil, nil when not specified so the widget inherits the window-level
--- KeybindModePopup configuration instead of forcing a value.
-local function resolveKeybindWidgetPopup(popupConfig)
-    if popupConfig == nil then
-        return nil, nil
-    end
-    return normalizeKeybindModePopupConfig(popupConfig)
-end
-
 -- ======================================================================
 -- WINDOW FACTORY (CreateWindow)
 -- ======================================================================
@@ -1148,8 +1137,7 @@ function GalaxObsidian:CreateWindow(options)
         if center == true then
             tx = tx - estimateTextWidth(content, size or GalaxObsidian.FontSize or 13, resolvedFont) / 2
         end
-        local yOffset = scale > 1 and -math.floor((scale - 1) * 3) or 0
-        object.Position = Vector2.new(math.floor(tx + 0.5), math.floor(y + yOffset + 0.5))
+        object.Position = Vector2.new(math.floor(tx + 0.5), math.floor(y + 0.5))
         if color then
             pcall(function()
                 object.Color = color
@@ -1375,7 +1363,9 @@ function GalaxObsidian:CreateWindow(options)
         local dropdown = self.DropdownTarget
         local popup = dropdown and dropdown.popup
         if dropdown and dropdown ~= owner and popup then
-            local popupH = popup.h or 0
+            local searchH = (dropdown.searchable == true) and 24 or 0
+            local visibleCount = math.min(#dropdown.options, dropdown.maxVisible or 6)
+            local popupH = searchH + visibleCount * 21 + 4
             if self:_over(popup.x, popup.y - 22, popup.w, popupH + 22) then
                 return false
             end
@@ -1401,7 +1391,9 @@ function GalaxObsidian:CreateWindow(options)
         local dropdown = self.DropdownTarget
         local dropdownPopup = dropdown and dropdown.popup
         if dropdown and dropdownPopup then
-            local popupH = dropdownPopup.h or 0
+            local searchH = (dropdown.searchable == true) and 24 or 0
+            local visibleCount = math.min(#dropdown.options, dropdown.maxVisible or 6)
+            local popupH = searchH + visibleCount * 21 + 4
             local insideDropdown = self:_over(dropdownPopup.x, dropdownPopup.y - 22, dropdownPopup.w, popupH + 22)
             if not insideDropdown then
                 dropdown._searchText = ""
@@ -1492,17 +1484,10 @@ function GalaxObsidian:CreateWindow(options)
         return self:_anim(owner, key, target, speed)
     end
     function Window:_openKeybindModePopup(widget, x, y, w)
-        if not widget or widget.disabled == true then
+        if not self.KeybindModePopupEnabled or not widget or widget.disabled == true then
             return nil
         end
-        local popupEnabled = widget.popupEnabled
-        if popupEnabled == nil then
-            popupEnabled = self.KeybindModePopupEnabled
-        end
-        if not popupEnabled then
-            return nil
-        end
-        local modes = widget.popupModes or self.KeybindModePopupModes or DefaultKeybindModePopupModes
+        local modes = self.KeybindModePopupModes or DefaultKeybindModePopupModes
         if #modes <= 0 then
             return nil
         end
@@ -1943,7 +1928,6 @@ function GalaxObsidian:CreateWindow(options)
                 return Window:_widgetHandle(widget)
             end
             widget.addons = widget.addons or {}
-            local popupEnabled, popupModes = resolveKeybindWidgetPopup(info.Popup)
             local addon = {
                 type = "keybind",
                 id = name,
@@ -1957,8 +1941,6 @@ function GalaxObsidian:CreateWindow(options)
                 noUI = info.NoUI == true,
                 waitForCallback = info.WaitForCallback == true,
                 visible = info.Visible ~= false,
-                popupEnabled = popupEnabled,
-                popupModes = popupModes,
                 _state = false,
                 _prevHeld = false,
                 popup = nil,
@@ -2475,27 +2457,24 @@ function GalaxObsidian:CreateWindow(options)
             16
         )
         self:_tooltip(widget, x, y, w, math.floor(24 * scale), widget)
-        local labelTextSize = math.floor(14 * scale)
-        local labelCenterY = y + math.floor(9 * scale)
         self:_text(
-            fitTextToWidth(widget.label, w - keyW - math.floor(10 * scale), labelTextSize, Theme.Font),
+            fitTextToWidth(widget.label, w - keyW - math.floor(10 * scale), 14, Theme.Font),
             x,
-            labelCenterY,
+            y + math.floor(8 * scale),
             Theme.Text,
-            labelTextSize,
-            Theme.Font,
+            14,
+            Drawing.Fonts.Monospace,
             false,
             true,
             z + 2
         )
         self:_square(keyX, keyBtnY, keyW, keyH, keyBg, true, 1, 2, z + 1)
         self:_square(keyX, keyBtnY, keyW, keyH, keyOutline, false, 1, 2, z + 2)
-        local keyValueTextY = keyBtnY + math.floor(4 * scale)
         self:_text(
             fitTextToWidth(label, keyW - math.floor(10 * scale), keyTextSize, Theme.Font),
             keyX + math.floor(6 * scale),
-            keyValueTextY,
-            Theme.Text,
+            y + math.floor(8 * scale),
+            widget.listening and Theme.Text or Theme.Text,
             keyTextSize,
             Theme.Font,
             false,
@@ -3077,8 +3056,7 @@ function GalaxObsidian:CreateWindow(options)
         local scrollTrackW = math.floor(10 * scale)
         local scrollGap = math.floor(4 * scale)
         local scrollSlot = scrollTrackW + scrollGap
-        local twoColumnThreshold = math.floor(440 * scale)
-        local useTwoColumns = w >= twoColumnThreshold
+        local useTwoColumns = w >= 440
         local columnW = useTwoColumns and math.floor((w - pad * 2 - columnGap) / 2) or math.floor(w - pad * 2)
         local leftY = y + pad
         local rightY = y + pad
@@ -3269,7 +3247,6 @@ function GalaxObsidian:CreateWindow(options)
         local scrollBarW = hasScroll and math.floor(7 * scale) or 0
         local itemH = math.floor(21 * scale)
         local height = visibleCount * itemH + math.floor(4 * scale)
-        info.h = height
         info.x, info.y = self:_clampToViewport(info.x, info.y, info.w, height, 6, true)
         widget._dropdownScroll = math.max(0, math.min(widget._dropdownScroll or 0, totalCount - visibleCount))
         local scrollOffset = widget._dropdownScroll
@@ -3930,8 +3907,6 @@ function GalaxObsidian:CreateWindow(options)
         self.BlockClicks = false
         self.TooltipText = nil
         if not self.Open then
-            self:_renderKeybindMenu()
-            self:_renderKeybindModePopup()
             self:_renderNotifications()
             self:_renderTooltip()
             self:_hideUnused()
@@ -3989,14 +3964,13 @@ function GalaxObsidian:CreateWindow(options)
                 self.Mouse1Clicked = false
             end
             if self.ResizeOffset and self.Mouse1Held then
-                local minSizeX = math.floor((self.MinSize and self.MinSize.X or 560) * scale)
-                local minSizeY = math.floor((self.MinSize and self.MinSize.Y or 360) * scale)
-                local nextW = math.max(minSizeX, mouse.X - x + self.ResizeOffset.X)
-                local nextH = math.max(minSizeY, mouse.Y - y + self.ResizeOffset.Y)
+                local minSize = self.MinSize or Vector2.new(560, 360)
+                local nextW = math.max(minSize.X, mouse.X - x + self.ResizeOffset.X)
+                local nextH = math.max(minSize.Y, mouse.Y - y + self.ResizeOffset.Y)
                 local camera = workspace.CurrentCamera
                 if camera and camera.ViewportSize then
-                    nextW = math.min(nextW, math.max(minSizeX, camera.ViewportSize.X - x - 4))
-                    nextH = math.min(nextH, math.max(minSizeY, camera.ViewportSize.Y - y - 4))
+                    nextW = math.min(nextW, math.max(minSize.X, camera.ViewportSize.X - x - 4))
+                    nextH = math.min(nextH, math.max(minSize.Y, camera.ViewportSize.Y - y - 4))
                 end
                 self.Size = Vector2.new(math.floor(nextW + 0.5), math.floor(nextH + 0.5))
                 local dpiScale = clamp((self.DPIScale or 100) / 100, 0.5, 2)
@@ -4047,33 +4021,30 @@ function GalaxObsidian:CreateWindow(options)
         self:_line(x, y + h - bottomH, x + w, y + h - bottomH, Theme.BottombarBorder, 1, chromeZ + 2)
         -- Chrome content is emitted before heavier sections for drag/resize responsiveness.
         -- Its higher ZIndex keeps it visually above the content layer.
-        local footerTextSize = math.floor(14 * scale)
-        local footerText = fitTextToWidth(self.Footer or "", w - 10, footerTextSize, Drawing.Fonts.Monospace)
-        local footerX = x + math.floor((w - estimateTextWidth(footerText, footerTextSize, Drawing.Fonts.Monospace)) / 2)
+        local footerText = fitTextToWidth(self.Footer or "", w - 10, 14, Drawing.Fonts.Monospace)
+        local footerX = x + math.floor((w - estimateTextWidth(footerText, 14, Drawing.Fonts.Monospace)) / 2)
         self:_text(
             footerText,
             footerX,
-            y + h - bottomH + math.floor(3 * scale),
+            y + h - bottomH + math.floor((bottomH - 14) / 2),
             Theme.FooterText,
-            footerTextSize,
+            14,
             Drawing.Fonts.Monospace,
             false,
             true,
             chromeZ + 4
         )
         if self.Resizable then
-            local resizeIconSize = math.floor(16 * scale)
-            local resizeIconMargin = math.floor(14 * scale)
             self:_drawIcon(
                 "move-diagonal-2",
-                x + w - resizeIconMargin,
+                x + w - 14,
                 y + h - bottomH / 2,
-                resizeIconSize,
+                16,
                 self.ResizeOffset and Theme.Text or Theme.Muted,
                 chromeZ + 5
             )
         end -- Title (icon + text).
-        local chromeTitleIconSize = (self.IconReady and self.IconData) and math.min(math.floor((self.IconSize or 24) * scale), math.floor(26 * scale)) or 0
+        local chromeTitleIconSize = (self.IconReady and self.IconData) and math.min(self.IconSize or math.floor(26 * scale), math.floor(26 * scale)) or 0
         local chromeTitleGap = chromeTitleIconSize > 0 and math.floor(6 * scale) or 0
         local chromeTitleSize = math.floor(21 * scale)
         local chromeTitleText = fitTextToWidth(
@@ -4097,11 +4068,10 @@ function GalaxObsidian:CreateWindow(options)
             )
         end
         chromeTitleX = chromeTitleX + chromeTitleIconSize + chromeTitleGap
-        local chromeTitleTextY = y + math.floor(15 * scale)
         self:_text(
             chromeTitleText,
             chromeTitleX,
-            chromeTitleTextY,
+            y + topH / 2 - chromeTitleSize / 2,
             Theme.Text,
             chromeTitleSize,
             Drawing.Fonts.Monospace,
@@ -4186,11 +4156,15 @@ function GalaxObsidian:CreateWindow(options)
 
             local imgScale = tonumber(self.SidebarImageScale) or 1.0
 
-            local nativeW = tonumber(self.SidebarImageNativeW)
-            local nativeH = tonumber(self.SidebarImageNativeH)
-            if not nativeW or nativeW <= 0 then nativeW = sidebarW end
-            if not nativeH or nativeH <= 0 then nativeH = sidebarW end
-            local aspectRatio = nativeW / nativeH  -- width / height
+            -- aspectRatio stores width/height (e.g. 1.7777 for 16:9 landscape)
+            local aspectRatio = tonumber(self.SidebarImageAspect)
+            if not aspectRatio then
+                local nativeW = tonumber(self.SidebarImageNativeW)
+                local nativeH = tonumber(self.SidebarImageNativeH)
+                if not nativeW or nativeW <= 0 then nativeW = sidebarW end
+                if not nativeH or nativeH <= 0 then nativeH = sidebarW end
+                aspectRatio = nativeW / nativeH  -- width / height
+            end
 
             -- W: scale based on sidebar width; H derived from W/H aspect
             local imgW = math.floor(sidebarW * imgScale)
@@ -4273,7 +4247,7 @@ function GalaxObsidian:CreateWindow(options)
         self.IconData = data
         self.IconReady = data ~= nil and data ~= ""
     end
-    function Window:SetSidebarImage(url, scale, imgX, imgY)
+    function Window:SetSidebarImage(url, scale, imgX, imgY, aspect)
         local resolved = url and imageUrl(url) or nil
         if not resolved or resolved == "" then
             self.SidebarImage = nil
@@ -4285,29 +4259,19 @@ function GalaxObsidian:CreateWindow(options)
         self.SidebarImageScale = scale or 1.0
         self.SidebarImageX = imgX
         self.SidebarImageY = imgY
+        self.SidebarImageAspect = aspect -- Use explicit aspect if provided
         self.SidebarImageReady = false
         self.SidebarImageData = nil
         RequestImage(resolved, function(data)
             self.SidebarImageData = data
             
-            local parsedW, parsedH
-            if data and data:sub(2, 4) == "PNG" then
-                parsedW = string.unpack(">I4", data:sub(17, 20))
-                parsedH = string.unpack(">I4", data:sub(21, 24))
-            end
-            
-            if parsedW and parsedH and parsedW > 0 and parsedH > 0 then
-                self.SidebarImageNativeW = parsedW
-                self.SidebarImageNativeH = parsedH
-            else
-                pcall(function()
-                    local img = Drawing.new("Image")
-                    img.Data = data
-                    self.SidebarImageNativeW = img.Size.X
-                    self.SidebarImageNativeH = img.Size.Y
-                    img:Remove()
-                end)
-            end
+            pcall(function()
+                local img = Drawing.new("Image")
+                img.Data = data
+                self.SidebarImageNativeW = img.Size.X
+                self.SidebarImageNativeH = img.Size.Y
+                img:Remove()
+            end)
             
             self.SidebarImageReady = true
         end)
@@ -4762,7 +4726,6 @@ function GalaxObsidian:CreateWindow(options)
                 handle.AddKeyPicker = function(_, name, info)
                     info = info or {}
                     widget.addons = widget.addons or {}
-                    local popupEnabled, popupModes = resolveKeybindWidgetPopup(info.Popup)
                     local addon = {
                         type = "keybind",
                         id = name,
@@ -4776,8 +4739,6 @@ function GalaxObsidian:CreateWindow(options)
                         noUI = info.NoUI == true,
                         waitForCallback = info.WaitForCallback == true,
                         visible = info.Visible ~= false,
-                        popupEnabled = popupEnabled,
-                        popupModes = popupModes,
                         _state = false,
                         _prevHeld = false,
                         popup = nil,
@@ -4897,7 +4858,6 @@ function GalaxObsidian:CreateWindow(options)
                 handle.AddKeyPicker = function(_, name, info)
                     info = info or {}
                     widget.addons = widget.addons or {}
-                    local popupEnabled, popupModes = resolveKeybindWidgetPopup(info.Popup)
                     local addon = {
                         type = "keybind",
                         id = name,
@@ -4911,8 +4871,6 @@ function GalaxObsidian:CreateWindow(options)
                         noUI = info.NoUI == true,
                         waitForCallback = info.WaitForCallback == true,
                         visible = info.Visible ~= false,
-                        popupEnabled = popupEnabled,
-                        popupModes = popupModes,
                         _state = false,
                         _prevHeld = false,
                         popup = nil,
@@ -5174,7 +5132,6 @@ function GalaxObsidian:CreateWindow(options)
             function Section:AddKeybind(label, default, callback)
                 local _, info = infoArgs(label, default)
                 local id = info and (info.Index or info.Idx) or label
-                local popupEnabled, popupModes = resolveKeybindWidgetPopup(info and info.Popup)
                 local widget = register({
                     type = "keybind",
                     id = id,
@@ -5189,8 +5146,6 @@ function GalaxObsidian:CreateWindow(options)
                     noUI = info and info.NoUI == true,
                     waitForCallback = info and info.WaitForCallback == true,
                     visible = not (info and info.Visible == false),
-                    popupEnabled = popupEnabled,
-                    popupModes = popupModes,
                     _state = false,
                     _prevHeld = false,
                 })

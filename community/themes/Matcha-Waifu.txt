@@ -15,8 +15,8 @@
     "FooterText":  "#a8c8a0",
     "WindowFooter":  "Matcha-Waifu",
     "SidebarImage":  "https://i.postimg.cc/Vs78N5KK/waifu.png",
-    "SidebarImageScale":  1.5,
+    "SidebarImageScale":  1.0,
     "SidebarImageX":  0,
     "SidebarImageY":  0,
-    "SidebarImageAspect":  2
+    "SidebarImageAspect":  1.7777
 }
