@@ -91,8 +91,10 @@ local Theme
 
 local AddonRepo = "https://raw.githubusercontent.com/WhyMayko/Obsidian-Matcha/refs/heads/main/"
 
+
 local function loadCoreAddon(path)
-    local source = game:HttpGet(AddonRepo .. path)
+    local url = AddonRepo .. path .. "?t=" .. tostring(os.time())
+    local source = game:HttpGet(url)
     local chunk, err = loadstring(source)
 
     if not chunk then
@@ -109,8 +111,11 @@ local function loadCoreAddon(path)
 end
 
 local TextManager = loadCoreAddon("addons/TextManager.lua")
+
 local IconManager = loadCoreAddon("addons/IconManager.lua")
+
 local AnimationManager = loadCoreAddon("addons/AnimationManager.lua")
+
 
 GalaxObsidian.TextManager = TextManager
 GalaxObsidian.IconManager = IconManager
