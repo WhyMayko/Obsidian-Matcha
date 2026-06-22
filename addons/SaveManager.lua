@@ -115,6 +115,16 @@ function SaveManager:IgnoreThemeSettings()
 	self:SetIgnoreIndexes(indexes)
 end
 
+local _configurableTypes = {
+	Toggle = true,
+	Slider = true,
+	Dropdown = true,
+	ColorPicker = true,
+	KeyPicker = true,
+	Keybind = true,
+	Input = true,
+}
+
 function SaveManager:Save(name)
 	local Library = self.Library
 
@@ -129,7 +139,7 @@ function SaveManager:Save(name)
 	local data = {}
 
 	for index, option in pairs(Library.Options or {}) do
-		if self:IsAllowedIndex(index) and option.Get then
+		if self:IsAllowedIndex(index) and option.Get and _configurableTypes[option.Type] then
 			if option.Type == "KeyPicker" or option.Type == "Keybind" then
 				data[index] = { Key = option:Get(), Mode = option.Mode, Modifiers = option.Modifiers }
 			elseif option.Type == "ColorPicker" then
@@ -142,7 +152,7 @@ function SaveManager:Save(name)
 	end
 
 	for index, toggle in pairs(Library.Toggles or {}) do
-		if self:IsAllowedIndex(index) and toggle.Get then
+		if self:IsAllowedIndex(index) and toggle.Get and _configurableTypes[toggle.Type] then
 			data[index] = { toggle:Get() }
 		end
 	end

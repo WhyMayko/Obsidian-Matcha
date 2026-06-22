@@ -67,7 +67,7 @@ function EssentialsManager:BuildSection(tab)
 		Rounding = 0,
 		Callback = function(Value)
 			Library.CornerRadius = Value
-			Library.ActiveWindow.CornerRadius = Value
+			Library.ActiveWindow:SetCornerRadius(Value)
 		end,
 	})
 
