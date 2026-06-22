@@ -60,7 +60,8 @@ function DialogManager:RenderDialogs(window)
 		local dialog = window.Dialogs[i]
 		if dialog.closed then
 			if dialog.onClose then
-				pcall(dialog.onClose)
+				local ok, err = pcall(dialog.onClose)
+				if not ok then error("DialogManager onClose: " .. tostring(err), 2) end
 			end
 			table.remove(window.Dialogs, i)
 		end
@@ -128,7 +129,8 @@ function DialogManager:RenderDialogs(window)
 
 			if hovered and window:_focusClick(bx, btnY, bw, btnH, dialog) then
 				if btn.Callback then
-					pcall(btn.Callback, dialog)
+					local ok, err = pcall(btn.Callback, dialog)
+					if not ok then error("DialogManager btn.Callback: " .. tostring(err), 2) end
 				end
 				if btn.Close ~= false then
 					dialog:Destroy()

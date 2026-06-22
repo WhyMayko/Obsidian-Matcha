@@ -134,7 +134,7 @@ local function safeCall(callback, ...)
     if ok then
         return result
     end
-    return nil
+    error("safeCall: " .. tostring(result), 2)
 end
 
 -- ---- Color Conversion ----
@@ -423,14 +423,14 @@ end
 function GalaxObsidian:Unload()
     self.Unloaded = true
     for _, cb in ipairs(self.UnloadCallbacks) do
-        pcall(cb)
+        local ok, err = pcall(cb)
+        if not ok then error("Unload callback: " .. tostring(err), 2) end
     end
     for _, d in ipairs(DraggableLabels) do
-        if d.Remove then
-            pcall(function()
-                d:Remove()
-            end)
-        end
+        local ok, err = pcall(function()
+            if d.Remove then d:Remove() end
+        end)
+        if not ok then error("Unload DraggableLabels: " .. tostring(err), 2) end
     end
     DraggableLabels = {}
 
@@ -585,11 +585,12 @@ function GalaxObsidian:AddDraggableLabel(text)
                 outline.Visible = false
             end
         end
-        pcall(function()
+        local ok, err = pcall(function()
             label:Remove()
             bg:Remove()
             outline:Remove()
         end)
+        if not ok then error("DraggableLabels cleanup: " .. tostring(err), 2) end
     end)
 end
 
@@ -875,7 +876,7 @@ function GalaxObsidian:CreateWindow(options)
     options = options or {}
     local mouse = getMouse()
     if not mouse then
-        return nil
+        error("CreateWindow: no LocalPlayer or mouse available", 2)
     end
     local optSize = options.Size
     local resolvedSize = Vector2.new(820, 600)
@@ -935,6 +936,7 @@ function GalaxObsidian:CreateWindow(options)
         Pool = { Square = {}, Text = {}, Line = {}, Circle = {}, Image = {} },
         Index = { Square = 0, Text = 0, Line = 0, Circle = 0, Image = 0 },
         ImageDataByObject = {},
+        Theme = Theme,
 
         PrevKeys = {},
         PrevMouse1 = false,
@@ -981,7 +983,8 @@ function GalaxObsidian:CreateWindow(options)
         if cached then
             if type(callback) == "function" then
                 task.spawn(function()
-                    pcall(callback, cached)
+                    local ok, err = pcall(callback, cached)
+                    if not ok then error("RequestImage callback: " .. tostring(err), 2) end
                 end)
             end
             return cached
@@ -1015,7 +1018,8 @@ function GalaxObsidian:CreateWindow(options)
             if ok and isImageData(data) then
                 GalaxObsidian.ImageCache[url] = data
                 for _, cb in ipairs(ImageLoading[url]) do
-                    pcall(cb, data)
+                    local ok, err = pcall(cb, data)
+                    if not ok then error("ImageLoading callback: " .. tostring(err), 2) end
                 end
             end
             ImageLoading[url] = nil
@@ -1105,9 +1109,10 @@ function GalaxObsidian:CreateWindow(options)
         object.Position = Vector2.new(x, y)
         object.Size = Vector2.new(w, h)
         if color then
-            pcall(function()
+            local ok, err = pcall(function()
                 object.Color = color
             end)
+            if not ok then error("_square Color: " .. tostring(err), 2) end
         end
         object.Filled = filled ~= false
         object.Corner = corner or 0
@@ -1132,9 +1137,10 @@ function GalaxObsidian:CreateWindow(options)
         local yOffset = scale > 1 and -math.floor((scale - 1) * 3) or 0
         object.Position = Vector2.new(math.floor(tx + 0.5), math.floor(y + yOffset + 0.5))
         if color then
-            pcall(function()
+            local ok, err = pcall(function()
                 object.Color = color
             end)
+            if not ok then error("_text Color: " .. tostring(err), 2) end
         end
         object.Size = textSize
         object.Font = resolvedFont
@@ -1154,9 +1160,10 @@ function GalaxObsidian:CreateWindow(options)
         object.From = Vector2.new(x1, y1)
         object.To = Vector2.new(x2, y2)
         if color then
-            pcall(function()
+            local ok, err = pcall(function()
                 object.Color = color
             end)
+            if not ok then error("_line Color: " .. tostring(err), 2) end
         end
         object.Thickness = thickness or 1
         object.Transparency = 1
@@ -1172,13 +1179,15 @@ function GalaxObsidian:CreateWindow(options)
         object.Position = Vector2.new(x, y)
         object.Radius = radius
         if color then
-            pcall(function()
+            local ok, err = pcall(function()
                 object.Color = color
             end)
+            if not ok then error("_circle Color: " .. tostring(err), 2) end
         else
-            pcall(function()
+            local ok, err = pcall(function()
                 object.Color = Theme.Accent
             end)
+            if not ok then error("_circle Color: " .. tostring(err), 2) end
         end
         object.Filled = filled ~= false
         object.Thickness = thickness or 1
@@ -1420,10 +1429,9 @@ function GalaxObsidian:CreateWindow(options)
     function Window:_drawIcon(name, x, y, size, color, z)
         name = tostring(name or ""):lower()
         size = size or 14
-        if IconManager and IconManager:Draw(self, name, x, y, size, color, z) then
+        if IconManager:Draw(self, name, x, y, size, color, z) then
             return true
         end
-
         return false
     end
     function Window:_anim(owner, key, target, speed)
@@ -4148,12 +4156,8 @@ function GalaxObsidian:CreateWindow(options)
         self:_renderKeybindModePopup()
         NotificationManager:RenderNotifications(self)
         self:_renderTooltip()
-        if GalaxObsidian.DialogManager then
-            GalaxObsidian.DialogManager:RenderDialogs(self)
-        end
-        if GalaxObsidian.ValueWatcher then
-            GalaxObsidian.ValueWatcher:Update()
-        end
+        GalaxObsidian.DialogManager:RenderDialogs(self)
+        GalaxObsidian.ValueWatcher:Update()
         self:_hideUnused()
     end
 
@@ -4222,13 +4226,14 @@ function GalaxObsidian:CreateWindow(options)
                 self.SidebarImageNativeW = parsedW
                 self.SidebarImageNativeH = parsedH
             else
-                pcall(function()
+                local ok, err = pcall(function()
                     local img = Drawing.new("Image")
                     img.Data = data
                     self.SidebarImageNativeW = img.Size.X
                     self.SidebarImageNativeH = img.Size.Y
                     img:Remove()
                 end)
+                if not ok then error("SidebarImage size detection: " .. tostring(err), 2) end
             end
             
             self.SidebarImageReady = true
@@ -4366,9 +4371,10 @@ function GalaxObsidian:CreateWindow(options)
         self:_setOpen(false)
         for _, list in pairs(self.Pool) do
             for _, object in ipairs(list) do
-                pcall(function()
+                local ok, err = pcall(function()
                     object:Remove()
                 end)
+                if not ok then error("Destroy pool cleanup: " .. tostring(err), 2) end
             end
         end
         self.ImageDataByObject = {}
@@ -5363,15 +5369,9 @@ function GalaxObsidian:CreateWindow(options)
             end
         end
     end)
-    if DialogManager then
-        DialogManager:SetLibrary(GalaxObsidian)
-    end
-    if NotificationManager then
-        NotificationManager:SetLibrary(GalaxObsidian)
-    end
-    if ValueWatcher then
-        ValueWatcher:SetLibrary(GalaxObsidian)
-    end
+    DialogManager:SetLibrary(GalaxObsidian)
+    NotificationManager:SetLibrary(GalaxObsidian)
+    ValueWatcher:SetLibrary(GalaxObsidian)
     return Window
 end
 

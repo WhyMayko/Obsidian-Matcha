@@ -61,18 +61,18 @@ function ValueWatcher:Update()
 			local value = (option and option.Value) or (toggle and toggle.Value) or nil
 			if value ~= watcher.lastValue then
 				watcher.lastValue = value
-				pcall(watcher.callback, value, id)
+				local ok, err = pcall(watcher.callback, value, id)
+				if not ok then error("ValueWatcher callback: " .. tostring(err), 2) end
 			end
 		elseif pattern then
-			local matched = false
 			for optId, option in pairs(Library.Options or {}) do
 				if tostring(optId):match(pattern) then
 					local value = option.Value
 					local key = ("opt:%s"):format(tostring(optId))
 					if value ~= watcher["_last_" .. key] then
 						watcher["_last_" .. key] = value
-						pcall(watcher.callback, value, optId)
-						matched = true
+						local ok, err = pcall(watcher.callback, value, optId)
+						if not ok then error("ValueWatcher callback: " .. tostring(err), 2) end
 					end
 				end
 			end
@@ -82,7 +82,8 @@ function ValueWatcher:Update()
 					local key = ("tog:%s"):format(tostring(togId))
 					if value ~= watcher["_last_" .. key] then
 						watcher["_last_" .. key] = value
-						pcall(watcher.callback, value, togId)
+						local ok, err = pcall(watcher.callback, value, togId)
+						if not ok then error("ValueWatcher callback: " .. tostring(err), 2) end
 					end
 				end
 			end

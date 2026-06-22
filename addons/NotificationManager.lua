@@ -95,7 +95,8 @@ function NotificationManager:RenderNotifications(window)
 		local notif = window.Notifications[i]
 		if notif.closed or now >= notif.expires + slideTime then
 			if notif.closed and notif._onDismiss then
-				pcall(notif._onDismiss)
+				local ok, err = pcall(notif._onDismiss)
+				if not ok then error("NotificationManager _onDismiss: " .. tostring(err), 2) end
 			end
 			table.remove(window.Notifications, i)
 		end
@@ -164,7 +165,8 @@ function NotificationManager:RenderNotifications(window)
 		local over = window:_over(x, y, currentNotifW, notifH)
 		if over and window.Mouse1Clicked then
 			if notif._onClick then
-				pcall(notif._onClick)
+				local ok, err = pcall(notif._onClick)
+				if not ok then error("NotificationManager _onClick: " .. tostring(err), 2) end
 			end
 		end
 
