@@ -1,6 +1,11 @@
 local NotificationManager = {}
 
 local slideTime = 0.3
+local function clamp(value, minValue, maxValue)
+    if value < minValue then return minValue end
+    if value > maxValue then return maxValue end
+    return value
+end
 
 function NotificationManager:SetLibrary(library)
 	self.Library = library
