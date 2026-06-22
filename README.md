@@ -371,7 +371,7 @@ Left:AddLabel("Keybind"):AddKeyPicker("MyKeybind", {
     Default = 0x02,
     Mode    = "Toggle",   -- "Toggle", "Hold" or "Press"
     Text    = "Description shown in keybind menu",
-    NoUI    = false,      -- hides from the keybind menu when true
+    Popup   = true,       -- false = hidden from keybind menu + no popup; true = show all (default); table = only those modes
 
     SyncToggleState = false,
 
@@ -562,7 +562,7 @@ MenuGroup:AddSlider("CornerRadius", {
 
 MenuGroup:AddDivider()
 MenuGroup:AddLabel("Menu bind")
-    :AddKeyPicker("MenuKeybind", { Default = 0x70, Mode = "Toggle", NoUI = true, Text = "Menu keybind" })
+    :AddKeyPicker("MenuKeybind", { Default = 0x70, Mode = "Toggle", Popup = false, Text = "Menu keybind" })
 
 Options.MenuKeybind:OnChanged(function(Value)
     Options.MenuKeybind.Mode = "Toggle"

@@ -1955,7 +1955,6 @@ function GalaxObsidian:CreateWindow(options)
                 changed = info.Changed or info.ChangedCallback,
                 tooltip = info.Tooltip,
                 disabled = info.Disabled == true,
-                noUI = info.NoUI == true,
                 waitForCallback = info.WaitForCallback == true,
                 visible = info.Visible ~= false,
                 _state = false,
@@ -3700,7 +3699,7 @@ function GalaxObsidian:CreateWindow(options)
     function Window:_collectKeybindRows()
         local rows = {}
         local function push(widget)
-            if widget.visible == false or widget.noUI == true then
+            if widget.visible == false or widget.popupEnabled == false then
                 return nil
             end
             if widget.type == "keybind" and widget.value then
@@ -4801,7 +4800,7 @@ function GalaxObsidian:CreateWindow(options)
                         changed = info.Changed or info.ChangedCallback,
                         tooltip = info.Tooltip,
                         disabled = info.Disabled == true,
-                        noUI = info.NoUI == true,
+                        
                         waitForCallback = info.WaitForCallback == true,
                         visible = info.Visible ~= false,
                         _state = false,
@@ -4938,7 +4937,7 @@ function GalaxObsidian:CreateWindow(options)
                         changed = info.Changed or info.ChangedCallback,
                         tooltip = info.Tooltip,
                         disabled = info.Disabled == true,
-                        noUI = info.NoUI == true,
+                        
                         waitForCallback = info.WaitForCallback == true,
                         visible = info.Visible ~= false,
                         _state = false,
@@ -5218,7 +5217,6 @@ function GalaxObsidian:CreateWindow(options)
                     tooltip = info and info.Tooltip,
                     listening = false,
                     disabled = info and info.Disabled == true,
-                    noUI = info and info.NoUI == true,
                     waitForCallback = info and info.WaitForCallback == true,
                     visible = not (info and info.Visible == false),
                     _state = false,

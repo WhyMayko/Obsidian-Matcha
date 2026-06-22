@@ -197,7 +197,7 @@ function EssentialsManager:BuildSection(tab)
 		:AddKeyPicker("MenuKeybind", {
 			Default = 0x70, -- F1
 			Mode = "Toggle",
-			NoUI = false,
+			Popup = false,
 			Text = "Menu keybind",
 		})
 
