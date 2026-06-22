@@ -10,7 +10,7 @@ function DialogManager:Dialog(options)
 	local Library = self.Library
 	local win = Library and Library.ActiveWindow
 	if not win then
-		return nil
+		error("DialogManager: no active window", 2)
 	end
 
 	local dialog = {
@@ -51,10 +51,14 @@ function DialogManager:RenderDialogs(window)
 		return nil
 	end
 
-	local scale = window:GetScale()
-	local vp = workspace.CurrentCamera.ViewportSize
-	local z = 200
 	local TM = self.TextManager
+	if not TM then
+		error("DialogManager: TextManager not set (call SetLibrary first)", 2)
+	end
+	local scale = window:GetScale()
+	local cam = workspace.CurrentCamera
+	local vp = cam and cam.ViewportSize or Vector2.new(1920, 1080)
+	local z = 200
 
 	for i = #window.Dialogs, 1, -1 do
 		local dialog = window.Dialogs[i]

@@ -43,7 +43,6 @@ loadstring(game:HttpGet("https://raw.githubusercontent.com/WhyMayko/Obsidian-Mat
 ```lua
 local Window = Library:CreateWindow({
     Title      = "My Script",   -- Title shown at the top of the window
-    Subtitle   = "v1.0",        -- Optional subtitle below the title
     Footer     = "by me",       -- Small text at the bottom of the window
 
     -- Icon: accepts a Roblox asset ID (number), a direct image URL (string),
@@ -62,10 +61,6 @@ local Window = Library:CreateWindow({
     -- MenuKey: Win32 virtual-key code for toggling the menu
     -- Default is 0x70 (F1). Full key list: https://docs.microsoft.com/en-us/windows/win32/inputdev/virtual-key-codes
     MenuKey = 0x70,
-
-    -- KeybindModePopup: controls which modes appear when right-clicking a keybind
-    -- Set to false to disable the popup entirely
-    KeybindModePopup = { "Toggle", "Hold", "Press" },
 })
 ```
 
@@ -438,14 +433,19 @@ end)
 Options.MyKeybind:SetValue({ 0x02, "Hold" })
 ```
 
-Right-clicking a keybind label opens a popup to change the mode. You can control which modes appear:
+Right-clicking a keybind label opens a popup to change the mode. Control per-keybind with the `Popup` option — disabled by default:
 
 ```lua
-Window:SetKeybindModePopup({ "Toggle", "Press" })
-Window:SetKeybindModePopup(false)   -- disable popup
+-- Keybind with popup enabled showing only Toggle and Press:
+Left:AddLabel("Keybind"):AddKeyPicker("MyKey", {
+    Default = 0x02,
+    Popup   = { "Toggle", "Press" },
+})
 ```
 
 ---
+
+
 
 ## Key System Tab
 

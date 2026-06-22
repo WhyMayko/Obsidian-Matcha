@@ -9,7 +9,7 @@ end
 
 function ValueWatcher:Watch(id, callback)
 	if not id or not callback then
-		return nil
+		error("ValueWatcher:Watch requires id and callback", 2)
 	end
 	local entry = { id = id, callback = callback, lastValue = nil }
 	self._watchers[#self._watchers + 1] = entry
@@ -28,7 +28,7 @@ end
 
 function ValueWatcher:WatchPattern(pattern, callback)
 	if not pattern or not callback then
-		return nil
+		error("ValueWatcher:WatchPattern requires pattern and callback", 2)
 	end
 	local entry = { pattern = pattern, callback = callback }
 	self._watchers[#self._watchers + 1] = entry
@@ -47,8 +47,11 @@ end
 
 function ValueWatcher:Update()
 	local Library = self.Library
-	if not Library or self._paused then
-		return nil
+	if not Library then
+		return
+	end
+	if self._paused then
+		return
 	end
 
 	for _, watcher in ipairs(self._watchers) do

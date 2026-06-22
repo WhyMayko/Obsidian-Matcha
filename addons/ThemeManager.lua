@@ -104,15 +104,19 @@ local function readTable(path)
 
 	local source = readfile(path)
 	if type(source) ~= "string" then
-		return nil
+		error("ThemeManager readTable: file read failed for " .. path, 2)
 	end
 
-	local data = HttpService:JSONDecode(source)
+	local ok, data = pcall(function() return HttpService:JSONDecode(source) end)
+	if not ok then
+		error("ThemeManager readTable: failed to decode JSON from " .. path, 2)
+	end
+
 	if type(data) == "table" then
 		return data
 	end
 
-	return nil
+	error("ThemeManager readTable: decoded JSON is not a table for " .. path, 2)
 end
 
 local function colorToHex(color)
@@ -223,7 +227,7 @@ function ThemeManager:ApplyTheme(name, themeType)
 	end
 
 	if not Library or not data then
-		return
+		error("ThemeManager:ApplyTheme requires Library and theme data", 2)
 	end
 
 	if Library.ActiveWindow then
@@ -424,7 +428,7 @@ end
 function ThemeManager:CreateThemeManager(groupbox)
 	local Library = self.Library
 	if not Library then
-		return
+		error("ThemeManager:CreateThemeManager requires Library (call SetLibrary first)", 2)
 	end
 
 	local function refreshCustomThemeList()

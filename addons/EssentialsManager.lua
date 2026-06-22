@@ -33,6 +33,9 @@ function EssentialsManager:BuildSection(tab)
 		Default = false,
 		Text = "Open Keybind Menu",
 		Callback = function(Value)
+			if not Library.ActiveWindow then
+				error("EssentialsManager: no active window for KeybindMenuOpen", 2)
+			end
 			Library.ActiveWindow:SetKeybindMenuVisible(Value)
 		end,
 	})
@@ -53,6 +56,9 @@ function EssentialsManager:BuildSection(tab)
 		Default = "100%",
 		Text = "DPI Scale",
 		Callback = function(Value)
+			if not Library.ActiveWindow then
+				error("EssentialsManager: no active window for DPIDropdown", 2)
+			end
 			local pct = tonumber(Value:match("%d+")) or 100
 			Library.ActiveWindow:SetDPIScale(pct)
 		end,
@@ -66,6 +72,9 @@ function EssentialsManager:BuildSection(tab)
 		Max = 10,
 		Rounding = 0,
 		Callback = function(Value)
+			if not Library.ActiveWindow then
+				error("EssentialsManager: no active window for UICornerSlider", 2)
+			end
 			Library.CornerRadius = Value
 			Library.ActiveWindow:SetCornerRadius(Value)
 		end,

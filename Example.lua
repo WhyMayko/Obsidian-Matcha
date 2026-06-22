@@ -33,8 +33,7 @@ local Window = Library:CreateWindow({
 	-- Set Resizable to true if you want to have in-game resizable Window
 	-- Set MobileButtonsSide to "Left" or "Right" if you want the ui toggle & lock buttons to be on the left or right side of the window
 	-- NotifySide = Changes the side of the notifications (Left, Right) (Default value = Left)
-	-- KeybindModePopup = false disables the right-click keybind mode popup
-	-- KeybindModePopup = { "Toggle", "Hold", "Press" } controls which modes are shown
+	-- Each keybind controls its own mode popup via the Popup option (disabled by default)
 	-- Position and Size are also valid options here
 	-- but you do not need to define them unless you are changing them :)
 
@@ -185,7 +184,7 @@ local MyButton = LeftGroupBox:AddButton({
 	Risky = false,
 })
 
-local MyButton2 = MyButton:AddButton({
+MyButton:AddButton({
 	Text = "Sub button",
 	Func = function()
 		print("You clicked a sub button!")
@@ -195,7 +194,7 @@ local MyButton2 = MyButton:AddButton({
 	DisabledTooltip = "I am disabled!",
 })
 
-local MyDisabledButton = LeftGroupBox:AddButton({
+LeftGroupBox:AddButton({
 	Text = "Disabled Button",
 	Func = function()
 		print("You somehow clicked a disabled button!")
@@ -280,7 +279,6 @@ LeftGroupBox:AddSlider("MySlider", {
 	Visible = true,
 })
 
-local Number = Options.MySlider.Value
 Options.MySlider:OnChanged(function()
 	print("MySlider was changed! New value:", Options.MySlider.Value)
 end)

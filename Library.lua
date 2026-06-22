@@ -64,8 +64,6 @@ GalaxObsidian.UnloadCallbacks = {}
 
 -- ---- Window / UI Defaults ----
 GalaxObsidian.NotifySide = "Right"
-GalaxObsidian.KeybindFrame = nil
-GalaxObsidian.ToggleKeybind = nil
 GalaxObsidian.CornerRadius = 0
 GalaxObsidian.DPIScale = 100
 
@@ -125,7 +123,7 @@ local function clamp(value, minValue, maxValue)
 end
 local function safeCall(callback, ...)
     if type(callback) ~= "function" then
-        return nil
+        return
     end
     local ok, result = pcall(callback, ...)
     if ok then
@@ -890,23 +888,6 @@ local function thumbnailImageUrl(data)
     return url
 end
 
--- ---- Color Formatting ----
-local function colorToHex(color)
-    local r, g, b = colorComponents(color)
-    r = math.floor(r * 255 + 0.5)
-    g = math.floor(g * 255 + 0.5)
-    b = math.floor(b * 255 + 0.5)
-    return string.format("#%02X%02X%02X", r, g, b)
-end
-local function colorToRgbText(color)
-    local r, g, b = colorComponents(color)
-    return table.concat({ math.floor(r * 255 + 0.5), math.floor(g * 255 + 0.5), math.floor(b * 255 + 0.5) }, ", ")
-end
-local function darkerColor(color)
-    local h, s, v = rgbToHsv(color)
-    return Color3.fromHSV(h, s, v / 2)
-end
-
 -- ---- Mouse Helper ----
 local function getMouse()
     local players = game:GetService("Players")
@@ -995,12 +976,10 @@ function GalaxObsidian:CreateWindow(options)
 
     -- ---- Window State Table ----
     local keybindMenuOptions = options.KeybindMenu or {}
-    local keybindPopupEnabled, keybindPopupModes = normalizeKeybindModePopupConfig(options.KeybindModePopup or options.KeybindPopup)
     local initialDPIScale = tonumber(GalaxObsidian.DPIScale) or 100
     local initialScale = clamp(initialDPIScale / 100, 0.5, 2)
     local Window = {
         Title = options.Title or "",
-        Subtitle = options.Subtitle or "",
         Footer = options.Footer or "",
         IconUrl = imageUrl(options.IconUrl or options.Icon or options.LogoUrl),
         IconData = options.IconData,
@@ -1056,8 +1035,6 @@ function GalaxObsidian:CreateWindow(options)
         ColorPickerDrag = nil,
         KeyListenTarget = nil,
         KeyListenStarted = 0,
-        KeybindModePopupEnabled = keybindPopupEnabled,
-        KeybindModePopupModes = keybindPopupModes,
         KeybindModeTarget = nil,
         KeybindModePopup = nil,
         TextTarget = nil,
@@ -1420,8 +1397,11 @@ function GalaxObsidian:CreateWindow(options)
         if self:_hotInteraction() then
             return nil
         end
-        if widget and widget.tooltip and self:_hover(x, y, w, h, owner) then
-            self.TooltipText = widget.tooltip
+        if widget and self:_hover(x, y, w, h, owner) then
+            local tip = widget.disabled and widget.disabledTooltip or widget.tooltip
+            if tip then
+                self.TooltipText = tip
+            end
         end
     end
 
@@ -1555,15 +1535,13 @@ function GalaxObsidian:CreateWindow(options)
             return nil
         end
         local popupEnabled = widget.popupEnabled
-        local popupModes = widget.popupModes
         if popupEnabled == nil then
-            popupEnabled = self.KeybindModePopupEnabled
-            popupModes = self.KeybindModePopupModes or DefaultKeybindModePopupModes
+            popupEnabled = true
         end
         if not popupEnabled then
             return nil
         end
-        local modes = popupModes or DefaultKeybindModePopupModes
+        local modes = widget.popupModes or DefaultKeybindModePopupModes
         if #modes <= 0 then
             return nil
         end
@@ -1574,20 +1552,6 @@ function GalaxObsidian:CreateWindow(options)
         self:_claimInteraction(widget)
         self.Mouse2Clicked = false
     end
-    function Window:_chevron(x, y, w, h, down, color, z)
-        return self:_drawIcon(
-            down and "chevron-down" or "chevron-up",
-            x + w / 2,
-            y + h / 2,
-            math.min(w, h) + 2,
-            color,
-            z
-        )
-    end
-    function Window:_checkMark(x, y, size, color, z)
-        return self:_drawIcon("check", x + size / 2, y + size / 2, size, color, z)
-    end
-
     -- ---- Key State Polling ----
     function Window:_keyPressed(key)
         key = keyCodeFromName(key)
@@ -1903,9 +1867,6 @@ function GalaxObsidian:CreateWindow(options)
             then
                 if self:_keyPressed(widget.keybind) then
                     widget.value = not widget.value
-                    if widget.type == "toggle" then
-                        widget._toggleAnimateUntil = tick() + 0.2
-                    end
                     safeCall(widget.callback, widget.value)
                     safeCall(widget.changed, widget.value)
                 end
@@ -1929,9 +1890,6 @@ function GalaxObsidian:CreateWindow(options)
                         widget._state = not widget._state
                         if widget.parent and (widget.parent.type == "toggle" or widget.parent.type == "checkbox") then
                             widget.parent.value = widget._state
-                            if widget.parent.type == "toggle" then
-                                widget.parent._toggleAnimateUntil = tick() + 0.2
-                            end
                             safeCall(widget.parent.callback, widget.parent.value)
                             safeCall(widget.parent.changed, widget.parent.value)
                         else
@@ -2010,7 +1968,7 @@ function GalaxObsidian:CreateWindow(options)
         handle.AddKeyPicker = function(_, name, info)
             info = info or {}
             if widget.type == "toggle" or widget.type == "checkbox" then
-                widget.keybind = info.Default or 0
+                widget.keybind = info.Default
                 widget.keybindMode = info.Mode or "Hold"
                 widget.keybindChanged = info.Changed
                 widget.keybindCallback = info.Callback
@@ -2026,13 +1984,12 @@ function GalaxObsidian:CreateWindow(options)
                 type = "keybind",
                 id = name,
                 label = info.Text or info.Label or tostring(name or "Keybind"),
-                value = info.Default or 0,
+                value = info.Default,
                 mode = info.Mode or "Hold",
                 callback = info.Callback,
                 changed = info.Changed or info.ChangedCallback,
                 tooltip = info.Tooltip,
                 disabled = info.Disabled == true,
-                waitForCallback = info.WaitForCallback == true,
                 visible = info.Visible ~= false,
                 _state = false,
                 _prevHeld = false,
@@ -2245,7 +2202,6 @@ function GalaxObsidian:CreateWindow(options)
         end
         if not disabled and self:_click(x, y, w, math.floor(24 * scale)) then
             widget.value = not widget.value
-            widget._toggleAnimateUntil = tick() + 0.2
             safeCall(widget.callback, widget.value)
             safeCall(widget.changed, widget.value)
         end
@@ -2340,7 +2296,6 @@ function GalaxObsidian:CreateWindow(options)
         self:_circle(thumbX, switchY + switchH / 2, thumbR, thumbColor, true, 1, z + 3)
         if not disabled and self:_focusClick(x, y, w, math.floor(31 * scale), widget) then
             widget.value = not widget.value
-            widget._toggleAnimateUntil = tick() + 0.2
             safeCall(widget.callback, widget.value)
             safeCall(widget.changed, widget.value)
             self:_releaseInteraction(widget)
@@ -3866,17 +3821,11 @@ function GalaxObsidian:CreateWindow(options)
                         local target = row.widget
                         if target and (target.type == "toggle" or target.type == "checkbox") then
                             target.value = not target.value
-                            if target.type == "toggle" then
-                                target._toggleAnimateUntil = tick() + 0.2
-                            end
                             safeCall(target.callback, target.value)
                             safeCall(target.changed, target.value)
                         elseif target and target.type == "keybind" then
                             if target.parent and (target.parent.type == "toggle" or target.parent.type == "checkbox") then
                                 target.parent.value = not target.parent.value
-                                if target.parent.type == "toggle" then
-                                    target.parent._toggleAnimateUntil = tick() + 0.2
-                                end
                                 safeCall(target.parent.callback, target.parent.value)
                                 safeCall(target.parent.changed, target.parent.value)
                             else
@@ -3916,17 +3865,21 @@ function GalaxObsidian:CreateWindow(options)
             self.KeybindModeTarget = nil
             return nil
         end
+        local popupEnabled = target.popupEnabled
+        if popupEnabled == nil then
+            popupEnabled = true
+        end
+        if not popupEnabled then
+            self:_releaseInteraction(target)
+            self.KeybindModePopup = nil
+            self.KeybindModeTarget = nil
+            return nil
+        end
         local scale = self:GetScale()
         local x, y, w, h, z = popup.x, popup.y, popup.w, popup.h, popup.z or 135
         local rowH = math.floor(20 * scale)
-        local popupEnabled = target.popupEnabled
-        local popupModes = target.popupModes
-        if popupEnabled == nil then
-            popupEnabled = self.KeybindModePopupEnabled
-            popupModes = self.KeybindModePopupModes or DefaultKeybindModePopupModes
-        end
-        local modes = popupModes or DefaultKeybindModePopupModes
-        if not popupEnabled or #modes <= 0 then
+        local modes = target.popupModes or DefaultKeybindModePopupModes
+        if #modes <= 0 then
             self:_releaseInteraction(target)
             self.KeybindModePopup = nil
             self.KeybindModeTarget = nil
@@ -4426,24 +4379,6 @@ function GalaxObsidian:CreateWindow(options)
         self.Position = Vector2.new(math.floor(center.X - newSize.X / 2 + 0.5), math.floor(center.Y - newSize.Y / 2 + 0.5))
         GalaxObsidian.DPIScale = percent
     end
-    function Window:SetKeybindModePopup(config, modes)
-        if type(config) == "boolean" and modes ~= nil then
-            config = { Enabled = config, Modes = modes }
-        end
-
-        local enabled, resolvedModes = normalizeKeybindModePopupConfig(config, self.KeybindModePopupModes)
-        self.KeybindModePopupEnabled = enabled
-        self.KeybindModePopupModes = resolvedModes
-
-        if not enabled then
-            if self.KeybindModeTarget then
-                self:_releaseInteraction(self.KeybindModeTarget)
-            end
-            self.KeybindModePopup = nil
-            self.KeybindModeTarget = nil
-        end
-    end
-
     -- ---- Theming ----
     function Window:GetTheme()
         local copy = {}
@@ -4775,7 +4710,7 @@ function GalaxObsidian:CreateWindow(options)
                     changed = info and info.Changed or nil,
                     keybind = info and info.Keybind or keybind,
                     tooltip = info and info.Tooltip,
-                    disabledTooltip = info and info.DisabledTooltip,
+                    
                     listening = false,
                     disabled = info and info.Disabled == true,
                     visible = not (info and info.Visible == false),
@@ -4845,14 +4780,14 @@ function GalaxObsidian:CreateWindow(options)
                         type = "keybind",
                         id = name,
                         label = info.Text or info.Label or tostring(name or "Keybind"),
-                        value = info.Default or 0,
+                        value = info.Default,
                         mode = info.Mode or "Hold",
                         callback = info.Callback,
                         changed = info.Changed or info.ChangedCallback,
                         tooltip = info.Tooltip,
                         disabled = info.Disabled == true,
                         
-                        waitForCallback = info.WaitForCallback == true,
+                        
                         visible = info.Visible ~= false,
                         _state = false,
                         _prevHeld = false,
@@ -4913,7 +4848,7 @@ function GalaxObsidian:CreateWindow(options)
                     changed = info and info.Changed or nil,
                     keybind = info and info.Keybind or keybind,
                     tooltip = info and info.Tooltip,
-                    disabledTooltip = info and info.DisabledTooltip,
+                    
                     listening = false,
                     disabled = info and info.Disabled == true,
                     visible = not (info and info.Visible == false),
@@ -4983,14 +4918,14 @@ function GalaxObsidian:CreateWindow(options)
                         type = "keybind",
                         id = name,
                         label = info.Text or info.Label or tostring(name or "Keybind"),
-                        value = info.Default or 0,
+                        value = info.Default,
                         mode = info.Mode or "Hold",
                         callback = info.Callback,
                         changed = info.Changed or info.ChangedCallback,
                         tooltip = info.Tooltip,
                         disabled = info.Disabled == true,
                         
-                        waitForCallback = info.WaitForCallback == true,
+                        
                         visible = info.Visible ~= false,
                         _state = false,
                         _prevHeld = false,
@@ -5273,7 +5208,6 @@ function GalaxObsidian:CreateWindow(options)
                     tooltip = info and info.Tooltip,
                     listening = false,
                     disabled = info and info.Disabled == true,
-                    waitForCallback = info and info.WaitForCallback == true,
                     visible = not (info and info.Visible == false),
                     _state = false,
                     _prevHeld = false,
@@ -5472,7 +5406,7 @@ function GalaxObsidian:CreateWindow(options)
         -- ---- Key Box Widget ----
         function Tab:AddKeyBox(callback)
             local section = Tab.Sections[1] or Tab:AddSection("__keytab", "Left")
-            section.keyTab = true
+            -- section is key-tab locked
             local widget = {
                 type = "keybox",
                 value = "",
@@ -5516,7 +5450,6 @@ function GalaxObsidian:CreateWindow(options)
         local tab = self:AddTab(name or "Key System", icon or "key")
         tab.IsKeyTab = true
         local section = tab:AddSection("__keytab", "Left")
-        section.keyTab = true
         function tab:AddLabel(text)
             local info = type(text) == "table" and text or nil
             local widget = {

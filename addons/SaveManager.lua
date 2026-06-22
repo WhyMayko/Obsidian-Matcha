@@ -53,19 +53,19 @@ local function readTable(path)
 
 	local source = readfile(path)
 	if type(source) ~= "string" then
-		return nil
+		error("SaveManager readTable: file read failed for " .. path, 2)
 	end
 
 	local ok, data = pcall(function() return HttpService:JSONDecode(source) end)
 	if not ok then
-		return nil
+		error("SaveManager readTable: failed to decode JSON from " .. path, 2)
 	end
 
 	if type(data) == "table" then
 		return data
 	end
 
-	return nil
+	error("SaveManager readTable: decoded JSON is not a table for " .. path, 2)
 end
 
 function SaveManager:SetLibrary(library)
@@ -293,7 +293,7 @@ end
 function SaveManager:BuildConfigSection(tab)
 	local Library = self.Library
 	if not Library then
-		return
+		error("SaveManager:BuildConfigSection requires Library (call SetLibrary first)", 2)
 	end
 
 	local Options = Library.Options
@@ -304,7 +304,7 @@ function SaveManager:BuildConfigSection(tab)
 	})
 
 	groupbox:AddButton("Create config", function()
-		local name = Options.SaveManager_ConfigName.Value
+		local name = Options and Options.SaveManager_ConfigName and Options.SaveManager_ConfigName.Value
 
 		if not name or name:gsub(" ", "") == "" then
 			Library:Notify("Invalid config name", 4)

@@ -71,9 +71,6 @@ end
 
 function NotificationManager:Progress(title, message, duration)
 	local notif = self:Notify(title, message, duration or 5)
-	if not notif then
-		return nil
-	end
 	notif.progress = 0
 	notif.setProgress = function(value)
 		notif.progress = clamp(value, 0, 1)
