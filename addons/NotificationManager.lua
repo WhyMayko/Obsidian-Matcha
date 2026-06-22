@@ -108,7 +108,8 @@ function NotificationManager:RenderNotifications(window)
 	end
 
 	for i, notif in ipairs(window.Notifications) do
-		local textSize = math.floor(11 * scale + 0.5)
+		local textSize = 11
+		local scaledTextSize = math.floor(textSize * scale + 0.5)
 		local pad = math.floor(10 * scale)
 		local lineH = math.floor(15 * scale)
 		local fullText = notif.title and notif.title ~= "" and (notif.title .. "\n" .. notif.message)
@@ -129,7 +130,7 @@ function NotificationManager:RenderNotifications(window)
 				local current = ""
 				for word in rawLine:gmatch("%S+") do
 					local nextLine = current == "" and word or (current .. " " .. word)
-					if TM:Measure(nextLine, textSize, window.Theme.Font) <= msgWidth then
+					if TM:Measure(nextLine, scaledTextSize, window.Theme.Font) <= msgWidth then
 						current = nextLine
 					else
 						if current ~= "" then
@@ -149,7 +150,7 @@ function NotificationManager:RenderNotifications(window)
 
 		local widestW = 0
 		for _, line in ipairs(lines) do
-			local lw = TM:Measure(line, textSize, window.Theme.Font)
+			local lw = TM:Measure(line, scaledTextSize, window.Theme.Font)
 			if lw > widestW then
 				widestW = lw
 			end
