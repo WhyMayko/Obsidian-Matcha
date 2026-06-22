@@ -1043,7 +1043,7 @@ function GalaxObsidian:CreateWindow(options)
     -- ======================================================================
 -- ---- Object Pool ----
     Window.MaxPoolSize = Window.MaxPoolSize or {
-        Square = 2000,
+        Square = 4000,
         Text = 2000,
         Line = 1000,
         Circle = 1000,
@@ -1263,9 +1263,10 @@ function GalaxObsidian:CreateWindow(options)
         return clamp(x, margin, maxX), clamp(y, margin, maxY)
     end
     function Window:_placeNearMouse(w, h, offsetX, offsetY, margin, screenOnly)
-        margin = margin or 6
-        offsetX = offsetX or 12
-        offsetY = offsetY or 14
+        local scale = self:GetScale()
+        margin = margin or math.floor(6 * scale)
+        offsetX = offsetX or math.floor(12 * scale)
+        offsetY = offsetY or math.floor(14 * scale)
         local x = mouse.X + offsetX
         local y = mouse.Y + offsetY
         local boundX, boundY = nil, nil
@@ -1280,10 +1281,10 @@ function GalaxObsidian:CreateWindow(options)
             end
         end
         if boundX and x + w > boundX - margin then
-            x = mouse.X - w - 10
+            x = mouse.X - w - math.floor(10 * scale)
         end
         if boundY and y + h > boundY - margin then
-            y = mouse.Y - h - 10
+            y = mouse.Y - h - math.floor(10 * scale)
         end
         return self:_clampToViewport(x, y, w, h, margin, screenOnly)
     end
@@ -1332,18 +1333,19 @@ function GalaxObsidian:CreateWindow(options)
         if not self:_clipAllowsBox(y, h) then
             return false
         end
+        local scale = self:GetScale()
         local dropdown = self.DropdownTarget
         local popup = dropdown and dropdown.popup
         if dropdown and dropdown ~= owner and popup then
-            local popupH = popup.h or (4 + math.min(#dropdown.options, dropdown.maxVisible or 6) * 21)
-            if self:_over(popup.x, popup.y - 22, popup.w, popupH + 22) then
+            local popupH = popup.h or (math.floor(4 * scale) + math.min(#dropdown.options, dropdown.maxVisible or 6) * math.floor(21 * scale))
+            if self:_over(popup.x, popup.y - math.floor(22 * scale), popup.w, popupH + math.floor(22 * scale)) then
                 return false
             end
         end
         local picker = self.ColorPickerTarget
         local pickerPopup = picker and picker.popup
         if picker and picker ~= owner and pickerPopup then
-            if self:_over(pickerPopup.x, pickerPopup.y - 22, pickerPopup.w, pickerPopup.h + 22) then
+            if self:_over(pickerPopup.x, pickerPopup.y - math.floor(22 * scale), pickerPopup.w, pickerPopup.h + math.floor(22 * scale)) then
                 return false
             end
         end
@@ -1358,11 +1360,12 @@ function GalaxObsidian:CreateWindow(options)
         if not self.Mouse1Clicked then
             return false
         end
+        local scale = self:GetScale()
         local dropdown = self.DropdownTarget
         local dropdownPopup = dropdown and dropdown.popup
         if dropdown and dropdownPopup then
-            local popupH = dropdownPopup.h or (4 + math.min(#dropdown.options, dropdown.maxVisible or 6) * 21)
-            local insideDropdown = self:_over(dropdownPopup.x, dropdownPopup.y - 22, dropdownPopup.w, popupH + 22)
+            local popupH = dropdownPopup.h or (math.floor(4 * scale) + math.min(#dropdown.options, dropdown.maxVisible or 6) * math.floor(21 * scale))
+            local insideDropdown = self:_over(dropdownPopup.x, dropdownPopup.y - math.floor(22 * scale), dropdownPopup.w, popupH + math.floor(22 * scale))
             if not insideDropdown then
                 dropdown._searchText = ""
                 self.DropdownTarget = nil
@@ -1376,7 +1379,7 @@ function GalaxObsidian:CreateWindow(options)
         local picker = self.ColorPickerTarget
         local pickerPopup = picker and picker.popup
         if picker and pickerPopup then
-            local insidePicker = self:_over(pickerPopup.x, pickerPopup.y - 22, pickerPopup.w, pickerPopup.h + 22)
+            local insidePicker = self:_over(pickerPopup.x, pickerPopup.y - math.floor(22 * scale), pickerPopup.w, pickerPopup.h + math.floor(22 * scale))
             if not insidePicker then
                 self.ColorPickerTarget = nil
                 self.ColorPickerDrag = nil
@@ -2070,7 +2073,7 @@ function GalaxObsidian:CreateWindow(options)
             16
         )
         local checkText = self:_anim(widget, "checkbox.text", widget.value and Theme.Text or inactiveTextColor(), 16)
-        self:_tooltip(widget, x, y, w, 27, widget)
+        self:_tooltip(widget, x, y, w, math.floor(27 * scale), widget)
         local boxY = y + math.floor(5 * scale)
         local boxSize = math.floor(15 * scale)
         self:_square(boxX, boxY, boxSize, boxSize, checkBoxBg, true, disabled and 0.55 or 1, 2, z + 1)
@@ -2090,7 +2093,8 @@ function GalaxObsidian:CreateWindow(options)
             z + 2
         )
         if keyLabel then
-            local overKey = self:_hover(keyX, y + 2, keyW, keyH, widget)
+            local kY = y + math.floor(2 * scale)
+            local overKey = self:_hover(keyX, kY, keyW, keyH, widget)
             local keyBg = self:_anim(widget, "checkbox.key.bg", overKey and Theme.Surface2 or Theme.Surface, 16)
             local keyOutline = self:_anim(
                 widget,
@@ -2099,13 +2103,12 @@ function GalaxObsidian:CreateWindow(options)
                 16
             )
             local keyText = self:_anim(widget, "checkbox.key.text", widget.listening and Theme.Text or Theme.Text, 16)
-            local kY = y + math.floor(2 * scale)
             self:_square(keyX, kY, keyW, keyH, keyBg, true, 1, 2, z + 1)
             self:_square(keyX, kY, keyW, keyH, keyOutline, false, 1, 2, z + 2)
             self:_text(
                 fitTextToWidth(keyLabel, keyW - math.floor(10 * scale), keyTextSize, Theme.Font),
-                keyX + 6,
-                y + 5,
+                keyX + math.floor(6 * scale),
+                y + math.floor(5 * scale),
                 keyText,
                 keyTextSize,
                 Theme.Font,
@@ -2113,7 +2116,7 @@ function GalaxObsidian:CreateWindow(options)
                 true,
                 z + 3
             )
-            if not disabled and self:_click(keyX, y + 2, keyW, keyH) then
+            if not disabled and self:_click(keyX, kY, keyW, keyH) then
                 widget.listening = true
                 self.KeyListenTarget = widget
                 self.KeyListenStarted = tick()
@@ -2121,7 +2124,7 @@ function GalaxObsidian:CreateWindow(options)
                 self:_claimInteraction(widget)
             end
         end
-        if not disabled and self:_click(x, y, w, 24) then
+        if not disabled and self:_click(x, y, w, math.floor(24 * scale)) then
             widget.value = not widget.value
             widget._toggleAnimateUntil = tick() + 0.2
             safeCall(widget.callback, widget.value)
@@ -2140,7 +2143,7 @@ function GalaxObsidian:CreateWindow(options)
         local keyLabel = widget.listening and "..." or (widget.keybind and keyName(widget.keybind) or nil)
         local keyTextSize = math.floor(14 * scale)
         local keyH = math.floor(22 * scale)
-        local keyW = keyLabel and math.max(40, math.floor(estimateTextWidth(keyLabel, keyTextSize, Theme.Font) + 26)) or 0
+        local keyW = keyLabel and math.max(math.floor(40 * scale), math.floor(estimateTextWidth(keyLabel, keyTextSize, Theme.Font) + math.floor(26 * scale))) or 0
         local addons = widget.addons or {}
         local addonCount = 0
         for _, addon in ipairs(addons) do
@@ -2201,12 +2204,12 @@ function GalaxObsidian:CreateWindow(options)
                 ai = ai + 1
             end
         end
-        local thumbR = math.floor(switchH / 2) - 2
+        local thumbR = math.floor(switchH / 2) - math.floor(2 * scale)
         local targetTrack = widget.value and self.Accent or Theme.Surface
         local targetBorder = widget.value and self.Accent or Theme.Outline
         local targetThumb = widget.value and Theme.Text or Theme.DimText
-        local thumbMinX = switchX + thumbR + 3
-        local thumbMaxX = switchX + switchW - thumbR - 3
+        local thumbMinX = switchX + thumbR + math.floor(3 * scale)
+        local thumbMaxX = switchX + switchW - thumbR - math.floor(3 * scale)
         local thumbProgress =
             self:_animOrSnap(widget, "toggle.thumbProgress", widget.value and 1 or 0, 18, self:_hotInteraction())
         local thumbX = thumbMinX + (thumbMaxX - thumbMinX) * thumbProgress
@@ -2253,8 +2256,8 @@ function GalaxObsidian:CreateWindow(options)
         else
             valueText = currentText .. "/" .. maxText
         end
+        local scale = self:GetScale()
         if not compact then
-            local scale = self:GetScale()
             self:_tooltip(widget, x, y, w, math.floor(30 * scale), widget)
             local sliderLabelText =
                 self:_anim(widget, "slider.label.text", disabled and Theme.DimText or Theme.Text, 16)
@@ -2270,7 +2273,6 @@ function GalaxObsidian:CreateWindow(options)
                 z + 2
             )
         end
-        local scale = self:GetScale()
         local labelH = compact and 0 or math.floor(17 * scale)
         local barH = math.floor(13 * scale)
         local barX, barY, barW = x, y + labelH, w
@@ -2701,7 +2703,7 @@ function GalaxObsidian:CreateWindow(options)
         self:_square(x, btnY, w, btnH, buttonOutline, false, 1, 3, z + 2)
         if widget._doubleConfirm and widget._confirmPending then
             self:_text(
-                fitTextToWidth("Are you sure?", w - 12, 13, Theme.Font),
+                fitTextToWidth("Are you sure?", w - math.floor(12 * scale), 13, Theme.Font),
                 x + w / 2,
                 y + math.floor(8 * scale),
                 self.Accent,
@@ -2741,7 +2743,7 @@ function GalaxObsidian:CreateWindow(options)
             widget._doubleConfirm
             and widget._confirmPending
             and self.Mouse1Clicked
-            and not self:_over(x, y + 2, w, 26)
+            and not self:_over(x, btnY, w, btnH)
         then
             widget._confirmPending = false
         end
@@ -2850,8 +2852,8 @@ function GalaxObsidian:CreateWindow(options)
             end
             local addonAreaW = addonCount > 0 and (addonTotalW + (addonCount - 1) * addonGap) or 0
             local addonStartX = addonCount > 0 and (x + w - addonAreaW) or nil
-            local labelMaxW = addonCount > 0 and (addonStartX - x - 6) or w
-            local lines = wrapTextLines(widget.text or "", math.max(50, labelMaxW), 14, 8, Theme.Font)
+            local labelMaxW = addonCount > 0 and (addonStartX - x - math.floor(6 * scale)) or w
+            local lines = wrapTextLines(widget.text or "", math.max(math.floor(50 * scale), labelMaxW), 14, 8, Theme.Font)
             local scaledLabelTextSize = math.floor(14 * scale + 0.5)
             local yOfs = scale > 1 and -math.floor((scale - 1) * 3) or 0
             local firstLineY = y + math.floor(addonCount > 0 and math.floor(28 * scale) / 2 or math.floor(20 * scale) / 2) - math.floor(scaledLabelTextSize / 2) - yOfs
@@ -3048,7 +3050,7 @@ function GalaxObsidian:CreateWindow(options)
         local scrollTrackW = math.floor(10 * scale)
         local scrollGap = math.floor(4 * scale)
         local scrollSlot = scrollTrackW + scrollGap
-        local useTwoColumns = w >= math.floor(440 * scale)
+        local useTwoColumns = w >= 440
         local columnW = useTwoColumns and math.floor((w - pad * 2 - columnGap) / 2) or math.floor(w - pad * 2)
         local leftY = y + pad
         local rightY = y + pad
@@ -3114,7 +3116,7 @@ function GalaxObsidian:CreateWindow(options)
             local trackW = scrollTrackW
             local trackY = y + math.floor(8 * scale)
             local trackH = h - math.floor(16 * scale)
-            local thumbH = math.max(28, math.floor(trackH * (h / totalH)))
+            local thumbH = math.max(math.floor(28 * scale), math.floor(trackH * (h / totalH)))
             local thumbRange = math.max(1, trackH - thumbH)
             local visualScroll = animScroll[sideName]
             local thumbY = trackY + math.floor((visualScroll / maxScroll) * thumbRange + 0.5)
@@ -3364,7 +3366,7 @@ function GalaxObsidian:CreateWindow(options)
         if
             self.Mouse1Clicked
             and self.MouseLockOwner == widget
-            and not self:_over(info.x, info.y - 22, info.w, height + 22)
+            and not self:_over(info.x, info.y - math.floor(22 * scale), info.w, height + math.floor(22 * scale))
         then
             widget._searchText = ""
             self.DropdownTarget = nil
@@ -3454,7 +3456,7 @@ function GalaxObsidian:CreateWindow(options)
         if widget._cachedGridHue ~= (widget.hue or 0) then
             widget._cachedGridHue = (widget.hue or 0)
             widget._cachedGridColors = {}
-            local cols, rows = 64, 48
+            local cols, rows = 32, 24
             for row = 0, rows - 1 do
                 local value = 1 - (row / (rows - 1))
                 for col = 0, cols - 1 do
@@ -3463,7 +3465,7 @@ function GalaxObsidian:CreateWindow(options)
                 end
             end
         end
-        local cols, rows = 64, 48
+        local cols, rows = 32, 24
         local gridColors = widget._cachedGridColors or {}
 
         for row = 0, rows - 1 do
@@ -3911,7 +3913,7 @@ function GalaxObsidian:CreateWindow(options)
             self:_releaseInteraction("WindowDrag")
         end
         if self.Resizable then
-            local resizeHitW = 28
+            local resizeHitW = math.floor(28 * scale)
             local resizeHitH = bottomH
             local resizeX = x + w - resizeHitW
             local resizeY = y + h - resizeHitH
