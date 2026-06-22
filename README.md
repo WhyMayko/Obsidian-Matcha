@@ -6,25 +6,18 @@ Obsidian Matcha is a Drawing API UI library for Matcha external. It keeps the pu
 
 The library gives you windows, tabs, groupboxes and all the common UI elements — toggles, sliders, dropdowns, color pickers, key pickers, inputs, buttons and more — without touching the Roblox UI tree.
 
-Scripts load only three files. Because Matcha's `loadstring` does not return values the same way as standard Lua, always use the `_G` fallback after each load:
-
 ```lua
 local repo = "https://raw.githubusercontent.com/WhyMayko/Obsidian-Matcha/refs/heads/main/"
 
 local Library = loadstring(game:HttpGet(repo .. "Library.lua"))()
-_G.Galax = _G.Galax or {}
-Library = (_G.Galax["Library.lua"])
+Library = _G.Galax["Library.lua"]
 
 local ThemeManager = loadstring(game:HttpGet(repo .. "addons/ThemeManager.lua"))()
-_G.Galax = _G.Galax or {}
-ThemeManager = (_G.Galax["addons/ThemeManager.lua"])
+ThemeManager = _G.Galax["addons/ThemeManager.lua"]
 
 local SaveManager = loadstring(game:HttpGet(repo .. "addons/SaveManager.lua"))()
-_G.Galax = _G.Galax or {}
-SaveManager = (_G.Galax["addons/SaveManager.lua"])
+SaveManager = _G.Galax["addons/SaveManager.lua"]
 ```
-
-`Library.lua` automatically downloads `TextManager`, `IconManager` and `AnimationManager` from the repository at runtime. You do not need to load them manually.
 
 ---
 
