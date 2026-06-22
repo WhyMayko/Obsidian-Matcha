@@ -3771,10 +3771,10 @@ function GalaxObsidian:CreateWindow(options)
             self.KeybindMenuDrag = nil
         end
         self.KeybindMenuX, self.KeybindMenuY = x, y
-        self:_square(x, y, width, height, Theme.Background, true, 1, 4, 95)
-        self:_square(x, y, width, height, Theme.Outline, false, 1, 4, 96)
-        self:_text("Keybinds", x + math.floor(10 * scale), y + math.floor(10 * scale), Theme.Text, 14, Drawing.Fonts.Monospace, false, true, 97)
-        self:_line(x + math.floor(4 * scale), y + dragH - math.floor(2 * scale), x + width - math.floor(4 * scale), y + dragH - math.floor(2 * scale), Theme.Outline, 1, 97)
+        self:_square(x, y, width, height, Theme.Background, true, 1, 4, 5)
+        self:_square(x, y, width, height, Theme.Outline, false, 1, 4, 6)
+        self:_text("Keybinds", x + math.floor(10 * scale), y + math.floor(10 * scale), Theme.Text, 14, Drawing.Fonts.Monospace, false, true, 7)
+        self:_line(x + math.floor(4 * scale), y + dragH - math.floor(2 * scale), x + width - math.floor(4 * scale), y + dragH - math.floor(2 * scale), Theme.Outline, 1, 7)
         if #rows == 0 then
             self:_text(
                     "No keybinds",
@@ -3785,7 +3785,7 @@ function GalaxObsidian:CreateWindow(options)
                 Drawing.Fonts.Monospace,
                 false,
                 true,
-                97
+                7
             )
         else
             for i, row in ipairs(rows) do
@@ -3800,10 +3800,10 @@ function GalaxObsidian:CreateWindow(options)
                         self:_anim(self, rowKey .. ".bg", row.checked and Theme.Surface or Theme.Main, 16)
                     local checkboxOutline =
                         self:_anim(self, rowKey .. ".outline", row.checked and Theme.Outline2 or Theme.Outline, 16)
-                    self:_square(cbX, cbY, cbSize, cbSize, checkboxBg, true, 1, 2, 97)
-                    self:_square(cbX, cbY, cbSize, cbSize, checkboxOutline, false, 1, 2, 98)
+                    self:_square(cbX, cbY, cbSize, cbSize, checkboxBg, true, 1, 2, 7)
+                    self:_square(cbX, cbY, cbSize, cbSize, checkboxOutline, false, 1, 2, 8)
                     if row.checked then
-                        self:_drawIcon("check", cbX + math.floor(cbSize / 2), cbY + math.floor(cbSize / 2), math.floor(10 * scale), Theme.Text, 99)
+                        self:_drawIcon("check", cbX + math.floor(cbSize / 2), cbY + math.floor(cbSize / 2), math.floor(10 * scale), Theme.Text, 9)
                     end
                     if self:_click(cbX, cbY, cbSize, cbSize) then
                         local target = row.widget
@@ -3843,7 +3843,7 @@ function GalaxObsidian:CreateWindow(options)
                     Drawing.Fonts.Monospace,
                     false,
                     true,
-                    97
+                    7
                 )
             end
         end
