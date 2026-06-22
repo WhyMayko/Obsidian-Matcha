@@ -53,13 +53,6 @@ GalaxObsidian.ImageCache = GalaxObsidian.ImageCache or {}
 -- ---- Asset URLs ----
 GalaxObsidian.TransparencyTextureUrl =
     "https://raw.githubusercontent.com/WhyMayko/Obsidian-Matcha/refs/heads/main/assets/TransparencyTexture.png"
-GalaxObsidian.IconUrls = {
-    move = "https://raw.githubusercontent.com/WhyMayko/Matcha-Scripts/main/Library/Obsidian/assets/icons/move.png",
-    search = "https://raw.githubusercontent.com/WhyMayko/Matcha-Scripts/main/Library/Obsidian/assets/icons/search.png",
-    settings = "https://raw.githubusercontent.com/WhyMayko/Matcha-Scripts/main/Library/Obsidian/assets/icons/settings.png",
-    user = "https://raw.githubusercontent.com/WhyMayko/Matcha-Scripts/main/Library/Obsidian/assets/icons/user.png",
-    key = "https://raw.githubusercontent.com/WhyMayko/Matcha-Scripts/main/Library/Obsidian/assets/icons/key.png",
-}
 
 -- ---- Behavior Flags ----
 GalaxObsidian.ForceCheckbox = false
@@ -596,16 +589,6 @@ end
 -- TEXT, COLOR & IMAGE HELPERS
 -- ======================================================================
 -- ---- Font & Key Helpers ----
-local FontMap = {
-    UI = Drawing.Fonts.UI,
-    System = Drawing.Fonts.System,
-    SystemBold = Drawing.Fonts.SystemBold,
-    Minecraft = Drawing.Fonts.Minecraft,
-    Monospace = Drawing.Fonts.Monospace,
-    Pixel = Drawing.Fonts.Pixel,
-    Fortnite = Drawing.Fonts.Fortnite,
-}
-GalaxObsidian.FontMap = FontMap
 local TextChars = TextManager.TextChars
 local function keyName(key)
     return TextManager:KeyName(key)
@@ -944,9 +927,7 @@ function GalaxObsidian:CreateWindow(options)
         Pool = { Square = {}, Text = {}, Line = {}, Circle = {}, Image = {} },
         Index = { Square = 0, Text = 0, Line = 0, Circle = 0, Image = 0 },
         ImageDataByObject = {},
-        IconAssets = {},
-        IconPool = {},
-        IconIndex = {},
+
         PrevKeys = {},
         PrevMouse1 = false,
         PrevMouse2 = false,
@@ -1044,13 +1025,6 @@ function GalaxObsidian:CreateWindow(options)
             Window.TransparencyTextureData = data
         end)
     end
-    if Window.ImagesEnabled and not IconManager then
-        for name, url in pairs(GalaxObsidian.IconUrls) do
-            RequestImage(url, function(data)
-                Window.IconAssets[name] = data
-            end)
-        end
-    end
 
     -- ======================================================================
     -- RENDERING CORE — POOL, CLIPPING & PRIMITIVES
@@ -1062,19 +1036,11 @@ function GalaxObsidian:CreateWindow(options)
         self.Index.Line = 0
         self.Index.Circle = 0
         self.Index.Image = 0
-        for name in pairs(self.IconIndex) do
-            self.IconIndex[name] = 0
-        end
+
     end
     function Window:_hideUnused()
         for kind, list in pairs(self.Pool) do
             for i = self.Index[kind] + 1, #list do
-                list[i].Visible = false
-            end
-        end
-        for name, list in pairs(self.IconPool) do
-            local used = self.IconIndex[name] or 0
-            for i = used + 1, #list do
                 list[i].Visible = false
             end
         end
@@ -1230,37 +1196,7 @@ function GalaxObsidian:CreateWindow(options)
         object.ZIndex = z or 6
         return object
     end
-    function Window:_iconImage(name, data, x, y, w, h, rounding, z)
-        if self.ImagesEnabled ~= true then
-            return nil
-        end
-        if not data or data == "" or w <= 0 or h <= 0 then
-            return nil
-        end
-        if not self:_clipAllowsBox(y, h) then
-            return nil
-        end
-        if not isImageData(data) then
-            return nil
-        end
-        name = tostring(name or "icon")
-        self.IconPool[name] = self.IconPool[name] or {}
-        self.IconIndex[name] = (self.IconIndex[name] or 0) + 1
-        local index = self.IconIndex[name]
-        local object = self.IconPool[name][index]
-        if not object then
-            object = Drawing.new("Image")
-            object.Data = data
-            self.IconPool[name][index] = object
-        end
-        object.Position = Vector2.new(x, y)
-        object.Size = Vector2.new(w, h)
-        object.Rounding = rounding or 0
-        object.Transparency = 1
-        object.ZIndex = z or 6
-        object.Visible = true
-        return object
-    end
+
 
     -- ======================================================================
     -- LAYOUT, VIEWPORT & INPUT HELPERS
@@ -1469,10 +1405,7 @@ function GalaxObsidian:CreateWindow(options)
         if IconManager and IconManager:Draw(self, name, x, y, size, color, z) then
             return true
         end
-        if self.IconAssets and self.IconAssets[name] then
-            self:_iconImage(name, self.IconAssets[name], x - size / 2, y - size / 2, size, size, 0, z)
-            return true
-        end
+
         return false
     end
     function Window:_anim(owner, key, target, speed)
@@ -4462,8 +4395,8 @@ function GalaxObsidian:CreateWindow(options)
         if footerText then
             Theme.FooterText = footerText
         end
-        if fontFace and FontMap[tostring(fontFace)] then
-            Theme.Font = FontMap[tostring(fontFace)]
+        if fontFace and TextManager.Fonts[tostring(fontFace)] then
+            Theme.Font = TextManager.Fonts[tostring(fontFace)]
         end
     end
 
@@ -4478,16 +4411,7 @@ function GalaxObsidian:CreateWindow(options)
                 end)
             end
         end
-        for _, list in pairs(self.IconPool) do
-            for _, object in ipairs(list) do
-                pcall(function()
-                    object:Remove()
-                end)
-            end
-        end
         self.ImageDataByObject = {}
-        self.IconPool = {}
-        self.IconIndex = {}
     end
 
     -- ======================================================================

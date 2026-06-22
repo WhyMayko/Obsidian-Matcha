@@ -98,6 +98,7 @@ function EssentialsManager:BuildSection(tab)
 end
 
 -- Register in _G.Galax for repo-style loading
+_G.Galax = _G.Galax or {}
 if _G.Galax then
 	_G.Galax["addons/EssentialsManager.lua"] = EssentialsManager
 end

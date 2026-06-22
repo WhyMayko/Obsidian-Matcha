@@ -347,25 +347,6 @@ function ThemeManager:ReloadCustomThemes()
 	return names
 end
 
-function ThemeManager:LoadDefault()
-	local Library = self.Library
-	local themeType, themeName = self:GetDefaultTheme()
-
-	if themeType == "local" then
-		if Library and Library.Options and Library.Options.ThemeManager_CustomThemeList then
-			Library.Options.ThemeManager_CustomThemeList:SetValues(self:ReloadCustomThemes())
-			Library.Options.ThemeManager_CustomThemeList:SetValue(themeName)
-		end
-
-		self:ApplyTheme(themeName, "local")
-		return
-	end
-
-	if Library and Library.Options and Library.Options.ThemeManager_ThemeList then
-		Library.Options.ThemeManager_ThemeList:SetValue(themeName)
-	end
-end
-
 function ThemeManager:GetDefaultTheme()
 	local saved = readTable(DefaultThemeFile)
 	if saved and saved.Type and saved.Name then
@@ -483,8 +464,8 @@ function ThemeManager:CreateThemeManager(groupbox)
 	groupbox:AddLabel("Font color"):AddColorPicker("FontColor", { Default = Color3.fromRGB(255, 255, 255) })
 
 	local fontValues = {}
-	if Library.FontMap then
-		for name in pairs(Library.FontMap) do
+	if Library.TextManager and Library.TextManager.Fonts then
+		for name in pairs(Library.TextManager.Fonts) do
 			fontValues[#fontValues + 1] = name
 		end
 	end

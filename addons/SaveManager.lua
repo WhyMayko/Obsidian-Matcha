@@ -121,7 +121,6 @@ local _configurableTypes = {
 	Dropdown = true,
 	ColorPicker = true,
 	KeyPicker = true,
-	Keybind = true,
 	Input = true,
 }
 
@@ -255,7 +254,7 @@ end
 function SaveManager:DeleteAutoLoadConfig()
 	self._autoload = ""
 
-	writeTable(DefaultConfigFile, { Name = self._autoload })
+	writeTable(DefaultConfigFile, {})
 
 	return true
 end
@@ -264,6 +263,13 @@ function SaveManager:GetAutoloadConfig()
 	local saved = readTable(DefaultConfigFile)
 	if saved and saved.Name ~= nil then
 		self._autoload = saved.Name
+	end
+
+	if self._autoload ~= "" then
+		local path = ConfigFolder .. "/" .. fileName(self._autoload)
+		if not isfile(path) then
+			self:DeleteAutoLoadConfig()
+		end
 	end
 
 	if self._autoload == "" then
@@ -277,7 +283,10 @@ function SaveManager:LoadAutoloadConfig()
 	self:GetAutoloadConfig()
 
 	if self._autoload ~= "" then
-		self:Load(self._autoload)
+		local ok = self:Load(self._autoload)
+		if not ok then
+			self:DeleteAutoLoadConfig()
+		end
 	end
 end
 
@@ -395,14 +404,14 @@ function SaveManager:BuildConfigSection(tab)
 	end)
 
 
-	self.AutoloadConfigLabel = groupbox:AddLabel("Current autoload config: " .. tostring(self:GetAutoloadConfig()))
-
 	self:SetIgnoreIndexes({
 		"SaveManager_ConfigName",
 		"SaveManager_ConfigList",
 	})
 
 	self:LoadAutoloadConfig()
+
+	self.AutoloadConfigLabel = groupbox:AddLabel("Current autoload config: " .. tostring(self:GetAutoloadConfig()))
 end
 
 _G.Galax = _G.Galax or {}
