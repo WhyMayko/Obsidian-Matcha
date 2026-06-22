@@ -1697,6 +1697,8 @@ function GalaxObsidian:CreateWindow(options)
             if char == "backspace" or self:_readBackspaceRepeat() then
                 self.SearchText = string.sub(self.SearchText, 1, math.max(0, #self.SearchText - 1))
             elseif char == "enter" then
+                self.SearchFocused = false
+                self:_releaseInteraction("Search", true)
             elseif char then
                 self.SearchText = self.SearchText .. char
             end
@@ -1712,7 +1714,9 @@ function GalaxObsidian:CreateWindow(options)
                 )
                 self.DropdownSearch._dropdownScroll = 0
             elseif char == "enter" then
-                self.DropdownSearch._dropdownScroll = 0
+                local widget = self.DropdownSearch
+                self.DropdownSearch = nil
+                self:_releaseInteraction(widget)
             elseif char then
                 self.DropdownSearch._searchText = (self.DropdownSearch._searchText or "") .. char
                 self.DropdownSearch._dropdownScroll = 0

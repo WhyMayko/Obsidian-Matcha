@@ -408,8 +408,10 @@ function TextManager:RenderInput(window, value, placeholder, x, y, width, option
 	window:_text(fitted, tx, y, color, size, font, false, options.Outline ~= false, options.ZIndex or 1)
 
 	if options.Focused and not options.Disabled and math.floor(tick() * 2) % 2 == 0 then
-		local caretX = tx + math.min(width, math.floor(self:Measure(fitted, size, font) + 2))
-		window:_line(caretX, y + 1, caretX, y + size + 1, color, 1, (options.ZIndex or 1) + 1)
+		local scale = window:GetScale()
+		local caretX = empty and tx or (tx + math.min(width, math.floor(self:Measure(fitted, size, font) + 2)))
+		local caretH = math.floor(size * scale + 0.5)
+		window:_line(caretX, y + 1, caretX, y + caretH + 1, color, 1, (options.ZIndex or 1) + 1)
 	end
 
 	return fitted
