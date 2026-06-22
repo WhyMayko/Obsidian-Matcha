@@ -318,7 +318,8 @@ function ThemeManager:Delete(name)
 		delfile(path)
 	end
 	if self.DefaultTheme.Type == "local" and self.DefaultTheme.Name == name then
-		self:ResetDefault()
+		self.DefaultTheme = { Type = "web", Name = "Default" }
+		writeTable(DefaultThemeFile, self.DefaultTheme)
 	end
 	return true
 end

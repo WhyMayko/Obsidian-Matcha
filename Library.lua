@@ -101,10 +101,18 @@ local IconManager = loadCoreAddon("addons/IconManager.lua")
 
 local AnimationManager = loadCoreAddon("addons/AnimationManager.lua")
 
+local DialogManager = loadCoreAddon("addons/DialogManager.lua")
+
+local NotificationManager = loadCoreAddon("addons/NotificationManager.lua")
+
+local ValueWatcher = loadCoreAddon("addons/ValueWatcher.lua")
 
 GalaxObsidian.TextManager = TextManager
 GalaxObsidian.IconManager = IconManager
 GalaxObsidian.AnimationManager = AnimationManager
+GalaxObsidian.DialogManager = DialogManager
+GalaxObsidian.NotificationManager = NotificationManager
+GalaxObsidian.ValueWatcher = ValueWatcher
 -- ======================================================================
 -- MATH & COLOR HELPERS
 -- ======================================================================
@@ -1029,14 +1037,20 @@ function GalaxObsidian:CreateWindow(options)
     -- ======================================================================
     -- RENDERING CORE — POOL, CLIPPING & PRIMITIVES
     -- ======================================================================
-    -- ---- Object Pool ----
+-- ---- Object Pool ----
+    Window.MaxPoolSize = Window.MaxPoolSize or {
+        Square = 2000,
+        Text = 2000,
+        Line = 1000,
+        Circle = 1000,
+        Image = 500,
+    }
     function Window:_resetPool()
         self.Index.Square = 0
         self.Index.Text = 0
         self.Index.Line = 0
         self.Index.Circle = 0
         self.Index.Image = 0
-
     end
     function Window:_hideUnused()
         for kind, list in pairs(self.Pool) do
@@ -1047,6 +1061,10 @@ function GalaxObsidian:CreateWindow(options)
     end
     function Window:_get(kind)
         self.Index[kind] = self.Index[kind] + 1
+        local max = self.MaxPoolSize[kind] or 9999
+        if self.Index[kind] > max then
+            self.Index[kind] = 1
+        end
         local object = self.Pool[kind][self.Index[kind]]
         if not object then
             object = Drawing.new(kind)
@@ -3165,10 +3183,12 @@ function GalaxObsidian:CreateWindow(options)
                 for _, widget in ipairs(section.widgets) do
                     if self:_matchesSearch(widget, section) then
                         local wh = self:_widgetHeight(widget)
-                        if wy < sectionBottom and wy + wh > sectionTop then
+                        if wy + wh <= sectionTop then
+                            self:_closeClippedWidget(widget)
+                        elseif wy < sectionBottom then
                             self:_renderWidget(widget, sx + math.floor(10 * scale), wy, layout.w - math.floor(20 * scale), z + 5, sectionTop, sectionBottom)
                         else
-                            self:_closeClippedWidget(widget)
+                            break
                         end
                         wy = wy + wh + gap
                     end
@@ -3570,65 +3590,6 @@ function GalaxObsidian:CreateWindow(options)
     -- NOTIFICATIONS, KEYBIND MENU & TOOLTIP
     -- ======================================================================
     -- ---- Notifications ----
-    function Window:_renderNotifications()
-        local now = tick()
-        local camera = workspace.CurrentCamera
-        if not camera or not camera.ViewportSize then
-            return nil
-        end
-        local scale = self:GetScale()
-        local viewport = camera.ViewportSize
-        local notifW = math.floor(260 * scale)
-        local margin = math.floor(18 * scale)
-        local slideTime = 0.22
-        local startY = margin
-        for i = #self.Notifications, 1, -1 do
-            local notif = self.Notifications[i]
-            if now >= notif.expires + slideTime then
-                table.remove(self.Notifications, i)
-            end
-        end
-        local stackY = 0
-        for i, notif in ipairs(self.Notifications) do
-            local textSize = 11
-            local pad = math.floor(10 * scale)
-            local lineH = math.floor(15 * scale)
-            local fullText = notif.title and notif.title ~= "" and (notif.title .. "\n" .. notif.message)
-                or notif.message
-            local lines = wrapTextLines(fullText, notifW - pad * 2, textSize, 6, Theme.Font)
-            local currentNotifW =
-                math.max(math.floor(60 * scale), math.min(notifW, math.floor(widestLineWidth(lines, textSize, Theme.Font) + pad * 2 + math.floor(10 * scale))))
-            local notifH = pad * 2 + (#lines * lineH) + math.floor(7 * scale)
-            local finalX = self.NotifySide == "Left" and margin or (viewport.X - currentNotifW - margin)
-            local hiddenX = self.NotifySide == "Left" and (-currentNotifW - math.floor(8 * scale)) or (viewport.X + math.floor(8 * scale))
-            local enter = clamp((now - notif.created) / slideTime, 0, 1)
-            local leave = now > notif.expires and (1 - clamp((now - notif.expires) / slideTime, 0, 1)) or 1
-            local slide = math.min(enter, leave)
-            slide = 1 - ((1 - slide) * (1 - slide))
-            local x = hiddenX + (finalX - hiddenX) * slide
-            local y = startY + stackY
-            local remaining = clamp((notif.expires - now) / notif.duration, 0, 1)
-            self:_square(x, y, currentNotifW, notifH, Theme.Background, true, 1, 7, 140)
-            self:_square(x, y, currentNotifW, notifH, Theme.SoftOutline, false, 1, 7, 141)
-            for lineIndex, line in ipairs(lines) do
-                self:_text(
-                    line,
-                    x + pad,
-                    y + pad + (lineIndex - 1) * lineH,
-                    lineIndex == 1 and Theme.Text or Theme.Muted,
-                    textSize,
-                    Drawing.Fonts.Monospace,
-                    false,
-                    false,
-                    143
-                )
-            end
-            self:_square(x + math.floor(8 * scale), y + notifH - math.floor(6 * scale), currentNotifW - math.floor(16 * scale), math.floor(2 * scale), Theme.Main, true, 1, 1, 142)
-            self:_square(x + math.floor(8 * scale), y + notifH - math.floor(6 * scale), (currentNotifW - math.floor(16 * scale)) * remaining, math.floor(2 * scale), self.Accent, true, 1, 1, 144)
-            stackY = stackY + notifH + math.floor(10 * scale)
-        end
-    end
-
     -- ---- Keybind Menu ----
     function Window:_collectKeybindRows()
         local rows = {}
@@ -4185,8 +4146,14 @@ function GalaxObsidian:CreateWindow(options)
         self:_renderColorPickerPopup()
         self:_renderKeybindMenu()
         self:_renderKeybindModePopup()
-        self:_renderNotifications()
+        NotificationManager:RenderNotifications(self)
         self:_renderTooltip()
+        if GalaxObsidian.DialogManager then
+            GalaxObsidian.DialogManager:RenderDialogs(self)
+        end
+        if GalaxObsidian.ValueWatcher then
+            GalaxObsidian.ValueWatcher:Update()
+        end
         self:_hideUnused()
     end
 
@@ -4195,24 +4162,17 @@ function GalaxObsidian:CreateWindow(options)
     -- ======================================================================
     -- ---- Notifications & Visibility ----
     function Window:Notify(message, title, duration)
-        if type(message) == "table" then
-            local info = message
-            title = info.Title or info.title or title
-            duration = info.Time or info.Duration or info.duration or duration
-            message = info.Description or info.Text or info.Message or info.description or ""
+        return NotificationManager:Notify(message, title, duration)
+    end
+    function Window:GetMemoryUsage()
+        local total = 0
+        local byKind = {}
+        for kind, list in pairs(self.Pool) do
+            local count = #list
+            byKind[kind] = count
+            total = total + count
         end
-        if type(title) == "number" and duration == nil then
-            duration = title
-            title = nil
-        end
-        local life = duration or 3
-        self.Notifications[#self.Notifications + 1] = {
-            message = message or "",
-            title = title,
-            created = tick(),
-            duration = life,
-            expires = tick() + life,
-        }
+        return total, byKind
     end
     function Window:SetVisible(state)
         self:_setOpen(state == true)
@@ -5403,6 +5363,15 @@ function GalaxObsidian:CreateWindow(options)
             end
         end
     end)
+    if DialogManager then
+        DialogManager:SetLibrary(GalaxObsidian)
+    end
+    if NotificationManager then
+        NotificationManager:SetLibrary(GalaxObsidian)
+    end
+    if ValueWatcher then
+        ValueWatcher:SetLibrary(GalaxObsidian)
+    end
     return Window
 end
 
