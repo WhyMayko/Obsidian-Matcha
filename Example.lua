@@ -6,22 +6,26 @@ local repo = "https://raw.githubusercontent.com/WhyMayko/Obsidian-Matcha/refs/he
 
 -- Load the Library
 local Library = loadstring(game:HttpGet(repo .. "Library.lua"))()
+_G.Galax = _G.Galax or {}
 Library = (_G.Galax["Library.lua"])
 
 local ThemeManager = loadstring(game:HttpGet(repo .. "addons/ThemeManager.lua"))()
+_G.Galax = _G.Galax or {}
 ThemeManager = (_G.Galax["addons/ThemeManager.lua"])
 
 local SaveManager = loadstring(game:HttpGet(repo .. "addons/SaveManager.lua"))()
+_G.Galax = _G.Galax or {}
 SaveManager = (_G.Galax["addons/SaveManager.lua"])
 
 local EssentialsManager = loadstring(game:HttpGet(repo .. "addons/EssentialsManager.lua"))()
+_G.Galax = _G.Galax or {}
 EssentialsManager = (_G.Galax["addons/EssentialsManager.lua"])
 
 local Options = Library.Options
 local Toggles = Library.Toggles
 
-Library.ForceCheckbox = false -- Forces AddToggle to AddCheckbox
-Library.ShowToggleFrameInKeybinds = true -- Adds toggle keybind controls to the keybind menu. Good for mobile users.
+-- Use AddCheckbox for checkbox-style toggles (separate from AddToggle)
+-- Keybinds: toggle keybind controls are built into the keybind menu
 
 local Window = Library:CreateWindow({
 	-- Set Center to true if you want the menu to appear in the center

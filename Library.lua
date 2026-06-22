@@ -54,12 +54,8 @@ GalaxObsidian.ImageCache = GalaxObsidian.ImageCache or {}
 GalaxObsidian.TransparencyTextureUrl =
     "https://raw.githubusercontent.com/WhyMayko/Obsidian-Matcha/refs/heads/main/assets/TransparencyTexture.png"
 
--- ---- Behavior Flags ----
-GalaxObsidian.ForceCheckbox = false
-GalaxObsidian.ShowToggleFrameInKeybinds = true
+-- ---- Options & Toggles Registries ----
 GalaxObsidian.Options = {}
-
--- ---- Toggles Registry ----
 GalaxObsidian.Toggles = {}
 
 -- ---- Unload System ----
@@ -75,9 +71,6 @@ GalaxObsidian.DPIScale = 100
 
 -- ---- Internal Module State ----
 local DraggableLabels = {}
-local ConnectionHandles = {}
-local WindowMetatable = {}
-WindowMetatable.__index = WindowMetatable
 local Theme
 
 
@@ -86,12 +79,16 @@ local AddonRepo = "https://raw.githubusercontent.com/WhyMayko/Obsidian-Matcha/re
 
 
 local function loadCoreAddon(path)
-    local source = game:HttpGet(AddonRepo .. path)
+    local ok, source = pcall(function()
+        return game:HttpGet(AddonRepo .. path)
+    end)
+    if not ok then error(path .. " (network): " .. tostring(source), 2) end
     local chunk, err = loadstring(source)
-    if not chunk then error(path .. ": " .. tostring(err), 2) end
-    chunk()
+    if not chunk then error(path .. " (syntax): " .. tostring(err), 2) end
+    local ok2, err2 = pcall(chunk)
+    if not ok2 then error(path .. " (runtime): " .. tostring(err2), 2) end
     local module = _G.Galax and _G.Galax[path]
-    if type(module) ~= "table" then error(path .. " did not load", 2) end
+    if type(module) ~= "table" then error(path .. " did not export", 2) end
     return module
 end
 
@@ -295,7 +292,7 @@ local function makeHandle(widget)
                 local old = widget.callback
                 widget.callback = function(v)
                     old(v)
-                    cb(v)
+                    if type(cb) == "function" then cb(v) end
                 end
             else
                 widget.callback = cb
@@ -320,6 +317,9 @@ local function makeHandle(widget)
     function handle:SetKey(key)
         widget.keybind = key
     end
+    function handle:SetPlaceholder(text)
+        widget.placeholder = tostring(text or "")
+    end
 
     -- ---- Slider Bounds & Formatting ----
     function handle:SetMin(value)
@@ -342,6 +342,11 @@ local function makeHandle(widget)
             widget.suffix = tostring(value or "")
         end
     end
+    function handle:SetPresets(values)
+        if widget.type == "slider" then
+            widget.presets = values and type(values) == "table" and values or nil
+        end
+    end
 
     -- ---- Dropdown Options ----
     function handle:Refresh(newOptions, newDefault)
@@ -349,7 +354,17 @@ local function makeHandle(widget)
             widget.options = newOptions or {}
 
             if newDefault ~= nil then
-                widget.value = newDefault
+                if widget.type == "multidropdown" then
+                    local sel = {}
+                    if type(newDefault) == "table" then
+                        for _, v in ipairs(newDefault) do sel[v] = true end
+                    else
+                        sel[newDefault] = true
+                    end
+                    widget.selected = sel
+                else
+                    widget.value = newDefault
+                end
             end
         end
     end
@@ -362,6 +377,26 @@ local function makeHandle(widget)
         if widget.type == "dropdown" or widget.type == "multidropdown" then
             for _, v in ipairs(values or {}) do
                 widget.options[#widget.options + 1] = v
+            end
+        end
+    end
+    function handle:AddOption(value)
+        if widget.type == "dropdown" or widget.type == "multidropdown" then
+            widget.options[#widget.options + 1] = value
+        end
+    end
+    function handle:RemoveOption(value)
+        if widget.type == "dropdown" or widget.type == "multidropdown" then
+            for i = #widget.options, 1, -1 do
+                if widget.options[i] == value then
+                    table.remove(widget.options, i)
+                    if widget.type == "multidropdown" then
+                        widget.selected[value] = nil
+                    elseif widget.value == value then
+                        widget.value = #widget.options > 0 and widget.options[1] or nil
+                    end
+                    break
+                end
             end
         end
     end
@@ -380,6 +415,68 @@ local function makeHandle(widget)
             return {}
         end
         return { widget.value }
+    end
+    function handle:Select(value)
+        if widget.type == "dropdown" then
+            widget.value = value
+            safeCall(widget.callback, widget.value)
+            safeCall(widget.changed, widget.value)
+        elseif widget.type == "multidropdown" then
+            widget.selected[value] = true
+            safeCall(widget.callback, widget.selected)
+            safeCall(widget.changed, widget.selected)
+        end
+    end
+    function handle:Deselect(value)
+        if widget.type == "multidropdown" then
+            widget.selected[value] = nil
+            safeCall(widget.callback, widget.selected)
+            safeCall(widget.changed, widget.selected)
+        elseif widget.type == "dropdown" and widget.allowNull then
+            widget.value = nil
+            safeCall(widget.callback, widget.value)
+            safeCall(widget.changed, widget.value)
+        end
+    end
+    function handle:GetOptions()
+        if widget.type == "dropdown" or widget.type == "multidropdown" then
+            local copy = {}
+
+            for _, v in ipairs(widget.options) do
+                copy[#copy + 1] = v
+            end
+            return copy
+        end
+        return {}
+    end
+    function handle:Clear()
+        if widget.type == "dropdown" or widget.type == "multidropdown" then
+            widget.options = {}
+            if widget.type == "multidropdown" then
+                widget.selected = {}
+            else
+                widget.value = nil
+            end
+        end
+    end
+    function handle:Reset()
+        if widget._default ~= nil then
+            if widget.type == "multidropdown" then
+                local sel = {}
+                if type(widget._default) == "table" then
+                    for _, v in ipairs(widget._default) do sel[v] = true end
+                else
+                    sel[widget._default] = true
+                end
+                widget.selected = sel
+                safeCall(widget.callback, widget.selected)
+                safeCall(widget.changed, widget.selected)
+            else
+                widget.value = widget._default
+                safeCall(widget.callback, widget.value)
+                safeCall(widget.changed, widget.value)
+            end
+        end
     end
 
     -- ---- Metatable Sugar (.Value / .Transparency) ----
@@ -1451,13 +1548,16 @@ function GalaxObsidian:CreateWindow(options)
         return self:_anim(owner, key, target, speed)
     end
     function Window:_openKeybindModePopup(widget, x, y, w)
+        if not widget or widget.disabled == true then
+            return nil
+        end
         local popupEnabled = widget.popupEnabled
         local popupModes = widget.popupModes
         if popupEnabled == nil then
             popupEnabled = self.KeybindModePopupEnabled
             popupModes = self.KeybindModePopupModes or DefaultKeybindModePopupModes
         end
-        if not popupEnabled or not widget or widget.disabled == true then
+        if not popupEnabled then
             return nil
         end
         local modes = popupModes or DefaultKeybindModePopupModes
@@ -1632,23 +1732,33 @@ function GalaxObsidian:CreateWindow(options)
     end
     function Window:_closeFloating(except)
         if except ~= "dropdown" then
-            if self.DropdownTarget then
-                self.DropdownTarget._searchText = ""
+            local old = self.DropdownTarget
+            if old then
+                old._searchText = ""
             end
             self.DropdownTarget = nil
+            self.DropdownSearch = nil
+            if old then
+                self:_releaseInteraction(old)
+            end
         end
         if except ~= "colorpicker" then
+            local old = self.ColorPickerTarget
             self.ColorPickerTarget = nil
             self.ColorPickerDrag = nil
+            if old then
+                self:_releaseInteraction(old)
+            end
         end
         if except ~= "textbox" then
+            local old = self.TextTarget
             self.TextTarget = nil
+            if old then
+                self:_releaseInteraction(old)
+            end
         end
         if except ~= "search" then
             self.SearchFocused = false
-        end
-        if except ~= "dropdown" then
-            self.DropdownSearch = nil
         end
         if except ~= "keybindMode" then
             if self.KeybindModeTarget then
@@ -2303,6 +2413,16 @@ function GalaxObsidian:CreateWindow(options)
             true,
             z + 4
         )
+        if widget.presets and #widget.presets > 0 then
+            local markerSize = math.max(2, math.floor(3 * scale))
+            local markerH = math.floor(barH * 0.6)
+            for _, preset in ipairs(widget.presets) do
+                local pct = clamp((preset - widget.min) / (widget.max - widget.min), 0, 1)
+                local mx = barX + math.floor(pct * barW)
+                local my = barY + math.floor((barH - markerH) / 2)
+                self:_square(mx - math.floor(markerSize / 2), my, markerSize, markerH, Theme.Muted, true, 1, 0, z + 5)
+            end
+        end
         if not disabled and self:_click(barX, barY - math.floor(4 * scale), barW, barH + math.floor(8 * scale)) then
             self.SliderTarget = widget
             self:_claimInteraction(widget)
@@ -2322,6 +2442,22 @@ function GalaxObsidian:CreateWindow(options)
                 safeCall(widget.changed, widget.value)
             end
         elseif self.SliderTarget == widget then
+            if widget.presets and #widget.presets > 0 then
+                local nearest = widget.value
+                local nearestDist = math.huge
+                for _, preset in ipairs(widget.presets) do
+                    local dist = math.abs(preset - widget.value)
+                    if dist < nearestDist then
+                        nearestDist = dist
+                        nearest = preset
+                    end
+                end
+                if nearest ~= widget.value then
+                    widget.value = nearest
+                    safeCall(widget.callback, widget.value)
+                    safeCall(widget.changed, widget.value)
+                end
+            end
             self.SliderTarget = nil
             self:_releaseInteraction(widget)
         end
@@ -2537,7 +2673,7 @@ function GalaxObsidian:CreateWindow(options)
             if widget.finished then
                 self.Mouse1Clicked = false
             end
-        elseif self.Mouse1Clicked and not self:_over(x, boxY, w, boxH) and focused then
+        elseif self.Mouse1Clicked and not self.BlockClicks and not self:_over(x, boxY, w, boxH) and focused then
             self.TextTarget = nil
             self:_releaseInteraction(widget, true)
         end
@@ -2902,7 +3038,7 @@ function GalaxObsidian:CreateWindow(options)
                                 true,
                                 z + 3
                             )
-                            if addon.disabled ~= true and self.Mouse2Clicked and self:_over(ax, y + math.floor(3 * scale), aw, addonSize) then
+                            if addon.disabled ~= true and self.Mouse2Clicked and self:_mouseAllowed(addon) and self:_over(ax, y + math.floor(3 * scale), aw, addonSize) then
                                 self:_openKeybindModePopup(addon, ax, y + math.floor(3 * scale), aw)
                             end
                             if addon.disabled ~= true and self:_click(ax, y + math.floor(3 * scale), aw, addonSize) then
@@ -2980,26 +3116,30 @@ function GalaxObsidian:CreateWindow(options)
         return false
     end
     function Window:_closeClippedWidget(widget)
+        local releaseTarget
         if self:_widgetContainsTarget(widget, self.DropdownTarget) then
-            if self.DropdownTarget then
-                self.DropdownTarget._searchText = ""
+            releaseTarget = self.DropdownTarget
+            if releaseTarget then
+                releaseTarget._searchText = ""
             end
             self.DropdownTarget = nil
             self.DropdownSearch = nil
-            self:_releaseInteraction(nil)
         end
         if self:_widgetContainsTarget(widget, self.ColorPickerTarget) then
+            releaseTarget = self.ColorPickerTarget
             self.ColorPickerTarget = nil
             self.ColorPickerDrag = nil
-            self:_releaseInteraction(nil)
         end
         if self:_widgetContainsTarget(widget, self.SliderTarget) then
+            releaseTarget = self.SliderTarget
             self.SliderTarget = nil
-            self:_releaseInteraction(nil)
         end
         if self:_widgetContainsTarget(widget, self.TextTarget) then
+            releaseTarget = self.TextTarget
             self.TextTarget = nil
-            self:_releaseInteraction(nil)
+        end
+        if releaseTarget then
+            self:_releaseInteraction(releaseTarget)
         end
     end
 
@@ -3365,6 +3505,7 @@ function GalaxObsidian:CreateWindow(options)
         end
         if
             self.Mouse1Clicked
+            and not self.BlockClicks
             and self.MouseLockOwner == widget
             and not self:_over(info.x, info.y - math.floor(22 * scale), info.w, height + math.floor(22 * scale))
         then
@@ -3591,7 +3732,7 @@ function GalaxObsidian:CreateWindow(options)
             true,
             z + 4
         )
-        if self.Mouse1Clicked and self.MouseLockOwner == widget and not self:_over(x, y - math.floor(22 * scale), info.w, info.h + math.floor(22 * scale)) then
+        if self.Mouse1Clicked and not self.BlockClicks and self.MouseLockOwner == widget and not self:_over(x, y - math.floor(22 * scale), info.w, info.h + math.floor(22 * scale)) then
             self.ColorPickerTarget = nil
             self.ColorPickerDrag = nil
             self:_releaseInteraction(widget)
@@ -3614,7 +3755,7 @@ function GalaxObsidian:CreateWindow(options)
                 rows[#rows + 1] = {
                     text = TextManager:FormatKeybind(widget.value, widget.label or "Keybind", mode),
                     toggle = mode == "Toggle",
-                    checked = (widget.parent and widget.parent.value) or widget._state == true,
+                    checked = widget.parent ~= nil and widget.parent.value == true or widget.parent == nil and widget._state == true,
                     widget = widget,
                 }
             elseif (widget.type == "toggle" or widget.type == "checkbox") and widget.keybind then
@@ -3786,7 +3927,7 @@ function GalaxObsidian:CreateWindow(options)
         popup.h = h
         x, y = self:_clampToViewport(x, y, w, h, 4, true)
         popup.x, popup.y = x, y
-        if (self.Mouse1Clicked or self.Mouse2Clicked) and not self:_over(x, y, w, h) then
+        if (self.Mouse1Clicked or self.Mouse2Clicked) and not self.BlockClicks and not self:_over(x, y, w, h) then
             self:_releaseInteraction(target)
             self.KeybindModePopup = nil
             self.KeybindModeTarget = nil
@@ -3866,7 +4007,7 @@ function GalaxObsidian:CreateWindow(options)
         if not self.Open then
             self:_renderKeybindMenu()
             self:_renderKeybindModePopup()
-            self:_renderNotifications()
+            NotificationManager:RenderNotifications(self)
             self:_renderTooltip()
             self:_hideUnused()
             return nil
@@ -4551,6 +4692,7 @@ function GalaxObsidian:CreateWindow(options)
                                 type = "toggle",
                                 label = info and (info.Text or info.Label) or label or "Toggle",
                                 value = info and info.Default == true or default == true,
+                                _default = info and info.Default == true or default == true,
                                 callback = info and info.Callback or callback,
                                 changed = info and info.Changed or nil,
                                 keybind = info and info.Keybind or keybind,
@@ -4615,6 +4757,7 @@ function GalaxObsidian:CreateWindow(options)
                     id = id,
                     label = info and (info.Text or info.Label) or label or "Toggle",
                     value = info and info.Default == true or default == true,
+                    _default = info and info.Default == true or default == true,
                     callback = info and info.Callback or callback,
                     changed = info and info.Changed or nil,
                     keybind = info and info.Keybind or keybind,
@@ -4752,6 +4895,7 @@ function GalaxObsidian:CreateWindow(options)
                     id = id,
                     label = info and (info.Text or info.Label) or label or "Checkbox",
                     value = info and info.Default == true or default == true,
+                    _default = info and info.Default == true or default == true,
                     callback = info and info.Callback or callback,
                     changed = info and info.Changed or nil,
                     keybind = info and info.Keybind or keybind,
@@ -4901,12 +5045,14 @@ function GalaxObsidian:CreateWindow(options)
                     min = minValue,
                     max = maxValue,
                     value = clamp(default, minValue, maxValue),
+                    _default = clamp(default, minValue, maxValue),
                     prefix = config.Prefix or "",
                     suffix = config.Suffix or "",
-                    round = config.Round == true or (config.Rounding or 0) == 0,
+                    round = config.Round == true or (config.Round == nil and (config.Rounding or 0) == 0),
                     integer = config.Integer == true,
                     compact = config.Compact == true,
                     hideMax = config.HideMax == true,
+                    presets = config.Presets,
                     formatDisplayValue = config.FormatDisplayValue,
                     callback = config.Callback or callback,
                     changed = config.Changed,
@@ -5012,6 +5158,7 @@ function GalaxObsidian:CreateWindow(options)
                     label = config.Text or config.Label or label or "Dropdown",
                     options = optionsList,
                     value = default,
+                    _default = default,
                     allowNull = config.AllowNull == true,
                     placeholder = config.Placeholder or "---",
                     maxVisible = config.MaxVisible or config.MaxVisibleDropdownItems or 6,
@@ -5080,6 +5227,7 @@ function GalaxObsidian:CreateWindow(options)
                     label = config.Text or config.Label or label or "MultiDropdown",
                     options = optionsList,
                     selected = selected,
+                    _default = default,
                     min = config.Min or 1,
                     max = config.Max or math.huge,
                     maxVisible = config.MaxVisible or config.MaxVisibleDropdownItems or 6,
@@ -5268,6 +5416,7 @@ function GalaxObsidian:CreateWindow(options)
                     id = id,
                     label = info and (info.Text or info.Label) or label or "Textbox",
                     value = info and tostring(info.Default or "") or (default ~= nil and tostring(default) or ""),
+                    _default = info and tostring(info.Default or "") or (default ~= nil and tostring(default) or ""),
                     callback = info and info.Callback or callback,
                     changed = info and info.Changed or nil,
                     tooltip = info and info.Tooltip,
@@ -5377,28 +5526,6 @@ function GalaxObsidian:CreateWindow(options)
     NotificationManager:SetLibrary(GalaxObsidian)
     ValueWatcher:SetLibrary(GalaxObsidian)
     return Window
-end
-
--- ======================================================================
--- MODULE-LEVEL UTILITIES
--- ======================================================================
-local function keysOf(map)
-    local list = {}
-
-    for key in pairs(map) do
-        list[#list + 1] = key
-    end
-    table.sort(list)
-    return list
-end
-local function colorToHexStr(color)
-    local r, g, b = colorComponents(color)
-    return string.format(
-        "%02X%02X%02X",
-        math.floor(r * 255 + 0.5),
-        math.floor(g * 255 + 0.5),
-        math.floor(b * 255 + 0.5)
-    )
 end
 
 -- ======================================================================

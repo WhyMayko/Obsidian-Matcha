@@ -16,7 +16,7 @@ function NotificationManager:Notify(message, title, duration)
 	local Library = self.Library
 	local win = Library and Library.ActiveWindow
 	if not win then
-		return nil
+		error("NotificationManager: no active window", 2)
 	end
 
 	if type(message) == "table" then
@@ -89,7 +89,8 @@ function NotificationManager:RenderNotifications(window)
 	local TM = self.TextManager
 	local scale = window:GetScale()
 	local now = tick()
-	local vp = workspace.CurrentCamera.ViewportSize
+	local cam = workspace.CurrentCamera
+	local vp = cam and cam.ViewportSize or Vector2.new(1920, 1080)
 	local margin = math.floor(10 * scale)
 	local startY = margin
 	local stackY = 0

@@ -12,12 +12,15 @@ Scripts load only three files. Because Matcha's `loadstring` does not return val
 local repo = "https://raw.githubusercontent.com/WhyMayko/Obsidian-Matcha/refs/heads/main/"
 
 local Library = loadstring(game:HttpGet(repo .. "Library.lua"))()
+_G.Galax = _G.Galax or {}
 Library = (_G.Galax["Library.lua"])
 
 local ThemeManager = loadstring(game:HttpGet(repo .. "addons/ThemeManager.lua"))()
+_G.Galax = _G.Galax or {}
 ThemeManager = (_G.Galax["addons/ThemeManager.lua"])
 
 local SaveManager = loadstring(game:HttpGet(repo .. "addons/SaveManager.lua"))()
+_G.Galax = _G.Galax or {}
 SaveManager = (_G.Galax["addons/SaveManager.lua"])
 ```
 
@@ -97,18 +100,23 @@ local T2   = TBox:AddTab("Tab 2")
 
 ---
 
-## Shared Options
+---
 
-Every element accepts these options unless stated otherwise:
+## Handle Methods
 
-| Option           | Type    | Description                                      |
-|------------------|---------|--------------------------------------------------|
-| `Disabled`       | bool    | Greys out and blocks interaction                 |
-| `Visible`        | bool    | Hides the element (still takes space)            |
-| `Risky`          | bool    | Makes the label text red                         |
-| `Tooltip`        | string  | Text shown on hover                              |
-| `DisabledTooltip`| string  | Tooltip shown when the element is disabled       |
-| `Callback`       | function| Called whenever the value changes                |
+Every widget handle exposes these methods:
+
+| Method | Description |
+|--------|-------------|
+| `:Get()` | Returns the current value |
+| `:Set(value)` | Sets the value and fires callbacks |
+| `:SetVisible(bool)` | Shows/hides the widget |
+| `:SetDisabled(bool)` | Enables/disables the widget |
+| `:SetTooltip(string)` | Sets the hover tooltip |
+| `:SetKey(key)` | Sets a keybind code |
+| `:Reset()` | Resets to default value |
+
+The `Changed` callback is fired once after widget creation (during `OnChanged` setup) for initial sync. Use `Callback` for user-initiated changes only.
 
 ---
 
@@ -147,7 +155,7 @@ Left:AddToggle("MyToggle", { Text = "Aim" })
 
 ## Checkbox
 
-Identical API to Toggle. Use `Library.ForceCheckbox = true` to render all toggles as checkboxes.
+Identical API to Toggle. The checkbox and toggle are independent widgets — use whichever fits your UI.
 
 ```lua
 Left:AddCheckbox("MyCheckbox", {
@@ -242,6 +250,23 @@ Options.MySlider:SetValue(75)
 Options.MySlider:SetMin(10)
 Options.MySlider:SetMax(200)
 Options.MySlider:SetSuffix(" px")
+
+### Slider Presets
+
+Display snap markers on the bar. The slider snaps to the closest preset when released.
+
+```lua
+Left:AddSlider("Speed", {
+    Text     = "Speed",
+    Min      = 0,
+    Max      = 100,
+    Presets  = { 0, 25, 50, 75, 100 },
+})
+
+-- Update presets at runtime
+Options.Speed:SetPresets({ 10, 30, 50, 70, 90 })
+-- Clear presets
+Options.Speed:SetPresets(nil)
 ```
 
 ---
@@ -309,6 +334,23 @@ Options.MyDropdown:SetValue("Option B")
 Options.MyDropdown:SetValues({ "X", "Y", "Z" })
 Options.MyDropdown:AddValues({ "W" })
 ```
+
+### Dropdown Handle Methods
+
+| Method | Dropdown | Multi | Description |
+|--------|----------|-------|-------------|
+| `:Select(value)` | yes | yes | Selects a value (multi: adds to selection) |
+| `:Deselect(value)` | yes\* | yes | Deselects a value (\*requires AllowNull) |
+| `:AddOption(value)` | yes | yes | Adds a single option |
+| `:AddValues({...})` | yes | yes | Appends multiple options |
+| `:RemoveOption(value)` | yes | yes | Removes an option |
+| `:Clear()` | yes | yes | Removes all options |
+| `:GetOptions()` | yes | yes | Returns a copy of the options array |
+| `:GetActiveValues()` | yes | yes | Returns selected value(s) as a table |
+| `:SetValues({...})` | yes | yes | Replaces all options |
+| `:Refresh(newOptions, newDefault)` | yes | yes | Replaces options and resets selection |
+| `:SetPlaceholder(text)` | yes | yes | Updates the placeholder text |
+| `:Reset()` | yes | yes | Resets to the creation default |
 
 ### Special Dropdowns
 
