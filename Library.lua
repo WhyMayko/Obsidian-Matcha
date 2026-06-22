@@ -1733,12 +1733,10 @@ function GalaxObsidian:CreateWindow(options)
                     safeCall(target.changed, target.value)
                 end
             elseif char == "enter" then
-                if target.finished then
-                    safeCall(target.callback, target.value)
-                    safeCall(target.changed, target.value)
-                    self.TextTarget = nil
-                    self:_releaseInteraction(target, true)
-                end
+                safeCall(target.callback, target.value)
+                safeCall(target.changed, target.value)
+                self.TextTarget = nil
+                self:_releaseInteraction(target, true)
             elseif char then
                 if target.numeric then
                     if char:match("^[%d%.%-]$") then

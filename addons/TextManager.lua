@@ -401,15 +401,16 @@ function TextManager:RenderInput(window, value, placeholder, x, y, width, option
 	local text = empty and tostring(placeholder or "") or raw
 	local size = options.Size or 13
 	local font = options.Font or Drawing.Fonts.Monospace
-	local fitted = self:Fit(text, width, size, font)
+	local scale = window:GetScale()
+	local scaledSize = math.floor(size * scale + 0.5)
+	local fitted = self:Fit(text, width, scaledSize, font)
 	local color = options.Disabled and options.DisabledColor or (empty and options.PlaceholderColor or options.Color)
-	local tx = self:AlignX(fitted, x, width, size, font, options.Align or options.align)
+	local tx = self:AlignX(fitted, x, width, scaledSize, font, options.Align or options.align)
 
 	window:_text(fitted, tx, y, color, size, font, false, options.Outline ~= false, options.ZIndex or 1)
 
 	if options.Focused and not options.Disabled and math.floor(tick() * 2) % 2 == 0 then
-		local scale = window:GetScale()
-		local caretX = empty and tx or (tx + math.min(width, math.floor(self:Measure(fitted, size, font) + 2)))
+		local caretX = empty and tx or (tx + math.min(width, math.floor(self:Measure(fitted, scaledSize, font) + 2)))
 		local caretH = math.floor(size * scale + 0.5)
 		window:_line(caretX, y + 1, caretX, y + caretH + 1, color, 1, (options.ZIndex or 1) + 1)
 	end
