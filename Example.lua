@@ -638,15 +638,6 @@ EssentialsManager:BuildSection(Tabs["UI Settings"])
 ThemeManager:SetLibrary(Library)
 SaveManager:SetLibrary(Library)
 
--- Ignore essentials keys so they don't pollute per-game configs.
-SaveManager:SetIgnoreIndexes({
-	"MenuKeybind",
-	"DPIDropdown",
-	"UICornerSlider",
-	"NotificationSide",
-	"KeybindMenuOpen",
-})
-
 -- Builds our config menu on the right side of our tab.
 SaveManager:BuildConfigSection(Tabs["UI Settings"])
 

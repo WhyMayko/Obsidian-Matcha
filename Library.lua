@@ -3643,9 +3643,10 @@ function GalaxObsidian:CreateWindow(options)
         if not camera or not camera.ViewportSize then
             return nil
         end
+        local scale = self:GetScale()
         local viewport = camera.ViewportSize
-        local notifW = 260
-        local margin = 18
+        local notifW = math.floor(260 * scale)
+        local margin = math.floor(18 * scale)
         local slideTime = 0.22
         local startY = margin
         for i = #self.Notifications, 1, -1 do
@@ -3657,16 +3658,16 @@ function GalaxObsidian:CreateWindow(options)
         local stackY = 0
         for i, notif in ipairs(self.Notifications) do
             local textSize = 11
-            local pad = 10
-            local lineH = 15
+            local pad = math.floor(10 * scale)
+            local lineH = math.floor(15 * scale)
             local fullText = notif.title and notif.title ~= "" and (notif.title .. "\n" .. notif.message)
                 or notif.message
             local lines = wrapTextLines(fullText, notifW - pad * 2, textSize, 6, Theme.Font)
             local currentNotifW =
-                math.max(60, math.min(notifW, math.floor(widestLineWidth(lines, textSize, Theme.Font) + pad * 2 + 10)))
-            local notifH = pad * 2 + (#lines * lineH) + 7
+                math.max(math.floor(60 * scale), math.min(notifW, math.floor(widestLineWidth(lines, textSize, Theme.Font) + pad * 2 + math.floor(10 * scale))))
+            local notifH = pad * 2 + (#lines * lineH) + math.floor(7 * scale)
             local finalX = self.NotifySide == "Left" and margin or (viewport.X - currentNotifW - margin)
-            local hiddenX = self.NotifySide == "Left" and (-currentNotifW - 8) or (viewport.X + 8)
+            local hiddenX = self.NotifySide == "Left" and (-currentNotifW - math.floor(8 * scale)) or (viewport.X + math.floor(8 * scale))
             local enter = clamp((now - notif.created) / slideTime, 0, 1)
             local leave = now > notif.expires and (1 - clamp((now - notif.expires) / slideTime, 0, 1)) or 1
             local slide = math.min(enter, leave)
@@ -3689,9 +3690,9 @@ function GalaxObsidian:CreateWindow(options)
                     143
                 )
             end
-            self:_square(x + 8, y + notifH - 6, currentNotifW - 16, 2, Theme.Main, true, 1, 1, 142)
-            self:_square(x + 8, y + notifH - 6, (currentNotifW - 16) * remaining, 2, self.Accent, true, 1, 1, 144)
-            stackY = stackY + notifH + 10
+            self:_square(x + math.floor(8 * scale), y + notifH - math.floor(6 * scale), currentNotifW - math.floor(16 * scale), math.floor(2 * scale), Theme.Main, true, 1, 1, 142)
+            self:_square(x + math.floor(8 * scale), y + notifH - math.floor(6 * scale), (currentNotifW - math.floor(16 * scale)) * remaining, math.floor(2 * scale), self.Accent, true, 1, 1, 144)
+            stackY = stackY + notifH + math.floor(10 * scale)
         end
     end
 
