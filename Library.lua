@@ -320,6 +320,9 @@ local function makeHandle(widget)
     function handle:SetPlaceholder(text)
         widget.placeholder = tostring(text or "")
     end
+    function handle:GetId()
+        return widget.id
+    end
 
     -- ---- Slider Bounds & Formatting ----
     function handle:SetMin(value)
@@ -2065,7 +2068,13 @@ function GalaxObsidian:CreateWindow(options)
         if search == "" then
             return true
         end
-        local text = tostring(widget.label or widget.text or section.Name or "")
+        if section and section.Name then
+            local sectionName = string.lower(section.Name)
+            if sectionName:sub(1, 2) ~= "__" and string.find(sectionName, search, 1, true) then
+                return true
+            end
+        end
+        local text = tostring(widget.label or widget.text or "")
         if widget.type == "colorpair" then
             text = tostring(
                 (widget.left and widget.left.label or "") .. " " .. (widget.right and widget.right.label or "")
@@ -4536,12 +4545,16 @@ function GalaxObsidian:CreateWindow(options)
             tabName = name.Name or name.Title or name.Text
             tabIcon = name.Icon or name.IconName or tabIcon
         end
-        local Tab = { Name = tabName or "Tab", Icon = tabIcon, Sections = {} }
+        local Tab = { Name = tabName or "Tab", Icon = tabIcon, Sections = {}, _Window = self }
 
         if not self.ActiveTab then
             self.ActiveTab = Tab
         end
         self.Tabs[#self.Tabs + 1] = Tab
+        function Tab:Select()
+            self._Window.ActiveTab = self
+            self._Window:_closeFloating()
+        end
 
         -- ---- Section Setup ----
         function Tab:AddSection(sectionName, side)
@@ -5486,6 +5499,19 @@ function GalaxObsidian:CreateWindow(options)
     -- ======================================================================
     -- KEY TAB SYSTEM
     -- ======================================================================
+    function Window:SelectTab(nameOrTab)
+        if type(nameOrTab) == "string" then
+            for _, tab in ipairs(self.Tabs) do
+                if tab.Name == nameOrTab then
+                    tab:Select()
+                    return
+                end
+            end
+        elseif type(nameOrTab) == "table" then
+            nameOrTab:Select()
+        end
+    end
+
     function Window:AddKeyTab(name, icon)
         local tab = self:AddTab(name or "Key System", icon or "key")
         tab.IsKeyTab = true
