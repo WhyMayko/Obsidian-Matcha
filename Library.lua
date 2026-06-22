@@ -3154,7 +3154,7 @@ function GalaxObsidian:CreateWindow(options)
         local scrollTrackW = math.floor(10 * scale)
         local scrollGap = math.floor(4 * scale)
         local scrollSlot = scrollTrackW + scrollGap
-        local useTwoColumns = w >= 440
+        local useTwoColumns = w >= math.floor(440 * scale)
         local columnW = useTwoColumns and math.floor((w - pad * 2 - columnGap) / 2) or math.floor(w - pad * 2)
         local leftY = y + pad
         local rightY = y + pad
@@ -3557,49 +3557,19 @@ function GalaxObsidian:CreateWindow(options)
                 safeCall(widget.changed, widget.value, widget.transparency)
             end
         end
-        self:_square(svX, svY, svSize, svSize, Theme.Background, true, 1, 4, z + 2) -- SV grid: only recalculate colors when hue changes (dragging sat/vib never changes the grid palette).
-        if widget._cachedGridHue ~= (widget.hue or 0) then
-            widget._cachedGridHue = (widget.hue or 0)
-            widget._cachedGridColors = {}
-            local cols, rows = 32, 24
-            for row = 0, rows - 1 do
-                local value = 1 - (row / (rows - 1))
-                for col = 0, cols - 1 do
-                    widget._cachedGridColors[row * cols + col + 1] =
-                        Color3.fromHSV((widget.hue or 0), col / (cols - 1), value)
-                end
-            end
+        self:_square(svX, svY, svSize, svSize, Theme.Background, true, 1, 4, z + 2)
+        
+        self:_square(mapX, mapY, mapSize, mapSize, Color3.fromHSV(widget.hue or 0, 1, 1), true, 1, 0, z + 3)
+        if self.SaturationTextureData then
+            self:_image(self.SaturationTextureData, mapX, mapY, mapSize, mapSize, 0, z + 4)
         end
-        local cols, rows = 32, 24
-        local gridColors = widget._cachedGridColors or {}
 
-        for row = 0, rows - 1 do
-            local cy0 = mapY + math.floor(row * mapSize / rows)
-            local cy1 = mapY + math.floor((row + 1) * mapSize / rows)
-            local ch = math.max(1, cy1 - cy0)
-            for col = 0, cols - 1 do
-                local cx0 = mapX + math.floor(col * mapSize / cols)
-                local cx1 = mapX + math.floor((col + 1) * mapSize / cols)
-                local cw = math.max(1, cx1 - cx0)
-                self:_square(
-                    cx0,
-                    cy0,
-                    cw,
-                    ch,
-                    gridColors[row * cols + col + 1] or Color3.new(0, 0, 0),
-                    true,
-                    1,
-                    0,
-                    z + 3
-                )
-            end
-        end
-        self:_square(svX, svY, svSize, svSize, Theme.Background, false, 1, 4, z + 4)
-        self:_square(svX - 1, svY - 1, svSize + 2, svSize + 2, Theme.Outline, false, 1, 4, z + 5) -- Cursor position updates every frame regardless of dirty state.
+        self:_square(svX, svY, svSize, svSize, Theme.Background, false, 1, 4, z + 5)
+        self:_square(svX - 1, svY - 1, svSize + 2, svSize + 2, Theme.Outline, false, 1, 4, z + 6) -- Cursor position updates every frame regardless of dirty state.
         if not widget.sat or not widget.vib then
             widget.sat, widget.vib = 0, 0
         end
-        self:_circle(mapX + widget.sat * mapSize, mapY + (1 - widget.vib) * mapSize, math.floor(4 * scale), Theme.Text, true, 1, z + 6)
+        self:_circle(mapX + widget.sat * mapSize, mapY + (1 - widget.vib) * mapSize, math.floor(4 * scale), Theme.Text, true, 1, z + 7)
         self:_square(hueX, svY, barW, svSize, Theme.Background, true, 1, 3, z + 2)
         local hueSegments = 96
         for i = 0, hueSegments - 1 do
