@@ -53,6 +53,8 @@ GalaxObsidian.ImageCache = GalaxObsidian.ImageCache or {}
 -- ---- Asset URLs ----
 GalaxObsidian.TransparencyTextureUrl =
     "https://raw.githubusercontent.com/WhyMayko/Obsidian-Matcha/refs/heads/main/assets/TransparencyTexture.png"
+GalaxObsidian.SaturationTextureUrl =
+    "https://raw.githubusercontent.com/WhyMayko/Obsidian-Matcha/refs/heads/main/assets/SaturationMap.png"
 
 -- ---- Options & Toggles Registries ----
 GalaxObsidian.Options = {}
@@ -987,6 +989,7 @@ function GalaxObsidian:CreateWindow(options)
         IconSize = options.IconSize or 24,
         ImagesEnabled = options.EnableImages ~= false,
         TransparencyTextureData = GalaxObsidian.ImageCache[GalaxObsidian.TransparencyTextureUrl],
+        SaturationTextureData = GalaxObsidian.ImageCache[GalaxObsidian.SaturationTextureUrl],
         LogicalSize = resolvedSize,
         Size = Vector2.new(math.floor(resolvedSize.X * initialScale + 0.5), math.floor(resolvedSize.Y * initialScale + 0.5)),
         MinSize = resolvedMinSize,
@@ -1112,6 +1115,11 @@ function GalaxObsidian:CreateWindow(options)
     if Window.ImagesEnabled and not Window.TransparencyTextureData then
         RequestImage(GalaxObsidian.TransparencyTextureUrl, function(data)
             Window.TransparencyTextureData = data
+        end)
+    end
+    if Window.ImagesEnabled and not Window.SaturationTextureData then
+        RequestImage(GalaxObsidian.SaturationTextureUrl, function(data)
+            Window.SaturationTextureData = data
         end)
     end
 
