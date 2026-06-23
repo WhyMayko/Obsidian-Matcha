@@ -3073,7 +3073,7 @@ function GalaxObsidian:CreateWindow(options)
         local scrollTrackW = math.floor(10 * scale)
         local scrollGap = math.floor(4 * scale)
         local scrollSlot = scrollTrackW + scrollGap
-        local useTwoColumns = w >= math.floor(440 * scale)
+        local useTwoColumns = w >= 440
         local columnW = useTwoColumns and math.floor((w - pad * 2 - columnGap) / 2) or math.floor(w - pad * 2)
         local leftY = y + pad
         local rightY = y + pad
@@ -4019,7 +4019,7 @@ function GalaxObsidian:CreateWindow(options)
                 searchY,
                 searchW,
                 searchH,
-                self.SearchFocused and self.Accent or Theme.Outline,
+                Theme.Outline,
                 false,
                 1,
                 4,
