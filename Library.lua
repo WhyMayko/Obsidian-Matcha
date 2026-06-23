@@ -2658,7 +2658,10 @@ function GalaxObsidian:CreateWindow(options)
         local boxW = w - buttonW - gap
         local boxH = math.floor(18 * scale)
         local boxY = y + math.floor(3 * scale)
-        local textY = y + math.floor(8 * scale)
+        local keyboxTextSize = 14
+        local scaledKeyboxTextSize = math.floor(keyboxTextSize * scale + 0.5)
+        local yOfs = scale > 1 and -math.floor((scale - 1) * 3) or 0
+        local textY = boxY + math.floor((boxH - scaledKeyboxTextSize) / 2) - yOfs
         local focused = self.TextTarget == widget
         widget.hitbox = { x = x, y = boxY, w = boxW, h = boxH }
         self:_square(x, boxY, boxW, boxH, Theme.Surface, true, 1, 3, z + 1)
@@ -2667,9 +2670,9 @@ function GalaxObsidian:CreateWindow(options)
             widget.value,
             widget.placeholder,
             x + math.floor(7 * scale),
-            y + math.floor(9 * scale),
+            textY,
             boxW - math.floor(14 * scale),
-            14,
+            keyboxTextSize,
             focused,
             false,
             z + 3,
@@ -2680,11 +2683,11 @@ function GalaxObsidian:CreateWindow(options)
         self:_square(bx, boxY, buttonW, boxH, over and Theme.Surface2 or Theme.Surface, true, 1, 3, z + 1)
         self:_square(bx, boxY, buttonW, boxH, over and Theme.Outline2 or Theme.Outline, false, 1, 3, z + 2)
         self:_text(
-            fitTextToWidth("Execute", buttonW - math.floor(10 * scale), 14, Theme.Font),
+            fitTextToWidth("Execute", buttonW - math.floor(10 * scale), keyboxTextSize, Theme.Font),
             bx + buttonW / 2,
             textY,
             Theme.Text,
-            14,
+            keyboxTextSize,
             Drawing.Fonts.Monospace,
             true,
             true,
@@ -2787,6 +2790,10 @@ function GalaxObsidian:CreateWindow(options)
         local disabled = widget.disabled == true
         local btnH = math.floor(21 * scale)
         local btnY = y + math.floor(0 * scale)
+        local btnTextSize = 14
+        local scaledBtnTextSize = math.floor(btnTextSize * scale + 0.5)
+        local yOfs = scale > 1 and -math.floor((scale - 1) * 3) or 0
+        local btnTextY = btnY + math.floor((btnH - scaledBtnTextSize) / 2) - yOfs
         local over = not disabled and self:_hover(x, btnY, w, btnH, widget)
         local buttonBg = self:_anim(
             widget,
@@ -2807,11 +2814,11 @@ function GalaxObsidian:CreateWindow(options)
         self:_square(x, btnY, w, btnH, buttonOutline, false, 1, 3, z + 2)
         if widget._doubleConfirm and widget._confirmPending then
             self:_text(
-                fitTextToWidth("Are you sure?", w - math.floor(12 * scale), 14, Theme.Font),
+                fitTextToWidth("Are you sure?", w - math.floor(12 * scale), btnTextSize, Theme.Font),
                 x + w / 2,
-                y + math.floor(10 * scale),
+                btnTextY,
                 self.Accent,
-                14,
+                btnTextSize,
                 Drawing.Fonts.Monospace,
                 true,
                 true,
@@ -2824,11 +2831,11 @@ function GalaxObsidian:CreateWindow(options)
             end
         else
             self:_text(
-                fitTextToWidth(widget.label, w - math.floor(12 * scale), 14, Theme.Font),
+                fitTextToWidth(widget.label, w - math.floor(12 * scale), btnTextSize, Theme.Font),
                 x + w / 2,
-                y + math.floor(10 * scale),
+                btnTextY,
                 buttonText,
-                14,
+                btnTextSize,
                 Drawing.Fonts.Monospace,
                 true,
                 true,
@@ -3679,8 +3686,8 @@ function GalaxObsidian:CreateWindow(options)
         local boxTextY = infoY + math.floor(boxH / 2) - math.floor(scaledBoxTextSize / 2) - yOfs
         local hexBoxX = x + pad
         local rgbBoxX = x + pad + boxW + math.floor(8 * scale)
-        local hexTextX = hexBoxX + math.floor(5 * scale)
-        local rgbTextX = rgbBoxX + math.floor(5 * scale)
+        local hexCenterX = hexBoxX + boxW / 2
+        local rgbCenterX = rgbBoxX + boxW / 2
         self:_square(hexBoxX, infoY, boxW, boxH, Theme.Main, true, 1, 3, z + 2)
         self:_square(hexBoxX, infoY, boxW, boxH, Theme.Outline, false, 1, 3, z + 3)
         local displayColor = Color3.fromHSV(widget.hue, widget.sat or 0, widget.vib or 0)
@@ -3698,12 +3705,12 @@ function GalaxObsidian:CreateWindow(options)
         )
         self:_text(
             fitTextToWidth(displayHex, boxW - math.floor(12 * scale), boxTextSize, Theme.Font),
-            hexTextX,
+            hexCenterX,
             boxTextY,
             Theme.Text,
             boxTextSize,
             Drawing.Fonts.Monospace,
-            false,
+            true,
             true,
             z + 4
         )
@@ -3711,12 +3718,12 @@ function GalaxObsidian:CreateWindow(options)
         self:_square(rgbBoxX, infoY, boxW, boxH, Theme.Outline, false, 1, 3, z + 3)
         self:_text(
             fitTextToWidth(displayRgb, boxW - math.floor(12 * scale), boxTextSize, Theme.Font),
-            rgbTextX,
+            rgbCenterX,
             boxTextY,
             Theme.Text,
             boxTextSize,
             Drawing.Fonts.Monospace,
-            false,
+            true,
             true,
             z + 4
         )
