@@ -274,9 +274,12 @@ local function charUnit(char, metrics)
 	return 1
 end
 
-function TextManager:Measure(text, size, font)
+function TextManager:Measure(text, size, font, scale)
 	text = tostring(text or "")
 	size = size or 13
+	if scale then
+		size = math.floor((size) * scale + 0.5)
+	end
 	font = font or Drawing.Fonts.Monospace
 
 	local native = nativeMeasure(text, size, font)
@@ -294,10 +297,15 @@ function TextManager:Measure(text, size, font)
 	return units * size * (metrics.Scale or 0.5)
 end
 
-function TextManager:Fit(text, maxWidth, size, font)
+function TextManager:Fit(text, maxWidth, size, font, scale)
 	text = tostring(text or "")
 	if not maxWidth or maxWidth <= 0 then
 		return ""
+	end
+
+	size = size or 13
+	if scale then
+		size = math.floor(size * scale + 0.5)
 	end
 
 	if self:Measure(text, size, font) <= maxWidth then

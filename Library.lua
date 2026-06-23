@@ -594,13 +594,11 @@ end
 
 local function estimateTextWidth(text, size, font)
     local scale = GalaxObsidian.ActiveWindow and GalaxObsidian.ActiveWindow:GetScale() or 1.0
-    local textSize = math.floor((size or GalaxObsidian.FontSize or 13) * scale + 0.5)
-    return TextManager:Measure(text, textSize, font or Theme.Font)
+    return TextManager:Measure(text, size or GalaxObsidian.FontSize or 13, font or Theme.Font, scale)
 end
 local function fitTextToWidth(text, maxWidth, size, font)
     local scale = GalaxObsidian.ActiveWindow and GalaxObsidian.ActiveWindow:GetScale() or 1.0
-    local textSize = math.floor((size or GalaxObsidian.FontSize or 13) * scale + 0.5)
-    return TextManager:Fit(text, maxWidth, textSize, font or Theme.Font)
+    return TextManager:Fit(text, maxWidth, size or GalaxObsidian.FontSize or 13, font or Theme.Font, scale)
 end
 
 -- ---- Display Settings ----
