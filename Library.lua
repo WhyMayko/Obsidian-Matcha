@@ -2781,22 +2781,23 @@ function GalaxObsidian:CreateWindow(options)
         end
     end
 
-    function Window:_renderSectionTabs(widget, x, y, w, z)
+    function Window:_renderSectionTabs(widget, x, y, w, z, fixedY)
         local scale = self:GetScale()
         local tabBarH = math.floor(28 * scale)
         local tabBarClickH = math.floor(25 * scale)
-        local tabTextY = y + math.floor(8 * scale)
+        local barY = (fixedY or y) + 1
+        local tabTextY = (fixedY or y) + math.floor(8 * scale)
         local count = math.max(1, #widget.tabs)
         local tabW = math.floor(w / count)
         for i, tab in ipairs(widget.tabs) do
             local tx = x + (i - 1) * tabW
             local tw = (i == count) and (w - tabW * (i - 1)) or tabW
             local active = (widget.active or 1) == i
-            local over = self:_hover(tx, y + 1, tw, tabBarClickH, widget)
+            local over = self:_hover(tx, barY, tw, tabBarClickH, widget)
             local tabBg = self:_anim(
                 widget,
                 "sectiontab." .. tostring(i) .. ".bg",
-                active and Theme.Background or Theme.Surface,
+                active and Theme.Surface or Theme.Sidebar,
                 16
             )
             local tabText = self:_anim(
@@ -2805,7 +2806,7 @@ function GalaxObsidian:CreateWindow(options)
                 active and Theme.Text or Theme.Muted,
                 16
             )
-            self:_square(tx, y + 1, tw, tabBarH, tabBg, true, 1, 3, z + 1)
+            self:_square(tx, barY, tw, tabBarH, tabBg, true, 1, 3, z + 1)
             self:_text(
                 fitTextToWidth(tab.name, tw - math.floor(12 * scale), 13, Theme.Font),
                 tx + tw / 2,
@@ -2817,12 +2818,12 @@ function GalaxObsidian:CreateWindow(options)
                 true,
                 z + 3
             )
-            if self:_click(tx, y + 1, tw, tabBarClickH, widget) then
+            if self:_click(tx, barY, tw, tabBarClickH, widget) then
                 widget.active = i
                 self.Mouse1Clicked = false
             end
         end
-        self:_square(x, y + 1, w, tabBarH, Theme.Outline, false, 1, 3, z + 2)
+        self:_square(x, barY, w, tabBarH, Theme.Outline, false, 1, 3, z + 2)
         local active = widget.tabs[widget.active or 1]
         if not active then
             return nil
@@ -3270,7 +3271,11 @@ function GalaxObsidian:CreateWindow(options)
                         if wy + wh <= sectionTop then
                             self:_closeClippedWidget(widget)
                         elseif wy < sectionBottom then
-                            self:_renderWidget(widget, sx + math.floor(10 * scale), wy, layout.w - math.floor(20 * scale), z + 5, sectionTop, sectionBottom)
+                            if widget.type == "sectiontabs" then
+                                self:_renderSectionTabs(widget, sx + math.floor(10 * scale), wy, layout.w - math.floor(20 * scale), z + 5, layout.y + headerH)
+                            else
+                                self:_renderWidget(widget, sx + math.floor(10 * scale), wy, layout.w - math.floor(20 * scale), z + 5, sectionTop, sectionBottom)
+                            end
                         else
                             break
                         end
@@ -3988,8 +3993,8 @@ function GalaxObsidian:CreateWindow(options)
         end
         local chromeZ = 88
         self:_square(x, y, w, topH, Theme.Topbar, true, 1, windowCorner, chromeZ)
-        self:_line(x, y + topH, x + w, y + topH, Theme.Outline, 1, chromeZ + 1)
         self:_square(x, y + topH, sidebarW, h - topH - bottomH, Theme.Sidebar, true, 1, 0, chromeZ)
+        self:_line(x, y + topH, x + w, y + topH, Theme.Outline, 1, chromeZ + 3)
         self:_line(x + sidebarW, y, x + sidebarW, y + h - bottomH - 1, Theme.Outline, 1, chromeZ + 1)
         self:_square(x, y + h - bottomH, w, bottomH, Theme.Bottombar, true, 1, windowCorner, chromeZ + 1)
         self:_line(x, y + h - bottomH, x + w, y + h - bottomH, Theme.BottombarBorder, 1, chromeZ + 2)
