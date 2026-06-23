@@ -5,7 +5,7 @@
 local repo = "https://raw.githubusercontent.com/WhyMayko/Obsidian-Matcha/refs/heads/main/"
 
 -- Load the Library
-local Library = loadstring(game:HttpGet(repo .. "Library.lua"))()
+local Library = require("Library.lua")
 Library = (_G.Galax["Library.lua"])
 
 local ThemeManager = loadstring(game:HttpGet(repo .. "addons/ThemeManager.lua"))()

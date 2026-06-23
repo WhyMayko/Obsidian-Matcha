@@ -53,8 +53,6 @@ GalaxObsidian.ImageCache = GalaxObsidian.ImageCache or {}
 -- ---- Asset URLs ----
 GalaxObsidian.TransparencyTextureUrl =
     "https://raw.githubusercontent.com/WhyMayko/Obsidian-Matcha/refs/heads/main/assets/TransparencyTexture.png"
-GalaxObsidian.SaturationTextureUrl =
-    "https://raw.githubusercontent.com/WhyMayko/Obsidian-Matcha/refs/heads/main/assets/SaturationMap.png"
 
 -- ---- Options & Toggles Registries ----
 GalaxObsidian.Options = {}
@@ -577,30 +575,52 @@ function GalaxObsidian:SetDPIScale(percent)
 end
 
 -- ======================================================================
--- DEFAULT THEME
+-- DEFAULT THEME & BUILDER
 -- ======================================================================
-Theme = {
+local function shiftColor(color, vShift)
+    local h, s, v = color:ToHSV()
+    return Color3.fromHSV(h, s, clamp(v + vShift, 0, 1))
+end
+
+function GalaxObsidian:BuildTheme(base, dest)
+    dest = dest or {}
+    dest.Background = base.Background or dest.Background
+    dest.Main = base.Main or dest.Main
+    dest.Accent = base.Accent or dest.Accent
+    dest.Outline = base.Outline or dest.Outline
+    dest.Text = base.Text or dest.Text
+    dest.Font = base.Font or dest.Font or Drawing.Fonts.Monospace
+    
+    dest.Topbar = shiftColor(dest.Background, -0.01)
+    dest.Sidebar = shiftColor(dest.Background, -0.01)
+    dest.Bottombar = shiftColor(dest.Background, 0.02)
+    dest.BottombarBorder = shiftColor(dest.Outline, 0.04)
+    
+    dest.Surface = dest.Main
+    dest.Surface2 = shiftColor(dest.Main, 0.03)
+    dest.PopupHover = dest.Main
+    
+    dest.Outline2 = shiftColor(dest.Outline, 0.04)
+    dest.SoftOutline = dest.Outline
+    
+    dest.DimText = shiftColor(dest.Text, -0.7)
+    dest.FooterText = shiftColor(dest.Text, -0.27)
+    dest.Muted = shiftColor(dest.Text, -0.49)
+    
+    dest.Dark = Color3.fromRGB(0, 0, 0)
+    dest.Red = Color3.fromRGB(255, 50, 50)
+    
+    return dest
+end
+
+Theme = GalaxObsidian:BuildTheme({
     Background = Color3.fromRGB(17, 17, 17),
-    Topbar = Color3.fromRGB(15, 15, 15),
-    Sidebar = Color3.fromRGB(15, 15, 15),
-    Bottombar = Color3.fromRGB(23, 23, 23),
-    BottombarBorder = Color3.fromRGB(50, 50, 50),
-    FooterText = Color3.fromRGB(185, 185, 185),
     Main = Color3.fromRGB(25, 25, 25),
-    Surface = Color3.fromRGB(25, 25, 25),
-    Surface2 = Color3.fromRGB(33, 33, 33),
-    Outline = Color3.fromRGB(40, 40, 40),
-    Outline2 = Color3.fromRGB(50, 50, 50),
-    SoftOutline = Color3.fromRGB(40, 40, 40),
-    DimText = Color3.fromRGB(76, 76, 76),
-    PopupHover = Color3.fromRGB(25, 25, 25),
     Accent = Color3.fromRGB(125, 85, 255),
+    Outline = Color3.fromRGB(40, 40, 40),
     Text = Color3.fromRGB(255, 255, 255),
-    Muted = Color3.fromRGB(130, 130, 130),
-    Dark = Color3.fromRGB(0, 0, 0),
-    Red = Color3.fromRGB(255, 50, 50),
     Font = Drawing.Fonts.Monospace,
-}
+}, {})
 
 -- ======================================================================
 -- DRAGGABLE LABEL FEATURE
@@ -989,7 +1009,6 @@ function GalaxObsidian:CreateWindow(options)
         IconSize = options.IconSize or 24,
         ImagesEnabled = options.EnableImages ~= false,
         TransparencyTextureData = GalaxObsidian.ImageCache[GalaxObsidian.TransparencyTextureUrl],
-        SaturationTextureData = GalaxObsidian.ImageCache[GalaxObsidian.SaturationTextureUrl],
         LogicalSize = resolvedSize,
         Size = Vector2.new(math.floor(resolvedSize.X * initialScale + 0.5), math.floor(resolvedSize.Y * initialScale + 0.5)),
         MinSize = resolvedMinSize,
@@ -1115,11 +1134,6 @@ function GalaxObsidian:CreateWindow(options)
     if Window.ImagesEnabled and not Window.TransparencyTextureData then
         RequestImage(GalaxObsidian.TransparencyTextureUrl, function(data)
             Window.TransparencyTextureData = data
-        end)
-    end
-    if Window.ImagesEnabled and not Window.SaturationTextureData then
-        RequestImage(GalaxObsidian.SaturationTextureUrl, function(data)
-            Window.SaturationTextureData = data
         end)
     end
 
@@ -2725,7 +2739,7 @@ function GalaxObsidian:CreateWindow(options)
         end
         local swatchAlpha = widget.transparencyEnabled and (1 - clamp(widget.transparency or 0, 0, 1)) or 1
         local swatchColor = widget.value
-        local swatchOutline = self.ColorPickerTarget == widget and Theme.Text or Theme.Outline
+        local swatchOutline = Theme.Outline
         self:_square(
             swatchX,
             swatchY,
@@ -4373,63 +4387,31 @@ function GalaxObsidian:CreateWindow(options)
         local main = themeColor(values.MainColor)
         local accent = themeColor(values.AccentColor)
         local outline = themeColor(values.OutlineColor)
-        local outline2 = themeColor(values.Outline2)
-        local surface2 = themeColor(values.Surface2)
-        local muted = themeColor(values.Muted)
-        local dimText = themeColor(values.DimText)
-        local popupHover = themeColor(values.PopupHover)
         local font = themeColor(values.FontColor)
-        local bottombar = themeColor(values.Bottombar)
-        local bottombarBorder = themeColor(values.BottombarBorder)
-        local footerText = themeColor(values.FooterText)
         local fontFace = values.FontFace
-        if background then
-            Theme.Background = background
-            Theme.Topbar = background
-            Theme.Sidebar = background
-        end
-        if main then
-            Theme.Main = main
-            Theme.Surface = main
-        end
-        if accent then
-            Theme.Accent = accent
+        
+        local updates = {}
+        if background then updates.Background = background end
+        if main then updates.Main = main end
+        if accent then 
+            updates.Accent = accent
             self.Accent = accent
         end
-        if outline then
-            Theme.Outline = outline
-            Theme.SoftOutline = outline
-        end
-        if outline2 then
-            Theme.Outline2 = outline2
-        end
-        if surface2 then
-            Theme.Surface2 = surface2
-        end
-        if muted then
-            Theme.Muted = muted
-        end
-        if dimText then
-            Theme.DimText = dimText
-        end
-        if popupHover then
-            Theme.PopupHover = popupHover
-        end
-        if font then
-            Theme.Text = font
-        end
-        if bottombar then
-            Theme.Bottombar = bottombar
-        end
-        if bottombarBorder then
-            Theme.BottombarBorder = bottombarBorder
-        end
-        if footerText then
-            Theme.FooterText = footerText
-        end
+        if outline then updates.Outline = outline end
+        if font then updates.Text = font end
         if fontFace and TextManager.Fonts[tostring(fontFace)] then
-            Theme.Font = TextManager.Fonts[tostring(fontFace)]
+            updates.Font = TextManager.Fonts[tostring(fontFace)]
         end
+        
+        -- Fallback to existing Theme values for anything not provided, 
+        -- but recalculate all derived colors using the BuildTheme system.
+        for k, v in pairs(Theme) do
+            if updates[k] == nil then
+                updates[k] = v
+            end
+        end
+        
+        GalaxObsidian:BuildTheme(updates, Theme)
     end
 
     -- ---- Destroy / Cleanup ----
