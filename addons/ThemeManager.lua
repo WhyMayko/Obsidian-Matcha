@@ -454,7 +454,7 @@ function ThemeManager:CreateThemeManager(groupbox)
 		Library:Notify(string.format("Loaded default theme: %q", tostring(themeName)), 4)
 	end
 
-	groupbox:AddLabel("Background color"):AddColorPicker("BackgroundColor", { Default = Color3.fromRGB(15, 15, 15) })
+	groupbox:AddLabel("Background color"):AddColorPicker("BackgroundColor", { Default = Color3.fromRGB(17, 17, 17) })
 	groupbox:AddLabel("Main color"):AddColorPicker("MainColor", { Default = Color3.fromRGB(25, 25, 25) })
 	groupbox:AddLabel("Accent color"):AddColorPicker("AccentColor", { Default = Color3.fromRGB(125, 85, 255) })
 	groupbox:AddLabel("Outline color"):AddColorPicker("OutlineColor", { Default = Color3.fromRGB(40, 40, 40) })
