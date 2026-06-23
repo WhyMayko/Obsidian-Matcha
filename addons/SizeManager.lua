@@ -20,6 +20,7 @@ SizeManager.SidebarWidths = {
 
 SizeManager.ColumnConfig = {
     MinLogicalWidth = 260,
+    MinContentWidth = 360,
     PaddingX = 10,
     ColumnGap = 18,
 }
@@ -36,6 +37,7 @@ function SizeManager:GetWindowState(window)
     local iconSidebarW = math.floor(self.SidebarWidths.IconLevel * scale)
     local maxSidebarW = math.floor(self.SidebarWidths.FullMax * scale)
     local textOffset = math.floor(42 * scale)
+    local minContentPhysical = math.floor(self.ColumnConfig.MinContentWidth * scale)
 
     local TM = self.TextManager
     local neededTextArea = 0
@@ -62,9 +64,16 @@ function SizeManager:GetWindowState(window)
         mode = "icon"
         sidebarW = iconSidebarW
     else
+        local maxSidebarForContent = math.max(iconSidebarW, physicalW - minContentPhysical)
         local ideal = math.ceil(physicalW * self.SidebarWidths.FullFraction)
-        sidebarW = clamp(ideal, math.max(iconSidebarW, minWidthForText), maxSidebarW)
-        mode = "compact"
+        sidebarW = clamp(ideal, math.max(iconSidebarW, minWidthForText), math.min(maxSidebarW, maxSidebarForContent))
+
+        if sidebarW < minWidthForText then
+            mode = "icon"
+            sidebarW = iconSidebarW
+        else
+            mode = "compact"
+        end
     end
 
     local contentW = (physicalW - sidebarW) / scale
