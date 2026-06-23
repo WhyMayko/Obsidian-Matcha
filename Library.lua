@@ -3133,7 +3133,7 @@ function GalaxObsidian:CreateWindow(options)
                 end
             end
         end
-        local columnHeights = { Left = leftY - y, Right = rightY - y }
+        local columnHeights = { Left = leftY - y - toggleOffset, Right = rightY - y - toggleOffset }
         local scrollMax = { Left = math.max(0, columnHeights.Left - h), Right = math.max(0, columnHeights.Right - h) }
         scrollState.Left = clamp(scrollState.Left or 0, 0, scrollMax.Left)
         scrollState.Right = clamp(scrollState.Right or 0, 0, scrollMax.Right)
@@ -3193,25 +3193,27 @@ function GalaxObsidian:CreateWindow(options)
             renderColumnScroll("Left", x + pad + columnW - scrollTrackW)
         end
         if hasBothSides then
-            local btnSize = math.floor(10 * scale)
-            local btnH = math.floor(20 * scale)
-            local btnY = y + math.floor(8 * scale)
-            local btnRadius = math.floor(4 * scale)
-            local btnEdgePad = math.floor(6 * scale)
+            local toggleGap = math.floor(8 * scale)
+            local halfW = math.floor((w - pad * 2 - toggleGap) / 2)
+            local toggleH = math.floor(26 * scale)
+            local toggleY = y + math.floor(6 * scale)
+            local toggleRadius = math.floor(4 * scale)
 
             local leftActive = tab._singleColumnSide == "Left"
-            local leftColor = self:_anim(tab, "colToggle.L", leftActive and Theme.Muted or Theme.Background, 18)
-            local leftX = x + pad + btnEdgePad
-            self:_square(leftX, btnY, btnSize, btnH, leftColor, true, 1, btnRadius, z + 35)
-            if self:_click(leftX, btnY, btnSize, btnH) then
+            local leftFill = self:_anim(tab, "colToggle.L", leftActive and Theme.Muted or Theme.Background, 18)
+            local leftX = x + pad
+            self:_square(leftX, toggleY, halfW, toggleH, leftFill, true, 1, toggleRadius, z + 35)
+            self:_square(leftX, toggleY, halfW, toggleH, Theme.Outline, false, 1, toggleRadius, z + 36)
+            if self:_click(leftX, toggleY, halfW, toggleH) then
                 tab._singleColumnSide = "Left"
             end
 
             local rightActive = tab._singleColumnSide == "Right"
-            local rightColor = self:_anim(tab, "colToggle.R", rightActive and Theme.Muted or Theme.Background, 18)
-            local rightX = x + w - pad - btnEdgePad - btnSize
-            self:_square(rightX, btnY, btnSize, btnH, rightColor, true, 1, btnRadius, z + 35)
-            if self:_click(rightX, btnY, btnSize, btnH) then
+            local rightFill = self:_anim(tab, "colToggle.R", rightActive and Theme.Muted or Theme.Background, 18)
+            local rightX = x + pad + halfW + toggleGap
+            self:_square(rightX, toggleY, halfW, toggleH, rightFill, true, 1, toggleRadius, z + 35)
+            self:_square(rightX, toggleY, halfW, toggleH, Theme.Outline, false, 1, toggleRadius, z + 36)
+            if self:_click(rightX, toggleY, halfW, toggleH) then
                 tab._singleColumnSide = "Right"
             end
         end

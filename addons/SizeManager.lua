@@ -80,6 +80,9 @@ function SizeManager:GetWindowState(window)
     local usableContent = contentW - self.ColumnConfig.PaddingX * 2
     local perColumn = (usableContent - self.ColumnConfig.ColumnGap) / 2
     local twoColumns = perColumn >= self.ColumnConfig.MinLogicalWidth
+    if mode == "icon" then
+        twoColumns = false
+    end
 
     return {
         SidebarMode  = mode,
