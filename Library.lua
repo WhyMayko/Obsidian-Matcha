@@ -2835,7 +2835,7 @@ function GalaxObsidian:CreateWindow(options)
         local scale = self:GetScale()
         local tabBarH = math.floor(28 * scale)
         local tabBarClickH = math.floor(25 * scale)
-        local barY = math.max(y + 1, (self._clipTop or y) + 1)
+        local barY = y + 1
         local tabTextY = barY + math.floor(7 * scale)
         local count = math.max(1, #widget.tabs)
         local tabW = math.floor(w / count)
