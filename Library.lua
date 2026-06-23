@@ -4390,6 +4390,8 @@ function GalaxObsidian:CreateWindow(options)
                     tooltip = info and info.Tooltip,
                     disabled = info and info.Disabled == true,
                     visible = not (info and info.Visible == false),
+                    _doubleConfirm = info and info.DoubleClick == true or nil,
+                    _confirmPending = false,
                 })
                 local handle = Window:_widgetHandle(widget)
                 handle.AddButton = function(_, subInfo)
