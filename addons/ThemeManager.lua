@@ -7,7 +7,7 @@ local ThemeFields = {
 }
 
 local BuiltInThemes = {
-	{ name = "Default", FontColor = "#ffffff", MainColor = "#191919", AccentColor = "#7d55ff", BackgroundColor = "#0f0f0f", OutlineColor = "#282828" },
+	{ name = "Default", FontColor = "#ffffff", MainColor = "#191919", AccentColor = "#7d55ff", BackgroundColor = "#111111", OutlineColor = "#282828" },
 	{ name = "Ayu Dark", FontColor = "#b3b1ad", MainColor = "#0f1419", AccentColor = "#e6b450", BackgroundColor = "#0a0e14", OutlineColor = "#273747" },
 	{ name = "BBot", FontColor = "#ffffff", MainColor = "#1e1e1e", AccentColor = "#7e48a3", BackgroundColor = "#232323", OutlineColor = "#141414" },
 	{ name = "Blood Moon", FontColor = "#ffcccc", MainColor = "#1e0000", AccentColor = "#ff0000", BackgroundColor = "#140000", OutlineColor = "#330000" },

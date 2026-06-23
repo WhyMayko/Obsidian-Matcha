@@ -45,6 +45,53 @@ if not Color3.fromHSV then
 end
 
 -- ======================================================================
+--[[    Galax Obsidian Lib - UI Library for Matcha External    Based on Obsidian's visual style and migrated to Matcha's limited Drawing API.    Rendering prioritizes the lightweight base UI first and popups/lists last.    USAGE:    local Library = loadstring(game:HttpGet(".../Galax-Obsidian-Lib.lua"))()    local Win = Library:CreateWindow({        Title = "Galax Hub",        Subtitle = "Matcha External",        Icon = 95816097006870,        Size = Vector2.new(620, 430),        MenuKey = 0x70    })    local Tab = Win:AddTab("Combat")    local Sec = Tab:AddSection("Aimbot")    Sec:AddToggle("Enabled", false, function(v) end, 0x46)    Sec:AddSlider("FOV", { Min = 1, Max = 360, Default = 90, Suffix = " deg" }, function(v) end)    Sec:AddDropdown("Mode", { "Closest", "FOV", "Distance" }, "Closest", { MaxVisible = 5 }, function(v) end)    Win:Notify("Loaded", "Galax", 3)]]
+local GalaxObsidian = {}
+
+-- ======================================================================
+-- LIBRARY METADATA & POLYFILLS
+-- ======================================================================
+-- ---- Version ----
+GalaxObsidian.Version = "1.0.0"
+
+-- ---- Color3.fromRGB Polyfill ----
+if not Color3.fromRGB then
+    Color3.fromRGB = function(r, g, b)
+        return Color3.new(r / 255, g / 255, b / 255)
+    end
+end
+
+-- ---- Color3.fromHSV Polyfill ----
+if not Color3.fromHSV then
+    Color3.fromHSV = function(h, s, v)
+        local r, g, b
+        if s == 0 then
+            r, g, b = v, v, v
+        else
+            local i = math.floor(h * 6)
+            local f = h * 6 - i
+            local p = v * (1 - s)
+            local q = v * (1 - s * f)
+            local t = v * (1 - s * (1 - f))
+            if i % 6 == 0 then
+                r, g, b = v, t, p
+            elseif i % 6 == 1 then
+                r, g, b = q, v, p
+            elseif i % 6 == 2 then
+                r, g, b = p, v, t
+            elseif i % 6 == 3 then
+                r, g, b = p, q, v
+            elseif i % 6 == 4 then
+                r, g, b = t, p, v
+            else
+                r, g, b = v, p, q
+            end
+        end
+        return Color3.new(r, g, b)
+    end
+end
+
+-- ======================================================================
 -- LIBRARY STATE & DEFAULTS
 -- ======================================================================
 -- ---- Image Cache ----
@@ -53,6 +100,8 @@ GalaxObsidian.ImageCache = GalaxObsidian.ImageCache or {}
 -- ---- Asset URLs ----
 GalaxObsidian.TransparencyTextureUrl =
     "https://raw.githubusercontent.com/WhyMayko/Obsidian-Matcha/refs/heads/main/assets/TransparencyTexture.png"
+GalaxObsidian.SaturationTextureUrl =
+    "https://raw.githubusercontent.com/WhyMayko/Obsidian-Matcha/refs/heads/main/assets/SaturationMap.png"
 
 -- ---- Options & Toggles Registries ----
 GalaxObsidian.Options = {}
@@ -921,7 +970,7 @@ local function getMouse()
     return players.LocalPlayer:GetMouse()
 end
 
-local DefaultKeybindModePopupModes = { "Toggle", "Hold", "Press" }
+The defaultKeybindModePopupModes = { "Toggle", "Hold", "Press" }
 
 local function normalizeKeybindModePopupConfig(config, fallbackModes)
     if config == false then
@@ -1011,137 +1060,6 @@ function GalaxObsidian:CreateWindow(options)
         IconSize = options.IconSize or 24,
         ImagesEnabled = options.EnableImages ~= false,
         TransparencyTextureData = GalaxObsidian.ImageCache[GalaxObsidian.TransparencyTextureUrl],
-        LogicalSize = resolvedSize,
-        Size = Vector2.new(math.floor(resolvedSize.X * initialScale + 0.5), math.floor(resolvedSize.Y * initialScale + 0.5)),
-        MinSize = resolvedMinSize,
-        DPIScale = initialDPIScale,
-        Resizable = options.Resizable ~= false,
-        MenuKey = options.MenuKey or 0x70,
-        Position = Vector2.new(options.X or 180, options.Y or 130),
-        Accent = options.Accent or Theme.Accent,
-        SearchPlaceholder = options.SearchPlaceholder or "Search",
-        SearchText = "",
-        SearchFocused = false,
-        ShowSearch = options.ShowSearch ~= false,
-        ShowKeybindMenu = options.ShowKeybindMenu == true,
-        KeybindMenuX = options.KeybindMenuX or keybindMenuOptions.X,
-        KeybindMenuY = options.KeybindMenuY or keybindMenuOptions.Y,
-        KeybindMenuWidth = options.KeybindMenuWidth or keybindMenuOptions.Width,
-        NotifySide = options.NotifySide or "Right",
-        Open = options.StartMinimized ~= true,
-        Running = true,
-        Tabs = {},
-        ActiveTab = nil,
-        TabScroll = {},
-        ScrollTarget = nil,
-        ScrollDragOffset = 0,
-        Notifications = {},
-        Pool = { Square = {}, Text = {}, Line = {}, Circle = {}, Image = {} },
-        Index = { Square = 0, Text = 0, Line = 0, Circle = 0, Image = 0 },
-        ImageDataByObject = {},
-        Theme = Theme,
-
-        PrevKeys = {},
-        PrevMouse1 = false,
-        PrevMouse2 = false,
-        HoldKey = nil,
-        HoldStarted = 0,
-        HoldLastRepeat = 0,
-        Mouse1Clicked = false,
-        Mouse1Held = false,
-        Mouse2Clicked = false,
-        Mouse2Held = false,
-        DragOffset = nil,
-        ResizeOffset = nil,
-        SliderTarget = nil,
-        DropdownTarget = nil,
-        ColorPickerTarget = nil,
-        ColorPickerDrag = nil,
-        KeyListenTarget = nil,
-        KeyListenStarted = 0,
-        KeybindModeTarget = nil,
-        KeybindModePopup = nil,
-        TextTarget = nil,
-        DropdownSearch = nil,
-        TooltipText = nil,
-        MouseLockOwner = nil,
-        KeybindMenuDrag = nil,
-        LastRobloxInputBlocked = nil,
-        BlockClicks = false,
-        _cornerRadius = GalaxObsidian.CornerRadius or 0,
-        Options = GalaxObsidian.Options,
-        Toggles = GalaxObsidian.Toggles,
-    }
-
-    -- ---- Active Window Registration & Image Preload ----
-    GalaxObsidian.ActiveWindow = Window
-    local ImageLoading = {}
-    local function RequestImage(url, callback)
-        if not url or url == "" then
-            return nil
-        end
-        local cached = GalaxObsidian.ImageCache[url]
-        if cached then
-            if type(callback) == "function" then
-                task.spawn(function()
-                    local ok, err = pcall(callback, cached)
-                    if not ok then error("RequestImage callback: " .. tostring(err), 2) end
-                end)
-            end
-            return cached
-        end
-        if ImageLoading[url] then
-            if type(callback) == "function" then
-                ImageLoading[url][#ImageLoading[url] + 1] = callback
-            end
-            return nil
-        end
-        ImageLoading[url] = {}
-
-        if type(callback) == "function" then
-            ImageLoading[url][#ImageLoading[url] + 1] = callback
-        end
-        task.spawn(function()
-            local ok, data = pcall(function()
-                return game:HttpGet(url)
-            end)
-            if ok and not isImageData(data) then
-                local resolvedUrl = thumbnailImageUrl(data)
-                if resolvedUrl then
-                    ok, data = pcall(function()
-                        return game:HttpGet(resolvedUrl)
-                    end)
-                    if ok and isImageData(data) then
-                        GalaxObsidian.ImageCache[resolvedUrl] = data
-                    end
-                end
-            end
-            if ok and isImageData(data) then
-                GalaxObsidian.ImageCache[url] = data
-                for _, cb in ipairs(ImageLoading[url]) do
-                    local ok, err = pcall(cb, data)
-                    if not ok then error("ImageLoading callback: " .. tostring(err), 2) end
-                end
-            end
-            ImageLoading[url] = nil
-        end)
-        return nil
-    end
-    if Window.ImagesEnabled and Window.IconUrl and not Window.IconReady then
-        RequestImage(Window.IconUrl, function(data)
-            Window.IconData = data
-            Window.IconReady = true
-        end)
-    end
-    if Window.ImagesEnabled and not Window.TransparencyTextureData then
-        RequestImage(GalaxObsidian.TransparencyTextureUrl, function(data)
-            Window.TransparencyTextureData = data
-        end)
-    end
-
-    -- ======================================================================
-    -- RENDERING CORE — POOL, CLIPPING & PRIMITIVES
-    -- ======================================================================
 -- ---- Object Pool ----
     Window.MaxPoolSize = Window.MaxPoolSize or {
         Square = 4000,
