@@ -1,34 +1,18 @@
--- ============================================================
--- EssentialsManager — Global UI settings
--- Adds: Menu Keybind, DPI Scale, Corner Radius, Notification Side
--- Saved by SaveManager as part of normal configs.
--- Usage:
---   local EssentialsManager = loadstring(game:HttpGet(repo .. "addons/EssentialsManager.lua"))()
---   EssentialsManager = (_G.Galax["addons/EssentialsManager.lua"])
---
---   EssentialsManager:SetLibrary(Library)
---   EssentialsManager:BuildSection(Tabs["UI Settings"])
--- ============================================================
 
 local EssentialsManager = {
 	Library = nil,
 }
 
--- ---- SetLibrary ----
 function EssentialsManager:SetLibrary(library)
 	self.Library = library
 end
 
--- ---- BuildSection ----
--- Adds Menu/Essentials controls to a Tab.
--- Call this AFTER building your tabs but BEFORE SaveManager:BuildConfigSection.
 function EssentialsManager:BuildSection(tab)
 	local Library = self.Library
 	assert(Library, "EssentialsManager: call SetLibrary first")
 
 	local MenuGroup = tab:AddLeftGroupbox("Menu", "wrench")
 
-	-- Keybind Menu toggle
 	MenuGroup:AddToggle("KeybindMenuOpen", {
 		Default = false,
 		Text = "Open Keybind Menu",
@@ -40,7 +24,6 @@ function EssentialsManager:BuildSection(tab)
 		end,
 	})
 
-	-- Notification side
 	MenuGroup:AddDropdown("NotificationSide", {
 		Values = { "Left", "Right" },
 		Default = "Right",
@@ -50,7 +33,6 @@ function EssentialsManager:BuildSection(tab)
 		end,
 	})
 
-	-- DPI Scale
 	MenuGroup:AddDropdown("DPIDropdown", {
 		Values = { "50%", "75%", "100%", "125%", "150%", "175%", "200%", "225%", "250%" },
 		Default = "100%",
@@ -64,7 +46,6 @@ function EssentialsManager:BuildSection(tab)
 		end,
 	})
 
-	-- Corner Radius
 	MenuGroup:AddSlider("UICornerSlider", {
 		Text = "Corner Radius",
 		Default = 0,
@@ -82,10 +63,9 @@ function EssentialsManager:BuildSection(tab)
 
 	MenuGroup:AddDivider()
 
-	-- Menu bind — does NOT show mode popup
 	MenuGroup:AddLabel("Menu bind")
 		:AddKeyPicker("MenuKeybind", {
-			Default = 0x70, -- F1
+			Default = 0x70,
 			Mode = "Toggle",
 			Popup = false,
 			Text = "Menu keybind",
@@ -96,7 +76,6 @@ function EssentialsManager:BuildSection(tab)
 		Library.ActiveWindow.MenuKey = Value
 	end)
 
-	-- Wire ToggleKeybind so Library knows which key toggles the UI
 	Library.ToggleKeybind = Library.Options.MenuKeybind
 
 	MenuGroup:AddButton("Unload", function()
@@ -106,7 +85,6 @@ function EssentialsManager:BuildSection(tab)
 	return MenuGroup
 end
 
--- Register in _G.Galax for repo-style loading
 _G.Galax = _G.Galax or {}
 if _G.Galax then
 	_G.Galax["addons/EssentialsManager.lua"] = EssentialsManager

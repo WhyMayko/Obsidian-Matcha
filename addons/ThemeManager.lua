@@ -243,7 +243,6 @@ function ThemeManager:ApplyTheme(name, themeType)
 		Library.Options.FontFace:SetValue(data.FontFace)
 	end
 
-	-- Apply sidebar image if defined in the theme
 	if Library.ActiveWindow and Library.ActiveWindow.SetSidebarImage then
 		Library.ActiveWindow:SetSidebarImage(
 			data.SidebarImage or nil,
@@ -253,7 +252,6 @@ function ThemeManager:ApplyTheme(name, themeType)
 		)
 	end
 
-	-- Allow themes to override window icon, title and footer
 	local win = Library.ActiveWindow
 	if win then
 		if data.WindowIcon ~= nil then
@@ -282,7 +280,6 @@ function ThemeManager:SaveCustomTheme(name)
 	local existingTheme = self.CustomThemes[name] or {}
 	local theme = currentThemeSnapshot(Library, name)
 
-	-- Preserve custom image and window properties from existing theme or active window
 	theme.SidebarImage = existingTheme.SidebarImage or (Library.ActiveWindow and Library.ActiveWindow.SidebarImage)
 	theme.SidebarImageScale = existingTheme.SidebarImageScale or (Library.ActiveWindow and Library.ActiveWindow.SidebarImageScale)
 	theme.SidebarImageX = existingTheme.SidebarImageX or (Library.ActiveWindow and Library.ActiveWindow.SidebarImageX)
@@ -639,9 +636,6 @@ end
 _G.Galax = _G.Galax or {}
 _G.Galax["addons/ThemeManager.lua"] = ThemeManager
 
--- Community system: allows loading community themes from GitHub
--- Usage (with script open in Matcha console):
---   community.loadTheme("ThemeName")
 local CommunityRepo = "https://raw.githubusercontent.com/WhyMayko/Obsidian-Matcha/refs/heads/main/community/"
 
 _G.community = _G.community or {}

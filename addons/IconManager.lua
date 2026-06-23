@@ -1,5 +1,3 @@
--- Recolorable vector icons for Matcha Drawing.
--- Icons are drawn from simple 24x24 Lucide-like geometry using Drawing.Line/Circle/Square.
 
 local IconManager = {}
 

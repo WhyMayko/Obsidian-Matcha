@@ -1,20 +1,13 @@
---[[    Galax Obsidian Lib - UI Library for Matcha External    Based on Obsidian's visual style and migrated to Matcha's limited Drawing API.    Rendering prioritizes the lightweight base UI first and popups/lists last.    USAGE:    local Library = loadstring(game:HttpGet(".../Galax-Obsidian-Lib.lua"))()    local Win = Library:CreateWindow({        Title = "Galax Hub",        Subtitle = "Matcha External",        Icon = 95816097006870,        Size = Vector2.new(620, 430),        MenuKey = 0x70    })    local Tab = Win:AddTab("Combat")    local Sec = Tab:AddSection("Aimbot")    Sec:AddToggle("Enabled", false, function(v) end, 0x46)    Sec:AddSlider("FOV", { Min = 1, Max = 360, Default = 90, Suffix = " deg" }, function(v) end)    Sec:AddDropdown("Mode", { "Closest", "FOV", "Distance" }, "Closest", { MaxVisible = 5 }, function(v) end)    Win:Notify("Loaded", "Galax", 3)]]
 local GalaxObsidian = {}
 
--- ======================================================================
--- LIBRARY METADATA & POLYFILLS
--- ======================================================================
--- ---- Version ----
 GalaxObsidian.Version = "1.0.0"
 
--- ---- Color3.fromRGB Polyfill ----
 if not Color3.fromRGB then
     Color3.fromRGB = function(r, g, b)
         return Color3.new(r / 255, g / 255, b / 255)
     end
 end
 
--- ---- Color3.fromHSV Polyfill ----
 if not Color3.fromHSV then
     Color3.fromHSV = function(h, s, v)
         local r, g, b
@@ -44,32 +37,23 @@ if not Color3.fromHSV then
     end
 end
 
--- ======================================================================
--- LIBRARY STATE & DEFAULTS
--- ======================================================================
--- ---- Image Cache ----
 GalaxObsidian.ImageCache = GalaxObsidian.ImageCache or {}
 
--- ---- Asset URLs ----
 GalaxObsidian.TransparencyTextureUrl =
     "https://raw.githubusercontent.com/WhyMayko/Obsidian-Matcha/refs/heads/main/assets/TransparencyTexture.png"
 GalaxObsidian.SaturationTextureUrl =
     "https://raw.githubusercontent.com/WhyMayko/Obsidian-Matcha/refs/heads/main/assets/SaturationMap.png"
 
--- ---- Options & Toggles Registries ----
 GalaxObsidian.Options = {}
 GalaxObsidian.Toggles = {}
 
--- ---- Unload System ----
 GalaxObsidian.Unloaded = false
 GalaxObsidian.UnloadCallbacks = {}
 
--- ---- Window / UI Defaults ----
 GalaxObsidian.NotifySide = "Right"
 GalaxObsidian.CornerRadius = 0
 GalaxObsidian.DPIScale = 100
 
--- ---- Internal Module State ----
 local DraggableLabels = {}
 local Theme
 
@@ -110,10 +94,6 @@ GalaxObsidian.AnimationManager = AnimationManager
 GalaxObsidian.DialogManager = DialogManager
 GalaxObsidian.NotificationManager = NotificationManager
 GalaxObsidian.ValueWatcher = ValueWatcher
--- ======================================================================
--- MATH & COLOR HELPERS
--- ======================================================================
--- ---- Numeric Helpers ----
 local function clamp(value, minValue, maxValue)
     if value < minValue then
         return minValue
@@ -134,7 +114,6 @@ local function safeCall(callback, ...)
     error("safeCall: " .. tostring(result), 2)
 end
 
--- ---- Color Conversion ----
 local function rgbToHsv(color)
     local str = tostring(color)
     local r, g, b = str:match("([%d%.]+)%D+([%d%.]+)%D+([%d%.]+)")
@@ -186,15 +165,11 @@ local function hsvToRgb(h, s, v)
     return r, g, b
 end
 
--- ======================================================================
--- WIDGET HANDLE FACTORY
--- ======================================================================
 local function makeHandle(widget)
     local handle = {}
     handle.Widget = widget
     handle.__index = handle
 
-    -- ---- Value Access ----
     function handle:Get()
         if widget.type == "toggle" or widget.type == "checkbox" then
             return widget.value == true
@@ -229,7 +204,6 @@ local function makeHandle(widget)
         return widget.value == true
     end
 
-    -- ---- Value Mutation ----
     function handle:Set(value)
         if widget.type == "toggle" or widget.type == "checkbox" then
             widget.value = value == true
@@ -282,7 +256,6 @@ local function makeHandle(widget)
         end
     end
 
-    -- ---- Callbacks & Display ----
     function handle:OnChanged(cb)
         widget.changed = cb
     end
@@ -324,7 +297,6 @@ local function makeHandle(widget)
         return widget.id
     end
 
-    -- ---- Slider Bounds & Formatting ----
     function handle:SetMin(value)
         if widget.type == "slider" then
             widget.min = value
@@ -351,7 +323,6 @@ local function makeHandle(widget)
         end
     end
 
-    -- ---- Dropdown Options ----
     function handle:Refresh(newOptions, newDefault)
         if widget.type == "dropdown" or widget.type == "multidropdown" then
             widget.options = newOptions or {}
@@ -482,7 +453,6 @@ local function makeHandle(widget)
         end
     end
 
-    -- ---- Metatable Sugar (.Value / .Transparency) ----
     setmetatable(handle, {
         __index = function(t, k)
             if k == "Value" then
@@ -513,10 +483,6 @@ local function makeHandle(widget)
     return handle
 end
 
--- ======================================================================
--- LIBRARY LIFECYCLE API
--- ======================================================================
--- ---- Unload Hooks ----
 function GalaxObsidian:OnUnload(callback)
     self.UnloadCallbacks[#self.UnloadCallbacks + 1] = callback
 end
@@ -558,7 +524,6 @@ local function fitTextToWidth(text, maxWidth, size, font)
     return TextManager:Fit(text, maxWidth, size or GalaxObsidian.FontSize or 13, font or Theme.Font, scale)
 end
 
--- ---- Display Settings ----
 function GalaxObsidian:SetNotifySide(side)
     self.NotifySide = tostring(side) == "Left" and "Left" or "Right"
     if self.ActiveWindow then
@@ -574,9 +539,6 @@ function GalaxObsidian:SetDPIScale(percent)
     end
 end
 
--- ======================================================================
--- DEFAULT THEME
--- ======================================================================
 Theme = {
     Background = Color3.fromRGB(17, 17, 17),
     Topbar = Color3.fromRGB(13, 13, 13),
@@ -600,7 +562,6 @@ Theme = {
     Font = Drawing.Fonts.Monospace,
 }
 
--- ---- Compute chrome color offsets from Default theme ----
 local ChromeOffsets = {}
 do
     local bg = Theme.Background
@@ -626,9 +587,6 @@ local function applyChromeOffsets(base)
     end
 end
 
--- ======================================================================
--- DRAGGABLE LABEL FEATURE
--- ======================================================================
 function GalaxObsidian:AddDraggableLabel(text)
     local outline = Drawing.new("Square")
     outline.Filled = true
@@ -718,10 +676,6 @@ function GalaxObsidian:AddDraggableLabel(text)
     end)
 end
 
--- ======================================================================
--- TEXT, COLOR & IMAGE HELPERS
--- ======================================================================
--- ---- Font & Key Helpers ----
 local TextChars = TextManager.TextChars
 local function keyName(key)
     return TextManager:KeyName(key)
@@ -779,7 +733,6 @@ local function keyCodeFromName(key)
     return key
 end
 
--- ---- Image Data Detection ----
 local function isImageData(data)
     if type(data) ~= "string" or #data < 12 then
         return false
@@ -797,7 +750,6 @@ local function isImageData(data)
     return false
 end
 
--- ---- Text Wrapping ----
 local function wrapTextLines(text, maxWidth, size, maxLines, font)
     text = tostring(text or "")
     local lines = {}
@@ -853,15 +805,6 @@ local function widestLineWidth(lines, size, font)
     return width
 end
 
--- ---- Color Helpers ----
-local function colorComponents(color)
-    local str = tostring(color)
-    local r, g, b = str:match("([%d%.]+)%D+([%d%.]+)%D+([%d%.]+)")
-    if not r then
-        return 0, 0, 0
-    end
-    return tonumber(r), tonumber(g), tonumber(b)
-end
 local function inactiveTextColor()
     return Theme.Muted or Theme.DimText
 end
@@ -894,23 +837,6 @@ local function colorToHexAlpha(color, alpha)
     return string.format("#%02X%02X%02X", r, g, b)
 end
 
-local function darkenColor(color, amount)
-    return Color3.new(
-        math.max(0, color.R - amount),
-        math.max(0, color.G - amount),
-        math.max(0, color.B - amount)
-    )
-end
-
-local function lightenColor(color, amount)
-    return Color3.new(
-        math.min(1, color.R + amount),
-        math.min(1, color.G + amount),
-        math.min(1, color.B + amount)
-    )
-end
-
--- ---- Image URL Helpers ----
 local function robloxThumbnailUrl(assetId)
     return string.format(
         "https://thumbnails.roblox.com/v1/assets?assetIds=%s&size=150x150&format=Png&isCircular=false",
@@ -941,7 +867,6 @@ local function thumbnailImageUrl(data)
     return url
 end
 
--- ---- Mouse Helper ----
 local function getMouse()
     local players = game:GetService("Players")
     if not players or not players.LocalPlayer then
@@ -1002,10 +927,6 @@ local function resolveKeybindPopupConfig(popupConfig)
     return enabled, modes
 end
 
--- ======================================================================
--- WINDOW FACTORY (CreateWindow)
--- ======================================================================
--- ---- Option Resolution ----
 function GalaxObsidian:CreateWindow(options)
     options = options or {}
     local mouse = getMouse()
@@ -1027,7 +948,6 @@ function GalaxObsidian:CreateWindow(options)
         resolvedMinSize = Vector2.new(optMinSize[1], optMinSize[2])
     end
 
-    -- ---- Window State Table ----
     local keybindMenuOptions = options.KeybindMenu or {}
     local initialDPIScale = tonumber(GalaxObsidian.DPIScale) or 100
     local initialScale = clamp(initialDPIScale / 100, 0.5, 2)
@@ -1103,7 +1023,6 @@ function GalaxObsidian:CreateWindow(options)
         Toggles = GalaxObsidian.Toggles,
     }
 
-    -- ---- Active Window Registration & Image Preload ----
     GalaxObsidian.ActiveWindow = Window
     local ImageLoading = {}
     local function RequestImage(url, callback)
@@ -1174,10 +1093,6 @@ function GalaxObsidian:CreateWindow(options)
         end)
     end
 
-    -- ======================================================================
-    -- RENDERING CORE — POOL, CLIPPING & PRIMITIVES
-    -- ======================================================================
--- ---- Object Pool ----
     Window.MaxPoolSize = Window.MaxPoolSize or {
         Square = 4000,
         Text = 2000,
@@ -1214,7 +1129,6 @@ function GalaxObsidian:CreateWindow(options)
         return object
     end
 
-    -- ---- Clip Region Checks ----
     function Window:_clipAllowsBox(y, h)
         if not self._clipTop or not self._clipBottom then
             return true
@@ -1233,7 +1147,6 @@ function GalaxObsidian:CreateWindow(options)
         return top >= self._clipTop and bottom <= self._clipBottom
     end
 
-    -- ---- Square & Text ----
     function Window:_square(x, y, w, h, color, filled, transparency, corner, z)
         if not w or not h or w <= 0 or h <= 0 then
             return nil
@@ -1287,7 +1200,6 @@ function GalaxObsidian:CreateWindow(options)
         return object
     end
 
-    -- ---- Lines & Circles ----
     function Window:_line(x1, y1, x2, y2, color, thickness, z)
         if not self:_clipAllowsLine(y1, y2) then
             return nil
@@ -1333,7 +1245,6 @@ function GalaxObsidian:CreateWindow(options)
         return object
     end
 
-    -- ---- Images & Icons ----
     function Window:_image(data, x, y, w, h, rounding, z)
         if self.ImagesEnabled ~= true then
             return nil
@@ -1361,10 +1272,6 @@ function GalaxObsidian:CreateWindow(options)
     end
 
 
-    -- ======================================================================
-    -- LAYOUT, VIEWPORT & INPUT HELPERS
-    -- ======================================================================
-    -- ---- Viewport Placement ----
     function Window:_over(x, y, w, h)
         return mouse.X >= x and mouse.X <= x + w and mouse.Y >= y and mouse.Y <= y + h
     end
@@ -1425,7 +1332,6 @@ function GalaxObsidian:CreateWindow(options)
         return self:_clampToViewport(x, y, w, h, margin, screenOnly)
     end
 
-    -- ---- Ownership Checks ----
     function Window:_mouseAllowed(owner)
         if self.DropdownTarget and owner ~= self.DropdownTarget then
             return false
@@ -1445,7 +1351,6 @@ function GalaxObsidian:CreateWindow(options)
         return self:_mouseAllowed(owner)
     end
 
-    -- ---- Hover & Tooltip ----
     function Window:_hover(x, y, w, h, owner)
         if not self:_clipAllowsBox(y, h) then
             return false
@@ -1464,7 +1369,6 @@ function GalaxObsidian:CreateWindow(options)
         end
     end
 
-    -- ---- Click Detection ----
     function Window:_click(x, y, w, h, owner)
         return self.Mouse1Clicked and not self.BlockClicks and self:_hover(x, y, w, h, owner)
     end
@@ -1494,7 +1398,6 @@ function GalaxObsidian:CreateWindow(options)
         return self:_click(x, y, w, h, owner)
     end
 
-    -- ---- Outside-Click & Input Blocking ----
     function Window:_consumeOutsideFloatingClick()
         if not self.Mouse1Clicked then
             return false
@@ -1564,10 +1467,6 @@ function GalaxObsidian:CreateWindow(options)
         self.LastRobloxInputBlocked = shouldBlock
     end
 
-    -- ======================================================================
-    -- ICON, ANIMATION & KEYBOARD INPUT
-    -- ======================================================================
-    -- ---- Icon & Animation Shortcuts ----
     function Window:_drawIcon(name, x, y, size, color, z)
         name = tostring(name or ""):lower()
         size = size or 14
@@ -1611,7 +1510,6 @@ function GalaxObsidian:CreateWindow(options)
         self:_claimInteraction(widget)
         self.Mouse2Clicked = false
     end
-    -- ---- Key State Polling ----
     function Window:_keyPressed(key)
         key = keyCodeFromName(key)
         if key == nil then
@@ -1633,7 +1531,6 @@ function GalaxObsidian:CreateWindow(options)
         self.PrevMouse2 = down2
     end
 
-    -- ---- Text Input Reading ----
     function Window:_readListenKey()
         for key = 7, 255 do
             if self:_keyPressed(key) then
@@ -1708,10 +1605,6 @@ function GalaxObsidian:CreateWindow(options)
         return false
     end
 
-    -- ======================================================================
-    -- INTERACTION STATE MANAGEMENT
-    -- ======================================================================
-    -- ---- Visibility & Interaction Claims ----
     function Window:_setAllVisible(visible)
         for _, list in pairs(self.Pool) do
             for _, object in ipairs(list) do
@@ -1795,7 +1688,6 @@ function GalaxObsidian:CreateWindow(options)
         end
     end
 
-    -- ---- Corner Radius & Open State ----
     function Window:SetCornerRadius(radius)
         self._cornerRadius = math.min(10, math.max(0, math.floor(radius or 0)))
         GalaxObsidian.CornerRadius = self._cornerRadius
@@ -1806,7 +1698,6 @@ function GalaxObsidian:CreateWindow(options)
         self:_updateInputBlock()
     end
 
-    -- ---- Global Hotkeys ----
     function Window:_handleGlobalInput()
         if self:_keyPressed(self.MenuKey) then
             self:_setOpen(not self.Open)
@@ -1974,9 +1865,6 @@ function GalaxObsidian:CreateWindow(options)
         end
     end
 
-    -- ======================================================================
-    -- WIDGET HANDLE BINDING
-    -- ======================================================================
     function Window:_widgetHandle(widget, getters)
         local handle = makeHandle(widget)
         if getters then
@@ -2072,10 +1960,6 @@ function GalaxObsidian:CreateWindow(options)
         return handle
     end
 
-    -- ======================================================================
-    -- SEARCH & LAYOUT MEASUREMENT
-    -- ======================================================================
-    -- ---- Search Matching ----
     function Window:_matchesSearch(widget, section)
         if widget.visible == false then
             return false
@@ -2111,7 +1995,6 @@ function GalaxObsidian:CreateWindow(options)
         return string.find(string.lower(text), search, 1, true) ~= nil
     end
 
-    -- ---- Height Measurement ----
     function Window:_widgetHeight(widget)
         if widget.visible == false then
             return 0
@@ -2175,7 +2058,6 @@ function GalaxObsidian:CreateWindow(options)
         return height
     end
 
-    -- ---- Section Visibility ----
     function Window:_sectionVisible(section)
         for _, widget in ipairs(section.widgets) do
             if self:_matchesSearch(widget, section) then
@@ -2185,10 +2067,6 @@ function GalaxObsidian:CreateWindow(options)
         return string.lower(self.SearchText or "") == ""
     end
 
-    -- ======================================================================
-    -- WIDGET RENDERERS
-    -- ======================================================================
-    -- ---- Checkbox ----
     function Window:_renderCheckbox(widget, x, y, w, z)
         local scale = self:GetScale()
         local boxX = x
@@ -2266,7 +2144,6 @@ function GalaxObsidian:CreateWindow(options)
         end
     end
 
-    -- ---- Toggle ----
     function Window:_renderToggle(widget, x, y, w, z)
         local disabled = widget.disabled == true
         local scale = self:GetScale()
@@ -2361,7 +2238,6 @@ function GalaxObsidian:CreateWindow(options)
         end
     end
 
-    -- ---- Slider ----
     function Window:_renderSlider(widget, x, y, w, z)
         local disabled = widget.disabled == true
         local compact = widget.compact == true
@@ -2486,7 +2362,6 @@ function GalaxObsidian:CreateWindow(options)
         end
     end
 
-    -- ---- Dropdown ----
     function Window:_renderDropdown(widget, x, y, w, z, multi)
         local disabled = widget.disabled == true
         local searchable = widget.searchable == true
@@ -2581,7 +2456,6 @@ function GalaxObsidian:CreateWindow(options)
         end
     end
 
-    -- ---- Keybind ----
     function Window:_renderKeybind(widget, x, y, w, z)
         local disabled = widget.disabled == true
         local label = widget.listening and "..." or keyName(widget.value)
@@ -2641,7 +2515,6 @@ function GalaxObsidian:CreateWindow(options)
         end
     end
 
-    -- ---- Textbox ----
     function Window:_renderTextbox(widget, x, y, w, z)
         local scale = self:GetScale()
         local boxY = y + math.floor(20 * scale)
@@ -2702,7 +2575,6 @@ function GalaxObsidian:CreateWindow(options)
         end
     end
 
-    -- ---- Key Box ----
     function Window:_renderKeyBox(widget, x, y, w, z)
         local scale = self:GetScale()
         local buttonW = math.floor(68 * scale)
@@ -2755,7 +2627,6 @@ function GalaxObsidian:CreateWindow(options)
         end
     end
 
-    -- ---- Color Swatch ----
     function Window:_renderColorSwatch(widget, swatchX, swatchY, swatchSize, z)
         local disabled = widget.disabled == true
         local scale = self:GetScale()
@@ -2776,7 +2647,7 @@ function GalaxObsidian:CreateWindow(options)
         end
         local swatchAlpha = widget.transparencyEnabled and (1 - clamp(widget.transparency or 0, 0, 1)) or 1
         local swatchColor = widget.value
-        local swatchOutline = self.ColorPickerTarget == widget and Theme.Text or Theme.Outline
+        local swatchOutline = Theme.Outline
         self:_square(
             swatchX,
             swatchY,
@@ -2814,7 +2685,6 @@ function GalaxObsidian:CreateWindow(options)
         end
     end
 
-    -- ---- Color Picker ----
     function Window:_renderColorPicker(widget, x, y, w, z)
         local disabled = widget.disabled == true
         local scale = self:GetScale()
@@ -2836,7 +2706,6 @@ function GalaxObsidian:CreateWindow(options)
         self:_renderColorSwatch(widget, swatchX, swatchY, swatchSize, z)
     end
 
-    -- ---- Button ----
     function Window:_renderButtonWidget(widget, x, y, w, z)
         local scale = self:GetScale()
         local disabled = widget.disabled == true
@@ -2908,7 +2777,6 @@ function GalaxObsidian:CreateWindow(options)
         end
     end
 
-    -- ---- Section Tabs ----
     function Window:_renderSectionTabs(widget, x, y, w, z)
         local scale = self:GetScale()
         local tabBarH = math.floor(28 * scale)
@@ -2965,10 +2833,6 @@ function GalaxObsidian:CreateWindow(options)
         end
     end
 
-    -- ======================================================================
-    -- WIDGET DISPATCH & CLEANUP
-    -- ======================================================================
-    -- ---- Render Dispatch ----
     function Window:_renderWidget(widget, x, y, w, z, clipTop, clipBottom)
         local previousClipTop, previousClipBottom = self._clipTop, self._clipBottom
         if clipTop ~= nil or clipBottom ~= nil then
@@ -3108,7 +2972,6 @@ function GalaxObsidian:CreateWindow(options)
         self._clipTop, self._clipBottom = previousClipTop, previousClipBottom
     end
 
-    -- ---- Target Containment & Popup Cleanup ----
     function Window:_widgetContainsTarget(widget, target)
         if not widget or not target then
             return false
@@ -3166,9 +3029,6 @@ function GalaxObsidian:CreateWindow(options)
         end
     end
 
-    -- ======================================================================
-    -- SECTION & TAB LAYOUT RENDERING
-    -- ======================================================================
     function Window:_renderSections(tab, x, y, w, h, z, clipTopOverride, clipBottomOverride)
         if tab.IsKeyTab then
             local section = tab.Sections[1]
@@ -3264,7 +3124,6 @@ function GalaxObsidian:CreateWindow(options)
             Right = self:_anim(tab, "scroll.Right", scrollState.Right, 22),
         }
 
-        -- ---- Column Scrollbars ----
         local function renderColumnScroll(sideName, trackX)
             local maxScroll = scrollMax[sideName] or 0
             local totalH = columnHeights[sideName] or 0
@@ -3372,10 +3231,6 @@ function GalaxObsidian:CreateWindow(options)
         end
     end
 
-    -- ======================================================================
-    -- POPUPS
-    -- ======================================================================
-    -- ---- Dropdown Popup ----
     function Window:_renderDropdownPopup()
         local widget = self.DropdownTarget
         if not widget or not widget.popup then
@@ -3539,7 +3394,6 @@ function GalaxObsidian:CreateWindow(options)
         end
     end
 
-    -- ---- Color Picker Popup ----
     function Window:_renderColorPickerPopup()
         local widget = self.ColorPickerTarget
         if not widget or not widget.popup then
@@ -3624,7 +3478,7 @@ function GalaxObsidian:CreateWindow(options)
         end
 
         self:_square(svX, svY, svSize, svSize, Theme.Background, false, 1, 4, z + 5)
-        self:_square(svX - 1, svY - 1, svSize + 2, svSize + 2, Theme.Outline, false, 1, 4, z + 6) -- Cursor position updates every frame regardless of dirty state.
+        self:_square(svX - 1, svY - 1, svSize + 2, svSize + 2, Theme.Outline, false, 1, 4, z + 6)
         if not widget.sat or not widget.vib then
             widget.sat, widget.vib = 0, 0
         end
@@ -3730,11 +3584,6 @@ function GalaxObsidian:CreateWindow(options)
         end
     end
 
-    -- ======================================================================
-    -- NOTIFICATIONS, KEYBIND MENU & TOOLTIP
-    -- ======================================================================
-    -- ---- Notifications ----
-    -- ---- Keybind Menu ----
     function Window:_collectKeybindRows()
         local rows = {}
         local function push(widget)
@@ -3950,7 +3799,6 @@ function GalaxObsidian:CreateWindow(options)
         end
     end
 
-    -- ---- Tooltip ----
     function Window:_renderTooltip()
         local text = self.TooltipText
         if not text or text == "" or self.Mouse1Held then
@@ -3982,9 +3830,6 @@ function GalaxObsidian:CreateWindow(options)
         end
     end
 
-    -- ======================================================================
-    -- MAIN RENDER LOOP
-    -- ======================================================================
     function Window:GetScale()
         return math.max(0.5, (self.DPIScale or 100) / 100)
     end
@@ -4071,13 +3916,11 @@ function GalaxObsidian:CreateWindow(options)
                 self:_releaseInteraction("WindowResize")
             end
         end
-        -- Base structure: window shadow, background, global outline.
         local windowCorner =
             math.min(10, math.max(0, math.floor(self._cornerRadius or GalaxObsidian.CornerRadius or 0)))
         self:_square(x - 1, y - 1, w + 2, h + 2, Theme.Dark, true, 1, windowCorner, 1)
         self:_square(x, y, w, h, Theme.Background, true, 1, windowCorner, 2)
         self:_square(x, y, w, h, Theme.SoftOutline, false, 1, windowCorner, 3)
-        -- Content area backgrounds (drawn before chrome so chrome overdaws them).
         self:_square(x, y + topH, sidebarW, h - topH - bottomH, Theme.Sidebar, true, 1, 0, 4)
         self:_square(
             x + sidebarW + 1,
@@ -4090,7 +3933,6 @@ function GalaxObsidian:CreateWindow(options)
             0,
             4
         )
-        -- Tab click handling (must happen before chrome overdraw).
         local tabEntryH = math.floor(40 * scale)
         local tabY = y + topH
         for _, tab in ipairs(self.Tabs) do
@@ -4100,8 +3942,6 @@ function GalaxObsidian:CreateWindow(options)
             end
             tabY = tabY + tabEntryH
         end
-        -- Chrome base primitives are intentionally emitted before heavier section content.
-        -- ZIndex keeps them on top while the pool order keeps drag/resize visuals responsive.
         local chromeZ = 88
         self:_square(x, y, w, topH, Theme.Topbar, true, 1, windowCorner, chromeZ)
         self:_line(x, y + topH, x + w, y + topH, Theme.Outline, 1, chromeZ + 1)
@@ -4109,8 +3949,6 @@ function GalaxObsidian:CreateWindow(options)
         self:_line(x + sidebarW, y, x + sidebarW, y + h - bottomH - 1, Theme.Outline, 1, chromeZ + 1)
         self:_square(x, y + h - bottomH, w, bottomH, Theme.Bottombar, true, 1, windowCorner, chromeZ + 1)
         self:_line(x, y + h - bottomH, x + w, y + h - bottomH, Theme.BottombarBorder, 1, chromeZ + 2)
-        -- Chrome content is emitted before heavier sections for drag/resize responsiveness.
-        -- Its higher ZIndex keeps it visually above the content layer.
         local footerTextSize = 14
         local scaledFooterTextSize = math.floor(footerTextSize * scale + 0.5)
         local yOfs = scale > 1 and -math.floor((scale - 1) * 3) or 0
@@ -4136,7 +3974,7 @@ function GalaxObsidian:CreateWindow(options)
                 self.ResizeOffset and Theme.Text or Theme.Muted,
                 chromeZ + 5
             )
-        end -- Title (icon + text).
+        end
         local chromeTitleIconSize = (self.IconReady and self.IconData) and math.min(math.floor((self.IconSize or 24) * scale), math.floor(26 * scale)) or 0
         local chromeTitleGap = chromeTitleIconSize > 0 and math.floor(6 * scale) or 0
         local chromeTitleSize = 21
@@ -4173,7 +4011,7 @@ function GalaxObsidian:CreateWindow(options)
             false,
             true,
             chromeZ + 4
-        ) -- Search bar.
+        )
         if searchVisible then
             self:_square(searchX, searchY, searchW, searchH, Theme.Main, true, 1, 4, chromeZ + 3)
             self:_square(
@@ -4211,7 +4049,7 @@ function GalaxObsidian:CreateWindow(options)
             self.SearchFocused = false
             self:_releaseInteraction("Search", true)
         end
-        self:_drawIcon("move", dragX, dragY, dragSize, Theme.Outline2, chromeZ + 5) -- Tab list (sidebar entries).
+        self:_drawIcon("move", dragX, dragY, dragSize, Theme.Outline2, chromeZ + 5)
         local chromeTabY = y + topH
         for _, tab in ipairs(self.Tabs) do
             local active = tab == self.ActiveTab
@@ -4245,7 +4083,6 @@ function GalaxObsidian:CreateWindow(options)
             end
             chromeTabY = chromeTabY + tabEntryH
         end
-        -- Sidebar image (rendered after tabs, at the bottom of the sidebar)
         if self.SidebarImageReady and self.SidebarImageData then
             local maxH = h - topH - bottomH
 
@@ -4255,13 +4092,11 @@ function GalaxObsidian:CreateWindow(options)
             local nativeH = tonumber(self.SidebarImageNativeH)
             if not nativeW or nativeW <= 0 then nativeW = sidebarW end
             if not nativeH or nativeH <= 0 then nativeH = sidebarW end
-            local aspectRatio = nativeW / nativeH  -- width / height
+            local aspectRatio = nativeW / nativeH
 
-            -- W: scale based on sidebar width; H derived from W/H aspect
             local imgW = math.floor(sidebarW * imgScale)
             local imgH = (aspectRatio > 0) and math.floor(imgW / aspectRatio) or imgW
 
-            -- Cap to max height to avoid overlapping topbar
             if imgH > maxH then
                 imgH = maxH
                 imgW = math.floor(imgH * aspectRatio)
@@ -4279,11 +4114,9 @@ function GalaxObsidian:CreateWindow(options)
             end
             self:_image(self.SidebarImageData, imgX, imgY, imgW, imgH, 0, chromeZ + 3)
         end
-        -- Render content sections after chrome updates; ZIndex keeps them below.
         if self.ActiveTab then
             self:_renderSections(self.ActiveTab, x + sidebarW, y + topH, w - sidebarW, h - topH - bottomH, 10, y, y + h)
         end
-        -- Popups and overlays (always on top of everything).
         self:_renderDropdownPopup()
         self:_renderColorPickerPopup()
         self:_renderKeybindMenu()
@@ -4295,10 +4128,6 @@ function GalaxObsidian:CreateWindow(options)
         self:_hideUnused()
     end
 
-    -- ======================================================================
-    -- WINDOW PUBLIC API
-    -- ======================================================================
-    -- ---- Notifications & Visibility ----
     function Window:Notify(message, title, duration)
         return NotificationManager:Notify(message, title, duration)
     end
@@ -4406,7 +4235,6 @@ function GalaxObsidian:CreateWindow(options)
         self.Position = Vector2.new(math.floor(center.X - newSize.X / 2 + 0.5), math.floor(center.Y - newSize.Y / 2 + 0.5))
         GalaxObsidian.DPIScale = percent
     end
-    -- ---- Theming ----
     function Window:GetTheme()
         local copy = {}
 
@@ -4468,7 +4296,6 @@ function GalaxObsidian:CreateWindow(options)
         if font then
             Theme.Text = font
         end
-        -- Apply explicit overrides if theme provides them
         if bottombar then
             Theme.Bottombar = bottombar
         end
@@ -4483,7 +4310,6 @@ function GalaxObsidian:CreateWindow(options)
         end
     end
 
-    -- ---- Destroy / Cleanup ----
     function Window:Destroy()
         self.Running = false
         self:_setOpen(false)
@@ -4498,10 +4324,6 @@ function GalaxObsidian:CreateWindow(options)
         self.ImageDataByObject = {}
     end
 
-    -- ======================================================================
-    -- TAB & SECTION BUILDERS
-    -- ======================================================================
-    -- ---- Tab Factory ----
     function Window:AddTab(name, icon)
         local tabName = name
         local tabIcon = icon
@@ -4520,7 +4342,6 @@ function GalaxObsidian:CreateWindow(options)
             self._Window:_closeFloating()
         end
 
-        -- ---- Section Setup ----
         function Tab:AddSection(sectionName, side)
             if type(sectionName) == "table" then
                 side = sectionName.Side or sectionName.side or side
@@ -4546,7 +4367,6 @@ function GalaxObsidian:CreateWindow(options)
                 return label, nil
             end
 
-            -- ---- Label ----
             function Section:AddLabel(text, doesWrap, idx)
                 local _, info = infoArgs(text)
                 local id = idx or (info and (info.Index or info.Idx)) or text
@@ -4561,7 +4381,6 @@ function GalaxObsidian:CreateWindow(options)
                 return handle
             end
 
-            -- ---- Button ----
             function Section:AddButton(label, callback)
                 local _, info = infoArgs(label, callback)
                 local widget = register({
@@ -4593,7 +4412,6 @@ function GalaxObsidian:CreateWindow(options)
                 return handle
             end
 
-            -- ---- Button Pair ----
             function Section:AddButtonPair(left, right)
                 local _, leftInfo = infoArgs(left)
                 local _, rightInfo = infoArgs(right)
@@ -4621,7 +4439,6 @@ function GalaxObsidian:CreateWindow(options)
                 return Window:_widgetHandle(leftWidget), Window:_widgetHandle(rightWidget)
             end
 
-            -- ---- Tabbox ----
             function Section:AddTabbox(tabNames)
                 local widget = register({ type = "sectiontabs", tabs = {}, active = 1, visible = true })
                 local Tabbox = { Widget = widget, Tabs = widget.tabs }
@@ -4725,7 +4542,6 @@ function GalaxObsidian:CreateWindow(options)
             Section.AddTabs = Section.AddTabbox
             Section.AddSubButton = Section.AddButtonPair
 
-            -- ---- Toggle ----
             function Section:AddToggle(label, default, callback, keybind)
                 local _, info = infoArgs(label, default)
                 local id = info and (info.Index or info.Idx) or label
@@ -4863,7 +4679,6 @@ function GalaxObsidian:CreateWindow(options)
                 return handle
             end
 
-            -- ---- Checkbox ----
             function Section:AddCheckbox(label, default, callback, keybind)
                 local _, info = infoArgs(label, default)
                 local id = info and (info.Index or info.Idx) or label
@@ -5001,7 +4816,6 @@ function GalaxObsidian:CreateWindow(options)
                 return handle
             end
 
-            -- ---- Slider ----
             function Section:AddSlider(label, config, callback)
                 local _, info = infoArgs(label, config)
                 if info then
@@ -5065,7 +4879,6 @@ function GalaxObsidian:CreateWindow(options)
                 return result
             end
 
-            -- ---- Dropdown ----
             function Section:AddDropdown(label, optionsList, default, config, callback)
                 local info = nil
                 if type(label) == "table" then
@@ -5155,7 +4968,6 @@ function GalaxObsidian:CreateWindow(options)
                 return Window:_widgetHandle(widget)
             end
 
-            -- ---- Multi Dropdown ----
             function Section:AddMultiDropdown(label, optionsList, default, config, callback)
                 local info = nil
                 if type(label) == "table" then
@@ -5222,7 +5034,6 @@ function GalaxObsidian:CreateWindow(options)
                 return Window:_widgetHandle(widget)
             end
 
-            -- ---- Keybind ----
             function Section:AddKeybind(label, default, callback)
                 local _, info = infoArgs(label, default)
                 local id = info and (info.Index or info.Idx) or label
@@ -5269,7 +5080,6 @@ function GalaxObsidian:CreateWindow(options)
                 })
             end
 
-            -- ---- Color Picker ----
             function Section:AddColorPicker(label, info)
                 local _, config = infoArgs(label, info)
                 config = config or {}
@@ -5323,7 +5133,6 @@ function GalaxObsidian:CreateWindow(options)
                 return handle
             end
 
-            -- ---- Color Picker Pair ----
             function Section:AddColorPickerPair(leftLabel, leftInfo, rightLabel, rightInfo)
                 local function makeWidget(labelValue, infoValue)
                     local _, config = infoArgs(labelValue, infoValue)
@@ -5383,7 +5192,6 @@ function GalaxObsidian:CreateWindow(options)
                 return makeHandle(leftWidget), makeHandle(rightWidget)
             end
 
-            -- ---- Textbox ----
             function Section:AddTextbox(label, default, callback, placeholder)
                 local _, info = infoArgs(label, default)
                 local id = info and (info.Index or info.Idx) or label
@@ -5406,7 +5214,6 @@ function GalaxObsidian:CreateWindow(options)
                 return Window:_widgetHandle(widget)
             end
 
-            -- ---- Aliases & Divider ----
             Section.AddInput = Section.AddTextbox
             Section.AddKeyPicker = Section.AddKeybind
             Section.AddDivider = function()
@@ -5415,7 +5222,6 @@ function GalaxObsidian:CreateWindow(options)
             return Section
         end
 
-        -- ---- Groupbox & Tabbox Aliases ----
         Tab.AddGroupbox = Tab.AddSection
         function Tab:AddLeftGroupbox(name)
             return Tab:AddSection(name, "Left")
@@ -5432,10 +5238,8 @@ function GalaxObsidian:CreateWindow(options)
             return section:AddTabbox()
         end
 
-        -- ---- Key Box Widget ----
         function Tab:AddKeyBox(callback)
             local section = Tab.Sections[1] or Tab:AddSection("__keytab", "Left")
-            -- section is key-tab locked
             local widget = {
                 type = "keybox",
                 value = "",
@@ -5459,9 +5263,6 @@ function GalaxObsidian:CreateWindow(options)
         return Tab
     end
 
-    -- ======================================================================
-    -- KEY TAB SYSTEM
-    -- ======================================================================
     function Window:SelectTab(nameOrTab)
         if type(nameOrTab) == "string" then
             for _, tab in ipairs(self.Tabs) do
@@ -5493,9 +5294,6 @@ function GalaxObsidian:CreateWindow(options)
         return tab
     end
 
-    -- ======================================================================
-    -- RENDER LOOP STARTUP
-    -- ======================================================================
     task.spawn(function()
         while Window.Running do
             task.wait(0.01)
@@ -5516,9 +5314,6 @@ function GalaxObsidian:CreateWindow(options)
     return Window
 end
 
--- ======================================================================
--- LIBRARY PUBLIC API — GLOBAL TOGGLE & NOTIFY
--- ======================================================================
 function GalaxObsidian:Toggle(state)
     if not self.ActiveWindow then
         return nil

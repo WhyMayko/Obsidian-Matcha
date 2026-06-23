@@ -421,9 +421,6 @@ end
 _G.Galax = _G.Galax or {}
 _G.Galax["addons/SaveManager.lua"] = SaveManager
 
--- Community system: allows loading community configs from GitHub
--- Usage (with script open in Matcha console):
---   community.loadConfig("ConfigName")
 local CommunityRepo = "https://raw.githubusercontent.com/WhyMayko/Obsidian-Matcha/refs/heads/main/community/"
 
 _G.community = _G.community or {}
