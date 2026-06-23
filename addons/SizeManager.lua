@@ -11,16 +11,15 @@ end
 SizeManager.TextManager = nil
 
 SizeManager.SidebarWidths = {
-    MinLogical    = 400,
+    MinLogical    = 300,
     IconLevel     = 48,
-    CompactLevel  = 140,
     FullMin       = 128,
     FullMax       = 200,
     FullFraction  = 0.26,
 }
 
 SizeManager.ColumnConfig = {
-    MinLogicalWidth = 300,
+    MinLogicalWidth = 260,
     PaddingX = 10,
     ColumnGap = 18,
 }
@@ -29,56 +28,49 @@ function SizeManager:SetTextManager(tm)
     self.TextManager = tm
 end
 
-function SizeManager:GetSidebarMode(window, logicalW, scale)
-    local compactSidebarW = math.floor(self.SidebarWidths.CompactLevel * scale)
-    local textArea = compactSidebarW - math.floor(42 * scale)
-
-    if textArea < 50 then
-        return "icon"
-    end
-
-    local TM = self.TextManager
-    if TM and window.Tabs and #window.Tabs > 0 then
-        local maxTextW = 0
-        for _, tab in ipairs(window.Tabs) do
-            local w = TM:Measure(tab.Name or "", 16, Drawing.Fonts.Monospace, scale)
-            if w and w > maxTextW then
-                maxTextW = w
-            end
-        end
-        if maxTextW > textArea - 10 then
-            return "icon"
-        end
-    end
-
-    if logicalW <= self.SidebarWidths.MinLogical then
-        return "icon"
-    end
-
-    return "compact"
-end
-
 function SizeManager:GetWindowState(window)
     local scale = window:GetScale()
     local physicalW = window.Size.X
     local logicalW = physicalW / scale
-    local mode = self:GetSidebarMode(window, logicalW, scale)
-    local sidebarW
 
-    if mode == "icon" then
-        sidebarW = math.floor(self.SidebarWidths.IconLevel * scale)
+    local iconSidebarW = math.floor(self.SidebarWidths.IconLevel * scale)
+    local maxSidebarW = math.floor(self.SidebarWidths.FullMax * scale)
+    local textOffset = math.floor(42 * scale)
+
+    local TM = self.TextManager
+    local neededTextArea = 0
+    if TM and window.Tabs then
+        local maxTextW = 0
+        for _, tab in ipairs(window.Tabs) do
+            local name = tab.Name or ""
+            if name ~= "" then
+                local w = TM:Measure(name, 16, Drawing.Fonts.Monospace, scale)
+                if w and w > maxTextW then
+                    maxTextW = w
+                end
+            end
+        end
+        neededTextArea = maxTextW + 10
+    end
+
+    local minWidthForText = neededTextArea + textOffset
+    local canFitText = neededTextArea == 0 or minWidthForText <= maxSidebarW
+
+    local mode, sidebarW
+
+    if logicalW <= self.SidebarWidths.MinLogical or not canFitText then
+        mode = "icon"
+        sidebarW = iconSidebarW
     else
-        sidebarW = math.ceil(physicalW * self.SidebarWidths.FullFraction)
-        local minW = math.floor(self.SidebarWidths.FullMin * scale)
-        local maxW = math.floor(self.SidebarWidths.FullMax * scale)
-        sidebarW = clamp(sidebarW, minW, maxW)
+        local ideal = math.ceil(physicalW * self.SidebarWidths.FullFraction)
+        sidebarW = clamp(ideal, math.max(iconSidebarW, minWidthForText), maxSidebarW)
+        mode = "compact"
     end
 
     local contentW = (physicalW - sidebarW) / scale
-    local colConfig = self.ColumnConfig
-    local usableContent = contentW - colConfig.PaddingX * 2
-    local perColumn = (usableContent - colConfig.ColumnGap) / 2
-    local twoColumns = perColumn >= colConfig.MinLogicalWidth
+    local usableContent = contentW - self.ColumnConfig.PaddingX * 2
+    local perColumn = (usableContent - self.ColumnConfig.ColumnGap) / 2
+    local twoColumns = perColumn >= self.ColumnConfig.MinLogicalWidth
 
     return {
         SidebarMode  = mode,
