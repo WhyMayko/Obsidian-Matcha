@@ -561,21 +561,25 @@ function ThemeManager:CreateThemeManager(groupbox)
 		end
 	end)
 
-	groupbox:AddButton("Delete theme", function()
-		local name = Library.Options.ThemeManager_CustomThemeList.Value
-		if not name then
-			return
-		end
+	groupbox:AddButton({
+		Text = "Delete theme",
+		DoubleClick = true,
+		Func = function()
+			local name = Library.Options.ThemeManager_CustomThemeList.Value
+			if not name then
+				return
+			end
 
-		local ok, err = self:Delete(name)
-		if not ok then
-			Library:Notify("Failed to delete theme: " .. tostring(err), 4)
-			return
-		end
+			local ok, err = self:Delete(name)
+			if not ok then
+				Library:Notify("Failed to delete theme: " .. tostring(err), 4)
+				return
+			end
 
-		Library:Notify(string.format("Deleted theme %q", name), 4)
-		refreshCustomThemeList()
-	end)
+			Library:Notify(string.format("Deleted theme %q", name), 4)
+			refreshCustomThemeList()
+		end
+	})
 
 	groupbox:AddButton("Refresh list", function()
 		refreshCustomThemeList()

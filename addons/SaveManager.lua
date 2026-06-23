@@ -354,22 +354,26 @@ function SaveManager:BuildConfigSection(tab)
 		Library:Notify(string.format("Overwrote config: %q", name), 4)
 	end)
 
-	groupbox:AddButton("Delete config", function()
-		local name = Options.SaveManager_ConfigList:Get()
-		local ok, err = self:Delete(name)
+	groupbox:AddButton({
+		Text = "Delete config",
+		DoubleClick = true,
+		Func = function()
+			local name = Options.SaveManager_ConfigList:Get()
+			local ok, err = self:Delete(name)
 
-		if not ok then
-			Library:Notify("Failed: " .. tostring(err), 4)
-			return
-		end
+			if not ok then
+				Library:Notify("Failed: " .. tostring(err), 4)
+				return
+			end
 
-		Library:Notify(string.format("Deleted config: %q", name), 4)
-		Options.SaveManager_ConfigList:SetValues(self:RefreshConfigList())
-		Options.SaveManager_ConfigList:SetValue(nil)
-		if self.AutoloadConfigLabel then
-			self.AutoloadConfigLabel:SetText("Current autoload config: " .. tostring(self:GetAutoloadConfig()))
+			Library:Notify(string.format("Deleted config: %q", name), 4)
+			Options.SaveManager_ConfigList:SetValues(self:RefreshConfigList())
+			Options.SaveManager_ConfigList:SetValue(nil)
+			if self.AutoloadConfigLabel then
+				self.AutoloadConfigLabel:SetText("Current autoload config: " .. tostring(self:GetAutoloadConfig()))
+			end
 		end
-	end)
+	})
 
 	groupbox:AddButton("Refresh list", function()
 		Options.SaveManager_ConfigList:SetValues(self:RefreshConfigList())

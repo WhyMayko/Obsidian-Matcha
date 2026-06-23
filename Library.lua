@@ -4486,7 +4486,10 @@ function GalaxObsidian:CreateWindow(options)
                     id = id,
                     text = info and (info.Text or info.Label) or text or "",
                     tooltip = info and info.Tooltip,
+                    disabled = info and info.Disabled == true,
                     visible = not (info and info.Visible == false),
+                    _doubleConfirm = info and info.DoubleClick == true,
+                    _confirmPending = false,
                 })
                 local handle = Window:_widgetHandle(widget)
                 return handle
@@ -4502,6 +4505,8 @@ function GalaxObsidian:CreateWindow(options)
                     tooltip = info and info.Tooltip,
                     disabled = info and info.Disabled == true,
                     visible = not (info and info.Visible == false),
+                    _doubleConfirm = info and info.DoubleClick == true,
+                    _confirmPending = false,
                 })
                 local handle = Window:_widgetHandle(widget)
                 handle.AddButton = function(_, subInfo)
@@ -4515,7 +4520,7 @@ function GalaxObsidian:CreateWindow(options)
                         tooltip = subInfo.Tooltip,
                         disabled = subInfo.Disabled == true,
                         visible = subInfo.Visible ~= false,
-                        _doubleConfirm = true,
+                        _doubleConfirm = subInfo.DoubleClick == true,
                         _confirmPending = false,
                     }
                     register({ type = "buttonpair", left = widget, right = rightWidget, visible = true })
@@ -4537,6 +4542,8 @@ function GalaxObsidian:CreateWindow(options)
                     tooltip = leftInfo.Tooltip,
                     disabled = leftInfo.Disabled == true,
                     visible = leftInfo.Visible ~= false,
+                    _doubleConfirm = leftInfo.DoubleClick == true,
+                    _confirmPending = false,
                 }
                 local rightWidget = {
                     type = "button",
@@ -4545,7 +4552,7 @@ function GalaxObsidian:CreateWindow(options)
                     tooltip = rightInfo.Tooltip,
                     disabled = rightInfo.Disabled == true,
                     visible = rightInfo.Visible ~= false,
-                    _doubleConfirm = true,
+                    _doubleConfirm = rightInfo.DoubleClick == true,
                     _confirmPending = false,
                 }
                 register({ type = "buttonpair", left = leftWidget, right = rightWidget, visible = true })
