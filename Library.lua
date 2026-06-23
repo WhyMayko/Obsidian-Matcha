@@ -45,10 +45,6 @@ if not Color3.fromHSV then
 end
 
 -- ======================================================================
---[[    Galax Obsidian Lib - UI Library for Matcha External    Based on Obsidian's visual style and migrated to Matcha's limited Drawing API.    Rendering prioritizes the lightweight base UI first and popups/lists last.    USAGE:    local Library = loadstring(game:HttpGet(".../Galax-Obsidian-Lib.lua"))()    local Win = Library:CreateWindow({        Title = "Galax Hub",        Subtitle = "Matcha External",        Icon = 95816097006870,        Size = Vector2.new(620, 430),        MenuKey = 0x70    })    local Tab = Win:AddTab("Combat")    local Sec = Tab:AddSection("Aimbot")    Sec:AddToggle("Enabled", false, function(v) end, 0x46)    Sec:AddSlider("FOV", { Min = 1, Max = 360, Default = 90, Suffix = " deg" }, function(v) end)    Sec:AddDropdown("Mode", { "Closest", "FOV", "Distance" }, "Closest", { MaxVisible = 5 }, function(v) end)    Win:Notify("Loaded", "Galax", 3)]]
-local GalaxObsidian = {}
-
--- ======================================================================
 -- LIBRARY METADATA & POLYFILLS
 -- ======================================================================
 -- ---- Version ----
@@ -970,7 +966,7 @@ local function getMouse()
     return players.LocalPlayer:GetMouse()
 end
 
-The defaultKeybindModePopupModes = { "Toggle", "Hold", "Press" }
+local DefaultKeybindModePopupModes = { "Toggle", "Hold", "Press" }
 
 local function normalizeKeybindModePopupConfig(config, fallbackModes)
     if config == false then
