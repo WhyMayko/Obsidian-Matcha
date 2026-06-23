@@ -45,49 +45,6 @@ if not Color3.fromHSV then
 end
 
 -- ======================================================================
--- LIBRARY METADATA & POLYFILLS
--- ======================================================================
--- ---- Version ----
-GalaxObsidian.Version = "1.0.0"
-
--- ---- Color3.fromRGB Polyfill ----
-if not Color3.fromRGB then
-    Color3.fromRGB = function(r, g, b)
-        return Color3.new(r / 255, g / 255, b / 255)
-    end
-end
-
--- ---- Color3.fromHSV Polyfill ----
-if not Color3.fromHSV then
-    Color3.fromHSV = function(h, s, v)
-        local r, g, b
-        if s == 0 then
-            r, g, b = v, v, v
-        else
-            local i = math.floor(h * 6)
-            local f = h * 6 - i
-            local p = v * (1 - s)
-            local q = v * (1 - s * f)
-            local t = v * (1 - s * (1 - f))
-            if i % 6 == 0 then
-                r, g, b = v, t, p
-            elseif i % 6 == 1 then
-                r, g, b = q, v, p
-            elseif i % 6 == 2 then
-                r, g, b = p, v, t
-            elseif i % 6 == 3 then
-                r, g, b = p, q, v
-            elseif i % 6 == 4 then
-                r, g, b = t, p, v
-            else
-                r, g, b = v, p, q
-            end
-        end
-        return Color3.new(r, g, b)
-    end
-end
-
--- ======================================================================
 -- LIBRARY STATE & DEFAULTS
 -- ======================================================================
 -- ---- Image Cache ----
@@ -1064,6 +1021,7 @@ function GalaxObsidian:CreateWindow(options)
         IconSize = options.IconSize or 24,
         ImagesEnabled = options.EnableImages ~= false,
         TransparencyTextureData = GalaxObsidian.ImageCache[GalaxObsidian.TransparencyTextureUrl],
+    }
 -- ---- Object Pool ----
     Window.MaxPoolSize = Window.MaxPoolSize or {
         Square = 4000,
