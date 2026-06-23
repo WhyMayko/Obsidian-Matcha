@@ -575,54 +575,56 @@ function GalaxObsidian:SetDPIScale(percent)
 end
 
 -- ======================================================================
--- DEFAULT THEME & BUILDER
+-- DEFAULT THEME
 -- ======================================================================
-local function shiftColor(color, vShift)
-    local r = clamp(color.R + vShift, 0, 1)
-    local g = clamp(color.G + vShift, 0, 1)
-    local b = clamp(color.B + vShift, 0, 1)
-    return Color3.new(r, g, b)
-end
-
-function GalaxObsidian:BuildTheme(base, dest)
-    dest = dest or {}
-    dest.Background = base.Background or dest.Background
-    dest.Main = base.Main or dest.Main
-    dest.Accent = base.Accent or dest.Accent
-    dest.Outline = base.Outline or dest.Outline
-    dest.Text = base.Text or dest.Text
-    dest.Font = base.Font or dest.Font or Drawing.Fonts.Monospace
-    
-    dest.Topbar = shiftColor(dest.Background, -4 / 255)
-    dest.Sidebar = shiftColor(dest.Background, -2 / 255)
-    dest.Bottombar = shiftColor(dest.Background, 6 / 255)
-    dest.BottombarBorder = shiftColor(dest.Outline, 0.04)
-    
-    dest.Surface = dest.Main
-    dest.Surface2 = shiftColor(dest.Main, 0.03)
-    dest.PopupHover = dest.Main
-    
-    dest.Outline2 = shiftColor(dest.Outline, 0.04)
-    dest.SoftOutline = dest.Outline
-    
-    dest.DimText = shiftColor(dest.Text, -0.7)
-    dest.FooterText = shiftColor(dest.Text, -0.27)
-    dest.Muted = shiftColor(dest.Text, -0.49)
-    
-    dest.Dark = Color3.fromRGB(0, 0, 0)
-    dest.Red = Color3.fromRGB(255, 50, 50)
-    
-    return dest
-end
-
-Theme = GalaxObsidian:BuildTheme({
+Theme = {
     Background = Color3.fromRGB(17, 17, 17),
+    Topbar = Color3.fromRGB(13, 13, 13),
+    Sidebar = Color3.fromRGB(15, 15, 15),
+    Bottombar = Color3.fromRGB(23, 23, 23),
+    BottombarBorder = Color3.fromRGB(50, 50, 50),
+    FooterText = Color3.fromRGB(185, 185, 185),
     Main = Color3.fromRGB(25, 25, 25),
-    Accent = Color3.fromRGB(125, 85, 255),
+    Surface = Color3.fromRGB(25, 25, 25),
+    Surface2 = Color3.fromRGB(33, 33, 33),
     Outline = Color3.fromRGB(40, 40, 40),
+    Outline2 = Color3.fromRGB(50, 50, 50),
+    SoftOutline = Color3.fromRGB(40, 40, 40),
+    DimText = Color3.fromRGB(76, 76, 76),
+    PopupHover = Color3.fromRGB(25, 25, 25),
+    Accent = Color3.fromRGB(125, 85, 255),
     Text = Color3.fromRGB(255, 255, 255),
+    Muted = Color3.fromRGB(130, 130, 130),
+    Dark = Color3.fromRGB(0, 0, 0),
+    Red = Color3.fromRGB(255, 50, 50),
     Font = Drawing.Fonts.Monospace,
-}, {})
+}
+
+-- ---- Compute chrome color offsets from Default theme ----
+local ChromeOffsets = {}
+do
+    local bg = Theme.Background
+    for _, field in ipairs({ "Topbar", "Sidebar", "Bottombar", "BottombarBorder", "FooterText", "Main", "Surface", "Surface2", "Outline", "Outline2", "SoftOutline", "DimText", "PopupHover", "Muted" }) do
+        local val = Theme[field]
+        if val and bg then
+            ChromeOffsets[field] = {
+                R = val.R - bg.R,
+                G = val.G - bg.G,
+                B = val.B - bg.B,
+            }
+        end
+    end
+end
+
+local function applyChromeOffsets(base)
+    for field, offset in pairs(ChromeOffsets) do
+        Theme[field] = Color3.new(
+            clamp(base.R + offset.R, 0, 1),
+            clamp(base.G + offset.G, 0, 1),
+            clamp(base.B + offset.B, 0, 1)
+        )
+    end
+end
 
 -- ======================================================================
 -- DRAGGABLE LABEL FEATURE
@@ -860,16 +862,6 @@ local function colorComponents(color)
     end
     return tonumber(r), tonumber(g), tonumber(b)
 end
-local function colorToHexAlpha(color, alpha)
-    local r = math.floor(clamp(color.R * 255 + 0.5, 0, 255))
-    local g = math.floor(clamp(color.G * 255 + 0.5, 0, 255))
-    local b = math.floor(clamp(color.B * 255 + 0.5, 0, 255))
-    if alpha and alpha > 0 then
-        local a = math.floor(clamp((1 - alpha) * 255 + 0.5, 0, 255))
-        return string.format("#%02X%02X%02X%02X", r, g, b, a)
-    end
-    return string.format("#%02X%02X%02X", r, g, b)
-end
 local function inactiveTextColor()
     return Theme.Muted or Theme.DimText
 end
@@ -889,6 +881,33 @@ local function themeColor(value)
         end
     end
     return value
+end
+
+local function colorToHexAlpha(color, alpha)
+    local r = math.floor(clamp(color.R * 255 + 0.5, 0, 255))
+    local g = math.floor(clamp(color.G * 255 + 0.5, 0, 255))
+    local b = math.floor(clamp(color.B * 255 + 0.5, 0, 255))
+    if alpha and alpha > 0 then
+        local a = math.floor(clamp((1 - alpha) * 255 + 0.5, 0, 255))
+        return string.format("#%02X%02X%02X%02X", r, g, b, a)
+    end
+    return string.format("#%02X%02X%02X", r, g, b)
+end
+
+local function darkenColor(color, amount)
+    return Color3.new(
+        math.max(0, color.R - amount),
+        math.max(0, color.G - amount),
+        math.max(0, color.B - amount)
+    )
+end
+
+local function lightenColor(color, amount)
+    return Color3.new(
+        math.min(1, color.R + amount),
+        math.min(1, color.G + amount),
+        math.min(1, color.B + amount)
+    )
 end
 
 -- ---- Image URL Helpers ----
@@ -1021,7 +1040,143 @@ function GalaxObsidian:CreateWindow(options)
         IconSize = options.IconSize or 24,
         ImagesEnabled = options.EnableImages ~= false,
         TransparencyTextureData = GalaxObsidian.ImageCache[GalaxObsidian.TransparencyTextureUrl],
+        SaturationTextureData = GalaxObsidian.ImageCache[GalaxObsidian.SaturationTextureUrl],
+        LogicalSize = resolvedSize,
+        Size = Vector2.new(math.floor(resolvedSize.X * initialScale + 0.5), math.floor(resolvedSize.Y * initialScale + 0.5)),
+        MinSize = resolvedMinSize,
+        DPIScale = initialDPIScale,
+        Resizable = options.Resizable ~= false,
+        MenuKey = options.MenuKey or 0x70,
+        Position = Vector2.new(options.X or 180, options.Y or 130),
+        Accent = options.Accent or Theme.Accent,
+        SearchPlaceholder = options.SearchPlaceholder or "Search",
+        SearchText = "",
+        SearchFocused = false,
+        ShowSearch = options.ShowSearch ~= false,
+        ShowKeybindMenu = options.ShowKeybindMenu == true,
+        KeybindMenuX = options.KeybindMenuX or keybindMenuOptions.X,
+        KeybindMenuY = options.KeybindMenuY or keybindMenuOptions.Y,
+        KeybindMenuWidth = options.KeybindMenuWidth or keybindMenuOptions.Width,
+        NotifySide = options.NotifySide or "Right",
+        Open = options.StartMinimized ~= true,
+        Running = true,
+        Tabs = {},
+        ActiveTab = nil,
+        TabScroll = {},
+        ScrollTarget = nil,
+        ScrollDragOffset = 0,
+        Notifications = {},
+        Pool = { Square = {}, Text = {}, Line = {}, Circle = {}, Image = {} },
+        Index = { Square = 0, Text = 0, Line = 0, Circle = 0, Image = 0 },
+        ImageDataByObject = {},
+        Theme = Theme,
+
+        PrevKeys = {},
+        PrevMouse1 = false,
+        PrevMouse2 = false,
+        HoldKey = nil,
+        HoldStarted = 0,
+        HoldLastRepeat = 0,
+        Mouse1Clicked = false,
+        Mouse1Held = false,
+        Mouse2Clicked = false,
+        Mouse2Held = false,
+        DragOffset = nil,
+        ResizeOffset = nil,
+        SliderTarget = nil,
+        DropdownTarget = nil,
+        ColorPickerTarget = nil,
+        ColorPickerDrag = nil,
+        KeyListenTarget = nil,
+        KeyListenStarted = 0,
+        KeybindModeTarget = nil,
+        KeybindModePopup = nil,
+        TextTarget = nil,
+        DropdownSearch = nil,
+        TooltipText = nil,
+        MouseLockOwner = nil,
+        KeybindMenuDrag = nil,
+        LastRobloxInputBlocked = nil,
+        BlockClicks = false,
+        _cornerRadius = GalaxObsidian.CornerRadius or 0,
+        Options = GalaxObsidian.Options,
+        Toggles = GalaxObsidian.Toggles,
     }
+
+    -- ---- Active Window Registration & Image Preload ----
+    GalaxObsidian.ActiveWindow = Window
+    local ImageLoading = {}
+    local function RequestImage(url, callback)
+        if not url or url == "" then
+            return nil
+        end
+        local cached = GalaxObsidian.ImageCache[url]
+        if cached then
+            if type(callback) == "function" then
+                task.spawn(function()
+                    local ok, err = pcall(callback, cached)
+                    if not ok then error("RequestImage callback: " .. tostring(err), 2) end
+                end)
+            end
+            return cached
+        end
+        if ImageLoading[url] then
+            if type(callback) == "function" then
+                ImageLoading[url][#ImageLoading[url] + 1] = callback
+            end
+            return nil
+        end
+        ImageLoading[url] = {}
+
+        if type(callback) == "function" then
+            ImageLoading[url][#ImageLoading[url] + 1] = callback
+        end
+        task.spawn(function()
+            local ok, data = pcall(function()
+                return game:HttpGet(url)
+            end)
+            if ok and not isImageData(data) then
+                local resolvedUrl = thumbnailImageUrl(data)
+                if resolvedUrl then
+                    ok, data = pcall(function()
+                        return game:HttpGet(resolvedUrl)
+                    end)
+                    if ok and isImageData(data) then
+                        GalaxObsidian.ImageCache[resolvedUrl] = data
+                    end
+                end
+            end
+            if ok and isImageData(data) then
+                GalaxObsidian.ImageCache[url] = data
+                for _, cb in ipairs(ImageLoading[url]) do
+                    local ok, err = pcall(cb, data)
+                    if not ok then error("ImageLoading callback: " .. tostring(err), 2) end
+                end
+            end
+            ImageLoading[url] = nil
+        end)
+        return nil
+    end
+    if Window.ImagesEnabled and Window.IconUrl and not Window.IconReady then
+        RequestImage(Window.IconUrl, function(data)
+            Window.IconData = data
+            Window.IconReady = true
+        end)
+    end
+    if Window.ImagesEnabled and not Window.TransparencyTextureData then
+        RequestImage(GalaxObsidian.TransparencyTextureUrl, function(data)
+            Window.TransparencyTextureData = data
+        end)
+    end
+    if Window.ImagesEnabled and not Window.SaturationTextureData then
+        RequestImage(GalaxObsidian.SaturationTextureUrl, function(data)
+            Window.SaturationTextureData = data
+        end)
+    end
+
+    -- ======================================================================
+    -- RENDERING CORE — POOL, CLIPPING & PRIMITIVES
+    -- ======================================================================
 -- ---- Object Pool ----
     Window.MaxPoolSize = Window.MaxPoolSize or {
         Square = 4000,
@@ -2621,7 +2776,7 @@ function GalaxObsidian:CreateWindow(options)
         end
         local swatchAlpha = widget.transparencyEnabled and (1 - clamp(widget.transparency or 0, 0, 1)) or 1
         local swatchColor = widget.value
-        local swatchOutline = Theme.Outline
+        local swatchOutline = self.ColorPickerTarget == widget and Theme.Text or Theme.Outline
         self:_square(
             swatchX,
             swatchY,
@@ -3531,16 +3686,16 @@ function GalaxObsidian:CreateWindow(options)
         local rgbTextX = rgbBoxX + math.floor(5 * scale)
         self:_square(hexBoxX, infoY, boxW, boxH, Theme.Main, true, 1, 3, z + 2)
         self:_square(hexBoxX, infoY, boxW, boxH, Theme.Outline, false, 1, 3, z + 3)
-        local displayR, displayG, displayB = hsvToRgb(widget.hue, widget.sat or 0, widget.vib or 0)
+        local displayColor = Color3.fromHSV(widget.hue, widget.sat or 0, widget.vib or 0)
         local displayHex = colorToHexAlpha(
-            Color3.new(displayR, displayG, displayB),
+            displayColor,
             widget.transparencyEnabled and widget.transparency or nil
         )
         local displayRgb = table.concat(
             {
-                math.floor(clamp(displayR * 255 + 0.5, 0, 255)),
-                math.floor(clamp(displayG * 255 + 0.5, 0, 255)),
-                math.floor(clamp(displayB * 255 + 0.5, 0, 255)),
+                math.floor(clamp(displayColor.R * 255 + 0.5, 0, 255)),
+                math.floor(clamp(displayColor.G * 255 + 0.5, 0, 255)),
+                math.floor(clamp(displayColor.B * 255 + 0.5, 0, 255)),
             },
             ", "
         )
@@ -4267,31 +4422,65 @@ function GalaxObsidian:CreateWindow(options)
         local main = themeColor(values.MainColor)
         local accent = themeColor(values.AccentColor)
         local outline = themeColor(values.OutlineColor)
+        local outline2 = themeColor(values.Outline2)
+        local surface2 = themeColor(values.Surface2)
+        local muted = themeColor(values.Muted)
+        local dimText = themeColor(values.DimText)
+        local popupHover = themeColor(values.PopupHover)
         local font = themeColor(values.FontColor)
+        local bottombar = themeColor(values.Bottombar)
+        local bottombarBorder = themeColor(values.BottombarBorder)
+        local footerText = themeColor(values.FooterText)
         local fontFace = values.FontFace
-        
-        local updates = {}
-        if background then updates.Background = background end
-        if main then updates.Main = main end
-        if accent then 
-            updates.Accent = accent
+        local base = background
+        if base then
+            Theme.Background = base
+            applyChromeOffsets(base)
+        end
+
+        if main then
+            Theme.Main = main
+            Theme.Surface = main
+        end
+        if accent then
+            Theme.Accent = accent
             self.Accent = accent
         end
-        if outline then updates.Outline = outline end
-        if font then updates.Text = font end
+        if outline then
+            Theme.Outline = outline
+            Theme.SoftOutline = outline
+        end
+        if outline2 then
+            Theme.Outline2 = outline2
+        end
+        if surface2 then
+            Theme.Surface2 = surface2
+        end
+        if muted then
+            Theme.Muted = muted
+        end
+        if dimText then
+            Theme.DimText = dimText
+        end
+        if popupHover then
+            Theme.PopupHover = popupHover
+        end
+        if font then
+            Theme.Text = font
+        end
+        -- Apply explicit overrides if theme provides them
+        if bottombar then
+            Theme.Bottombar = bottombar
+        end
+        if bottombarBorder then
+            Theme.BottombarBorder = bottombarBorder
+        end
+        if footerText then
+            Theme.FooterText = footerText
+        end
         if fontFace and TextManager.Fonts[tostring(fontFace)] then
-            updates.Font = TextManager.Fonts[tostring(fontFace)]
+            Theme.Font = TextManager.Fonts[tostring(fontFace)]
         end
-        
-        -- Fallback only core colors so that BuildTheme actually regenerates derived colors.
-        local coreKeys = { "Background", "Main", "Accent", "Outline", "Text", "Font" }
-        for _, k in ipairs(coreKeys) do
-            if updates[k] == nil then
-                updates[k] = Theme[k]
-            end
-        end
-        
-        GalaxObsidian:BuildTheme(updates, Theme)
     end
 
     -- ---- Destroy / Cleanup ----
@@ -4366,10 +4555,7 @@ function GalaxObsidian:CreateWindow(options)
                     id = id,
                     text = info and (info.Text or info.Label) or text or "",
                     tooltip = info and info.Tooltip,
-                    disabled = info and info.Disabled == true,
                     visible = not (info and info.Visible == false),
-                    _doubleConfirm = info and info.DoubleClick == true,
-                    _confirmPending = false,
                 })
                 local handle = Window:_widgetHandle(widget)
                 return handle
@@ -4385,8 +4571,6 @@ function GalaxObsidian:CreateWindow(options)
                     tooltip = info and info.Tooltip,
                     disabled = info and info.Disabled == true,
                     visible = not (info and info.Visible == false),
-                    _doubleConfirm = info and info.DoubleClick == true,
-                    _confirmPending = false,
                 })
                 local handle = Window:_widgetHandle(widget)
                 handle.AddButton = function(_, subInfo)
@@ -4400,7 +4584,7 @@ function GalaxObsidian:CreateWindow(options)
                         tooltip = subInfo.Tooltip,
                         disabled = subInfo.Disabled == true,
                         visible = subInfo.Visible ~= false,
-                        _doubleConfirm = subInfo.DoubleClick == true,
+                        _doubleConfirm = true,
                         _confirmPending = false,
                     }
                     register({ type = "buttonpair", left = widget, right = rightWidget, visible = true })
@@ -4422,8 +4606,6 @@ function GalaxObsidian:CreateWindow(options)
                     tooltip = leftInfo.Tooltip,
                     disabled = leftInfo.Disabled == true,
                     visible = leftInfo.Visible ~= false,
-                    _doubleConfirm = leftInfo.DoubleClick == true,
-                    _confirmPending = false,
                 }
                 local rightWidget = {
                     type = "button",
@@ -4432,7 +4614,7 @@ function GalaxObsidian:CreateWindow(options)
                     tooltip = rightInfo.Tooltip,
                     disabled = rightInfo.Disabled == true,
                     visible = rightInfo.Visible ~= false,
-                    _doubleConfirm = rightInfo.DoubleClick == true,
+                    _doubleConfirm = true,
                     _confirmPending = false,
                 }
                 register({ type = "buttonpair", left = leftWidget, right = rightWidget, visible = true })
