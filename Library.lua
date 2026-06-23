@@ -905,6 +905,16 @@ local function colorComponents(color)
     end
     return tonumber(r), tonumber(g), tonumber(b)
 end
+local function colorToHexAlpha(color, alpha)
+    local r = math.floor(clamp(color.R * 255 + 0.5, 0, 255))
+    local g = math.floor(clamp(color.G * 255 + 0.5, 0, 255))
+    local b = math.floor(clamp(color.B * 255 + 0.5, 0, 255))
+    if alpha and alpha > 0 then
+        local a = math.floor(clamp((1 - alpha) * 255 + 0.5, 0, 255))
+        return string.format("#%02X%02X%02X%02X", r, g, b, a)
+    end
+    return string.format("#%02X%02X%02X", r, g, b)
+end
 local function inactiveTextColor()
     return Theme.Muted or Theme.DimText
 end
@@ -914,7 +924,7 @@ local function themeColor(value)
     end
     if type(value) == "string" then
         local hex = value:gsub("#", "")
-        if #hex == 6 then
+        if #hex == 6 or #hex == 8 then
             local r = tonumber(hex:sub(1, 2), 16)
             local g = tonumber(hex:sub(3, 4), 16)
             local b = tonumber(hex:sub(5, 6), 16)
@@ -3566,11 +3576,9 @@ function GalaxObsidian:CreateWindow(options)
         self:_square(hexBoxX, infoY, boxW, boxH, Theme.Main, true, 1, 3, z + 2)
         self:_square(hexBoxX, infoY, boxW, boxH, Theme.Outline, false, 1, 3, z + 3)
         local displayR, displayG, displayB = hsvToRgb(widget.hue, widget.sat or 0, widget.vib or 0)
-        local displayHex = string.format(
-            "#%02X%02X%02X",
-            math.floor(clamp(displayR * 255 + 0.5, 0, 255)),
-            math.floor(clamp(displayG * 255 + 0.5, 0, 255)),
-            math.floor(clamp(displayB * 255 + 0.5, 0, 255))
+        local displayHex = colorToHexAlpha(
+            Color3.new(displayR, displayG, displayB),
+            widget.transparencyEnabled and widget.transparency or nil
         )
         local displayRgb = table.concat(
             {

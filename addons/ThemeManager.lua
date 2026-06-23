@@ -111,7 +111,7 @@ local function readTable(path)
 	error("ThemeManager readTable: decoded JSON is not a table for " .. path, 2)
 end
 
-local function colorToHex(color)
+local function colorToHex(color, alpha)
 	if not color or typeof(color) ~= "Color3" then
 		return nil
 	end
@@ -119,6 +119,11 @@ local function colorToHex(color)
 	local r = math.floor(color.R * 255 + 0.5)
 	local g = math.floor(color.G * 255 + 0.5)
 	local b = math.floor(color.B * 255 + 0.5)
+
+	if alpha and alpha > 0 then
+		local a = math.floor((1 - alpha) * 255 + 0.5)
+		return string.format("#%02x%02x%02x%02x", r, g, b, a)
+	end
 
 	return string.format("#%02x%02x%02x", r, g, b)
 end
@@ -133,7 +138,7 @@ local function hexToColor3(hex)
 	end
 
 	hex = hex:gsub("#", "")
-	if #hex ~= 6 then
+	if #hex ~= 6 and #hex ~= 8 then
 		return nil
 	end
 
