@@ -591,9 +591,9 @@ function GalaxObsidian:BuildTheme(base, dest)
     dest.Text = base.Text or dest.Text
     dest.Font = base.Font or dest.Font or Drawing.Fonts.Monospace
     
-    dest.Topbar = shiftColor(dest.Background, -0.01)
-    dest.Sidebar = shiftColor(dest.Background, -0.01)
-    dest.Bottombar = shiftColor(dest.Background, 0.02)
+    dest.Topbar = shiftColor(dest.Background, -4 / 255)
+    dest.Sidebar = shiftColor(dest.Background, -2 / 255)
+    dest.Bottombar = shiftColor(dest.Background, 6 / 255)
     dest.BottombarBorder = shiftColor(dest.Outline, 0.04)
     
     dest.Surface = dest.Main
@@ -4403,11 +4403,11 @@ function GalaxObsidian:CreateWindow(options)
             updates.Font = TextManager.Fonts[tostring(fontFace)]
         end
         
-        -- Fallback to existing Theme values for anything not provided, 
-        -- but recalculate all derived colors using the BuildTheme system.
-        for k, v in pairs(Theme) do
+        -- Fallback only core colors so that BuildTheme actually regenerates derived colors.
+        local coreKeys = { "Background", "Main", "Accent", "Outline", "Text", "Font" }
+        for _, k in ipairs(coreKeys) do
             if updates[k] == nil then
-                updates[k] = v
+                updates[k] = Theme[k]
             end
         end
         
