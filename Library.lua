@@ -2781,12 +2781,15 @@ function GalaxObsidian:CreateWindow(options)
         end
     end
 
-    function Window:_renderSectionTabs(widget, x, y, w, z, fixedY)
+    function Window:_renderSectionTabs(widget, x, y, w, z, sectionTop)
         local scale = self:GetScale()
         local tabBarH = math.floor(28 * scale)
         local tabBarClickH = math.floor(25 * scale)
-        local barY = (fixedY or y) + 1
-        local tabTextY = (fixedY or y) + math.floor(8 * scale)
+        local barY = y + 1
+        if sectionTop then
+            barY = math.max(barY, sectionTop + 1)
+        end
+        local tabTextY = barY + math.floor(7 * scale)
         local count = math.max(1, #widget.tabs)
         local tabW = math.floor(w / count)
         for i, tab in ipairs(widget.tabs) do
@@ -2828,11 +2831,12 @@ function GalaxObsidian:CreateWindow(options)
         if not active then
             return nil
         end
+        local contentClipTop = barY + tabBarH
         local cy = y + math.floor(36 * scale)
         for _, child in ipairs(active.widgets) do
             if child.visible ~= false then
                 local childH = self:_widgetHeight(child)
-                self:_renderWidget(child, x, cy, w, z + 4)
+                self:_renderWidget(child, x, cy, w, z + 4, contentClipTop, self._clipBottom)
                 cy = cy + childH
             end
         end
@@ -3272,7 +3276,7 @@ function GalaxObsidian:CreateWindow(options)
                             self:_closeClippedWidget(widget)
                         elseif wy < sectionBottom then
                             if widget.type == "sectiontabs" then
-                                self:_renderSectionTabs(widget, sx + math.floor(10 * scale), wy, layout.w - math.floor(20 * scale), z + 5, layout.y + headerH)
+                                self:_renderSectionTabs(widget, sx + math.floor(10 * scale), wy, layout.w - math.floor(20 * scale), z + 5, sectionTop)
                             else
                                 self:_renderWidget(widget, sx + math.floor(10 * scale), wy, layout.w - math.floor(20 * scale), z + 5, sectionTop, sectionBottom)
                             end
