@@ -106,7 +106,7 @@ function NotificationManager:RenderNotifications(window)
 	end
 
 	for i, notif in ipairs(window.Notifications) do
-		local textSize = 11
+		local textSize = 14
 		local scaledTextSize = math.floor(textSize * scale + 0.5)
 		local pad = math.floor(10 * scale)
 		local lineH = math.floor(15 * scale)

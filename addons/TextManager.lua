@@ -434,6 +434,28 @@ function TextManager:IsNativeMeasureAvailable()
 	return nativeMeasure("Test", 13, Drawing.Fonts.Monospace) ~= nil
 end
 
+function TextManager:ClearActiveInput(window)
+	if not window then return "" end
+	if window.SearchFocused then
+		window.SearchText = ""
+	elseif window.DropdownSearch then
+		window.DropdownSearch._searchText = ""
+		window.DropdownSearch._dropdownScroll = 0
+	elseif window.TextTarget then
+		local t = window.TextTarget
+		t.value = ""
+		if type(t.callback) == "function" then
+			local ok, err = pcall(t.callback, "")
+			if not ok then error("TextManager.ClearActiveInput callback: " .. tostring(err), 2) end
+		end
+		if type(t.changed) == "function" then
+			local ok, err = pcall(t.changed, "")
+			if not ok then error("TextManager.ClearActiveInput changed: " .. tostring(err), 2) end
+		end
+	end
+	return ""
+end
+
 _G.Galax = _G.Galax or {}
 _G.Galax["addons/TextManager.lua"] = TextManager
 
