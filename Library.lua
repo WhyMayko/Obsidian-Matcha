@@ -859,6 +859,25 @@ local function imageUrl(value)
     end
     return value
 end
+local function parsePngDimensions(data)
+    if data and data:sub(2, 4) == "PNG" then
+        local w = string.unpack(">I4", data:sub(17, 20))
+        local h = string.unpack(">I4", data:sub(21, 24))
+        if w > 0 and h > 0 then
+            return w, h
+        end
+    end
+    local ok, img = pcall(Drawing.new, "Image")
+    if ok then
+        img.Data = data
+        local w, h = img.Size.X, img.Size.Y
+        img:Remove()
+        if w > 0 and h > 0 then
+            return w, h
+        end
+    end
+    return nil, nil
+end
 local function thumbnailImageUrl(data)
     if type(data) ~= "string" then
         return nil
@@ -1083,6 +1102,7 @@ function GalaxObsidian:CreateWindow(options)
     if Window.ImagesEnabled and Window.IconUrl and not Window.IconReady then
         RequestImage(Window.IconUrl, function(data)
             Window.IconData = data
+            Window.IconNativeW, Window.IconNativeH = parsePngDimensions(data)
             Window.IconReady = true
         end)
     end
@@ -1533,9 +1553,30 @@ function GalaxObsidian:CreateWindow(options)
         self.Mouse2Clicked = down2 and not self.PrevMouse2
         self.Mouse2Held = down2
         self.PrevMouse2 = down2
+        local down3 = type(ismouse3pressed) == "function" and ismouse3pressed() == true or false
+        self.Mouse3Clicked = down3 and not self.PrevMouse3
+        self.Mouse3Held = down3
+        self.PrevMouse3 = down3
+        local down4 = type(ismouse4pressed) == "function" and ismouse4pressed() == true or false
+        self.Mouse4Clicked = down4 and not self.PrevMouse4
+        self.Mouse4Held = down4
+        self.PrevMouse4 = down4
+        local down5 = type(ismouse5pressed) == "function" and ismouse5pressed() == true or false
+        self.Mouse5Clicked = down5 and not self.PrevMouse5
+        self.Mouse5Held = down5
+        self.PrevMouse5 = down5
     end
 
     function Window:_readListenKey()
+        if self.Mouse3Clicked then
+            return 4
+        end
+        if self.Mouse4Clicked then
+            return 5
+        end
+        if self.Mouse5Clicked then
+            return 6
+        end
         for key = 7, 255 do
             if self:_keyPressed(key) then
                 return key
@@ -1831,7 +1872,16 @@ function GalaxObsidian:CreateWindow(options)
                 and widget.listening ~= true
             then
                 local resolvedKey = keyCodeFromName(widget.value)
-                local keyHeld = resolvedKey ~= nil and iskeypressed(resolvedKey) == true
+                local keyHeld
+                if resolvedKey == 4 then
+                    keyHeld = type(ismouse3pressed) == "function" and ismouse3pressed() == true
+                elseif resolvedKey == 5 then
+                    keyHeld = type(ismouse4pressed) == "function" and ismouse4pressed() == true
+                elseif resolvedKey == 6 then
+                    keyHeld = type(ismouse5pressed) == "function" and ismouse5pressed() == true
+                else
+                    keyHeld = resolvedKey ~= nil and iskeypressed(resolvedKey) == true
+                end
                 local wasHeld = widget._prevHeld == true
                 local mode = tostring(widget.mode or "Hold")
                 if mode == "Hold" then
@@ -2781,14 +2831,11 @@ function GalaxObsidian:CreateWindow(options)
         end
     end
 
-    function Window:_renderSectionTabs(widget, x, y, w, z, sectionTop)
+    function Window:_renderSectionTabs(widget, x, y, w, z)
         local scale = self:GetScale()
         local tabBarH = math.floor(28 * scale)
         local tabBarClickH = math.floor(25 * scale)
         local barY = y + 1
-        if sectionTop then
-            barY = math.max(barY, sectionTop + 1)
-        end
         local tabTextY = barY + math.floor(7 * scale)
         local count = math.max(1, #widget.tabs)
         local tabW = math.floor(w / count)
@@ -3275,11 +3322,7 @@ function GalaxObsidian:CreateWindow(options)
                         if wy + wh <= sectionTop then
                             self:_closeClippedWidget(widget)
                         elseif wy < sectionBottom then
-                            if widget.type == "sectiontabs" then
-                                self:_renderSectionTabs(widget, sx + math.floor(10 * scale), wy, layout.w - math.floor(20 * scale), z + 5, sectionTop)
-                            else
-                                self:_renderWidget(widget, sx + math.floor(10 * scale), wy, layout.w - math.floor(20 * scale), z + 5, sectionTop, sectionBottom)
-                            end
+                            self:_renderWidget(widget, sx + math.floor(10 * scale), wy, layout.w - math.floor(20 * scale), z + 5, sectionTop, sectionBottom)
                         else
                             break
                         end
@@ -3786,6 +3829,9 @@ function GalaxObsidian:CreateWindow(options)
                     true,
                     2
                 )
+                if row.widget and row.widget.type == "keybind" and self.Mouse2Clicked and self:_over(x, ry, width, rowH) then
+                    self:_openKeybindModePopup(row.widget, x + width - math.floor(80 * scale), ry, math.floor(80 * scale))
+                end
             end
         end
     end
@@ -4028,43 +4074,50 @@ function GalaxObsidian:CreateWindow(options)
                 chromeZ + 5
             )
         end
-        local chromeTitleIconSize = (self.IconReady and self.IconData) and math.min(math.floor((self.IconSize or 24) * scale), math.floor(26 * scale)) or 0
-        local chromeTitleGap = chromeTitleIconSize > 0 and math.floor(6 * scale) or 0
         local chromeTitleSize = 21
         local scaledChromeTitleSize = math.floor(chromeTitleSize * scale + 0.5)
-        local chromeTitleText = fitTextToWidth(
-            self.Title,
-            sidebarW - chromeTitleIconSize - chromeTitleGap - math.floor(24 * scale),
-            chromeTitleSize,
-            Theme.Font
-        )
-        local chromeTitleW = estimateTextWidth(chromeTitleText, chromeTitleSize, Theme.Font)
-        local chromeTitleTotalW = chromeTitleIconSize + chromeTitleGap + chromeTitleW
-        local chromeTitleX = x + math.floor((sidebarW - chromeTitleTotalW) / 2)
-        if chromeTitleIconSize > 0 then
-            self:_image(
-                self.IconData,
-                chromeTitleX,
-                y + math.floor((topH - chromeTitleIconSize) / 2),
-                chromeTitleIconSize,
-                chromeTitleIconSize,
-                0,
+        local yOfs = scale > 1 and -math.floor((scale - 1) * 3) or 0
+        local iconMax = math.floor(28 * scale)
+        local iconW, iconH = 0, 0
+        if self.IconReady and self.IconData then
+            local nativeW, nativeH = self.IconNativeW, self.IconNativeH
+            local target = math.min(math.floor((self.IconSize or 24) * scale), iconMax)
+            if nativeW and nativeH and nativeW > 0 and nativeH > 0 then
+                local aspect = nativeW / nativeH
+                if aspect >= 1 then
+                    iconW = target
+                    iconH = math.max(1, math.floor(iconW / aspect))
+                else
+                    iconH = target
+                    iconW = math.max(1, math.floor(iconH * aspect))
+                end
+            else
+                iconW, iconH = target, target
+            end
+        end
+        local gap = iconW > 0 and math.floor(6 * scale) or 0
+        local titleMaxW = math.max(0, sidebarW - math.floor(24 * scale) - iconW - gap)
+        local chromeTitleText = self.Title ~= "" and fitTextToWidth(self.Title, titleMaxW, chromeTitleSize, Theme.Font) or ""
+        local chromeTitleW = chromeTitleText ~= "" and estimateTextWidth(chromeTitleText, chromeTitleSize, Theme.Font) or 0
+        local totalW = iconW + gap + chromeTitleW
+        local startX = x + math.floor((sidebarW - totalW) / 2)
+        if iconW > 0 then
+            self:_image(self.IconData, startX, y + math.floor((topH - iconH) / 2), iconW, iconH, 0, chromeZ + 4)
+            startX = startX + iconW + gap
+        end
+        if chromeTitleW > 0 then
+            self:_text(
+                chromeTitleText,
+                startX,
+                y + math.floor((topH - scaledChromeTitleSize) / 2) - yOfs,
+                Theme.Text,
+                chromeTitleSize,
+                Drawing.Fonts.Monospace,
+                false,
+                true,
                 chromeZ + 4
             )
         end
-        chromeTitleX = chromeTitleX + chromeTitleIconSize + chromeTitleGap
-        local yOfs = scale > 1 and -math.floor((scale - 1) * 3) or 0
-        self:_text(
-            chromeTitleText,
-            chromeTitleX,
-            y + math.floor((topH - scaledChromeTitleSize) / 2) - yOfs,
-            Theme.Text,
-            chromeTitleSize,
-            Drawing.Fonts.Monospace,
-            false,
-            true,
-            chromeZ + 4
-        )
         if searchVisible then
             self:_square(searchX, searchY, searchW, searchH, Theme.Main, true, 1, 4, chromeZ + 3)
             self:_square(
@@ -4202,11 +4255,13 @@ function GalaxObsidian:CreateWindow(options)
         self.IconUrl = url
         self.IconReady = false
         self.IconData = nil
+        self.IconNativeW, self.IconNativeH = nil, nil
         if not url or url == "" then
             return nil
         end
         RequestImage(url, function(data)
             self.IconData = data
+            self.IconNativeW, self.IconNativeH = parsePngDimensions(data)
             self.IconReady = true
         end)
     end
@@ -4214,6 +4269,7 @@ function GalaxObsidian:CreateWindow(options)
         self.IconUrl = nil
         self.IconData = data
         self.IconReady = data ~= nil and data ~= ""
+        self.IconNativeW, self.IconNativeH = parsePngDimensions(data)
     end
     function Window:SetSidebarImage(url, scale, imgX, imgY)
         local resolved = url and imageUrl(url) or nil
@@ -4231,27 +4287,7 @@ function GalaxObsidian:CreateWindow(options)
         self.SidebarImageData = nil
         RequestImage(resolved, function(data)
             self.SidebarImageData = data
-            
-            local parsedW, parsedH
-            if data and data:sub(2, 4) == "PNG" then
-                parsedW = string.unpack(">I4", data:sub(17, 20))
-                parsedH = string.unpack(">I4", data:sub(21, 24))
-            end
-            
-            if parsedW and parsedH and parsedW > 0 and parsedH > 0 then
-                self.SidebarImageNativeW = parsedW
-                self.SidebarImageNativeH = parsedH
-            else
-                local ok, err = pcall(function()
-                    local img = Drawing.new("Image")
-                    img.Data = data
-                    self.SidebarImageNativeW = img.Size.X
-                    self.SidebarImageNativeH = img.Size.Y
-                    img:Remove()
-                end)
-                if not ok then error("SidebarImage size detection: " .. tostring(err), 2) end
-            end
-            
+            self.SidebarImageNativeW, self.SidebarImageNativeH = parsePngDimensions(data)
             self.SidebarImageReady = true
         end)
     end
@@ -5196,6 +5232,7 @@ function GalaxObsidian:CreateWindow(options)
                     local hue, sat, vib = rgbToHsv(default)
                     return {
                         type = "colorpicker",
+                        id = config.Index or config.Idx or labelValue,
                         label = config.Text or config.Label or labelValue or "ColorPicker",
                         title = config.Title,
                         value = default,
