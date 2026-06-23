@@ -578,8 +578,10 @@ end
 -- DEFAULT THEME & BUILDER
 -- ======================================================================
 local function shiftColor(color, vShift)
-    local h, s, v = color:ToHSV()
-    return Color3.fromHSV(h, s, clamp(v + vShift, 0, 1))
+    local r = clamp(color.R + vShift, 0, 1)
+    local g = clamp(color.G + vShift, 0, 1)
+    local b = clamp(color.B + vShift, 0, 1)
+    return Color3.new(r, g, b)
 end
 
 function GalaxObsidian:BuildTheme(base, dest)
