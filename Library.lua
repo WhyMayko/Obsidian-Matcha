@@ -82,6 +82,8 @@ local IconManager = loadCoreAddon("addons/IconManager.lua")
 
 local AnimationManager = loadCoreAddon("addons/AnimationManager.lua")
 
+local SizeManager = loadCoreAddon("addons/SizeManager.lua")
+
 local DialogManager = loadCoreAddon("addons/DialogManager.lua")
 
 local NotificationManager = loadCoreAddon("addons/NotificationManager.lua")
@@ -93,6 +95,8 @@ GalaxObsidian.IconManager = IconManager
 GalaxObsidian.AnimationManager = AnimationManager
 GalaxObsidian.DialogManager = DialogManager
 GalaxObsidian.NotificationManager = NotificationManager
+SizeManager:SetTextManager(TextManager)
+GalaxObsidian.SizeManager = SizeManager
 GalaxObsidian.ValueWatcher = ValueWatcher
 local function clamp(value, minValue, maxValue)
     if value < minValue then
@@ -3073,7 +3077,7 @@ function GalaxObsidian:CreateWindow(options)
         local scrollTrackW = math.floor(10 * scale)
         local scrollGap = math.floor(4 * scale)
         local scrollSlot = scrollTrackW + scrollGap
-        local useTwoColumns = w >= math.floor(560 * scale)
+        local useTwoColumns = SizeManager:GetWindowState(self).UseTwoColumns
         local columnW = useTwoColumns and math.floor((w - pad * 2 - columnGap) / 2) or math.floor(w - pad * 2)
         local leftY = y + pad
         local rightY = y + pad
@@ -3849,14 +3853,8 @@ function GalaxObsidian:CreateWindow(options)
         local x, y = self.Position.X, self.Position.Y
         local w, h = self.Size.X, self.Size.Y
         local scale = self:GetScale()
-        local compact = math.floor(w / scale) <= 420
-        local sidebarW = compact and math.floor(48 * scale) or math.ceil(w * 0.26)
-        if sidebarW < math.floor(128 * scale) and not compact then
-            sidebarW = math.floor(128 * scale)
-        end
-        if sidebarW > math.floor(200 * scale) and not compact then
-            sidebarW = math.floor(200 * scale)
-        end
+        local sizeState = SizeManager:GetWindowState(self)
+        local sidebarW = sizeState.SidebarWidth
         local topH = math.floor(50 * scale)
         local bottomH = math.floor(20 * scale)
         local topPad = math.floor(8 * scale)
@@ -4063,12 +4061,12 @@ function GalaxObsidian:CreateWindow(options)
             if active then
                 self:_square(x, chromeTabY, sidebarW, tabEntryH, sidebarBg, true, 1, 0, chromeZ + 2)
             end
-            local iconX = x + (compact and math.floor(sidebarW / 2) or math.floor(21 * scale))
+            local iconX = x + (sizeState.SidebarMode == "icon" and math.floor(sidebarW / 2) or math.floor(21 * scale))
             local iconY = chromeTabY + math.floor(tabEntryH / 2)
             local tabColor = self:_animOrSnap(tab, "sidebar.text", (active or over) and Theme.Text or Theme.Muted, 16)
             local iconColor = self:_animOrSnap(tab, "sidebar.icon", active and self.Accent or tabColor, 16)
             self:_drawIcon(tab.Icon or tab.Name, iconX, iconY, math.floor(19 * scale), iconColor, chromeZ + 4)
-            if not compact then
+            if sizeState.SidebarMode ~= "icon" then
                 self:_text(
                     fitTextToWidth(tab.Name, sidebarW - math.floor(42 * scale), 16, Theme.Font),
                     x + math.floor(42 * scale),
