@@ -20,7 +20,7 @@ SizeManager.SidebarWidths = {
 
 SizeManager.ColumnConfig = {
     MinLogicalWidth = 260,
-    MinContentWidth = 360,
+    MinContentWidth = 490,
     PaddingX = 10,
     ColumnGap = 18,
 }

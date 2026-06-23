@@ -3079,8 +3079,25 @@ function GalaxObsidian:CreateWindow(options)
         local scrollSlot = scrollTrackW + scrollGap
         local useTwoColumns = SizeManager:GetWindowState(self).UseTwoColumns
         local columnW = useTwoColumns and math.floor((w - pad * 2 - columnGap) / 2) or math.floor(w - pad * 2)
-        local leftY = y + pad
-        local rightY = y + pad
+        tab._singleColumnSide = tab._singleColumnSide or "Left"
+        local hasBothSides = false
+        local toggleOffset = 0
+        if not useTwoColumns then
+            local leftCount, rightCount = 0, 0
+            for _, section in ipairs(tab.Sections) do
+                if self:_sectionVisible(section) then
+                    local s = section.side or "Left"
+                    if s == "Left" then leftCount = leftCount + 1
+                    else rightCount = rightCount + 1 end
+                end
+            end
+            hasBothSides = leftCount > 0 and rightCount > 0
+            if hasBothSides then
+                toggleOffset = math.floor(28 * scale)
+            end
+        end
+        local leftY = y + pad + toggleOffset
+        local rightY = y + pad + toggleOffset
         local layouts = {}
         tab._scrollOwners = tab._scrollOwners or { Left = {}, Right = {} }
         if type(self.TabScroll[tab]) ~= "table" then
@@ -3090,6 +3107,9 @@ function GalaxObsidian:CreateWindow(options)
 
         for index, section in ipairs(tab.Sections) do
             if self:_sectionVisible(section) then
+                if not useTwoColumns and hasBothSides and (section.side or "Left") ~= tab._singleColumnSide then
+                    -- skip, filtered by column toggle
+                else
                 local side = section.side
                 if not side then
                     side = (useTwoColumns and index % 2 == 0) and "Right" or "Left"
@@ -3109,6 +3129,7 @@ function GalaxObsidian:CreateWindow(options)
                     rightY = rightY + sh + math.floor(10 * scale)
                 else
                     leftY = leftY + sh + math.floor(10 * scale)
+                end
                 end
             end
         end
@@ -3170,6 +3191,29 @@ function GalaxObsidian:CreateWindow(options)
             renderColumnScroll("Right", x + pad + columnW + columnGap + columnW - scrollTrackW)
         else
             renderColumnScroll("Left", x + pad + columnW - scrollTrackW)
+        end
+        if hasBothSides then
+            local btnSize = math.floor(10 * scale)
+            local btnH = math.floor(20 * scale)
+            local btnY = y + math.floor(8 * scale)
+            local btnRadius = math.floor(4 * scale)
+            local btnEdgePad = math.floor(6 * scale)
+
+            local leftActive = tab._singleColumnSide == "Left"
+            local leftColor = self:_anim(tab, "colToggle.L", leftActive and Theme.Muted or Theme.Background, 18)
+            local leftX = x + pad + btnEdgePad
+            self:_square(leftX, btnY, btnSize, btnH, leftColor, true, 1, btnRadius, z + 35)
+            if self:_click(leftX, btnY, btnSize, btnH) then
+                tab._singleColumnSide = "Left"
+            end
+
+            local rightActive = tab._singleColumnSide == "Right"
+            local rightColor = self:_anim(tab, "colToggle.R", rightActive and Theme.Muted or Theme.Background, 18)
+            local rightX = x + w - pad - btnEdgePad - btnSize
+            self:_square(rightX, btnY, btnSize, btnH, rightColor, true, 1, btnRadius, z + 35)
+            if self:_click(rightX, btnY, btnSize, btnH) then
+                tab._singleColumnSide = "Right"
+            end
         end
         local clipTop = clipTopOverride or y
         local clipBottom = clipBottomOverride or (y + h)
