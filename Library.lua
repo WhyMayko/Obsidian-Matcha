@@ -2835,7 +2835,7 @@ function GalaxObsidian:CreateWindow(options)
         local scale = self:GetScale()
         local tabBarH = math.floor(28 * scale)
         local tabBarClickH = math.floor(25 * scale)
-        local barY = y + 1
+        local barY = math.max(y + 1, (self._clipTop or y) + 1)
         local tabTextY = barY + math.floor(7 * scale)
         local count = math.max(1, #widget.tabs)
         local tabW = math.floor(w / count)
@@ -4099,6 +4099,9 @@ function GalaxObsidian:CreateWindow(options)
         local titleMaxW = math.max(0, sidebarW - math.floor(24 * scale) - iconW - gap)
         local chromeTitleText = self.Title ~= "" and fitTextToWidth(self.Title, titleMaxW, chromeTitleSize, Theme.Font) or ""
         local chromeTitleW = chromeTitleText ~= "" and estimateTextWidth(chromeTitleText, chromeTitleSize, Theme.Font) or 0
+        if chromeTitleW <= 0 then
+            gap = 0
+        end
         local totalW = iconW + gap + chromeTitleW
         local startX = x + math.floor((sidebarW - totalW) / 2)
         if iconW > 0 then
