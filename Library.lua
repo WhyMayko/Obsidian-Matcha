@@ -1042,7 +1042,7 @@ function GalaxObsidian:CreateWindow(options)
         TextTarget = nil,
         DropdownSearch = nil,
         TooltipText = nil,
-        MouseLockOwner = nil,
+        _focus = nil,
         KeybindMenuDrag = nil,
         LastRobloxInputBlocked = nil,
         BlockClicks = false,
@@ -1361,7 +1361,17 @@ function GalaxObsidian:CreateWindow(options)
         return self:_clampToViewport(x, y, w, h, margin, screenOnly)
     end
 
-    function Window:_mouseAllowed(owner)
+    function Window:MouseFocus(owner)
+        if owner == nil then
+            return self._focus
+        end
+        if owner == false then
+            if self._focus then
+                self._focus = nil
+                self.Mouse1Clicked = false
+            end
+            return nil
+        end
         if self.DropdownTarget and owner ~= self.DropdownTarget then
             return false
         end
@@ -1371,16 +1381,18 @@ function GalaxObsidian:CreateWindow(options)
         if self.KeybindModeTarget and owner ~= self.KeybindModeTarget then
             return false
         end
-        if not self.MouseLockOwner then
-            return true
+        if self._focus and self._focus ~= owner then
+            return false
         end
-        return owner ~= nil and self.MouseLockOwner == owner
+        self._focus = owner
+        self.Mouse1Clicked = false
+        return true
     end
     function Window:_hover(x, y, w, h, owner)
         if not self:_clipAllowsBox(y, h) then
             return false
         end
-        return self:_mouseAllowed(owner) and self:_over(x, y, w, h)
+        return (not self._focus or self._focus == owner) and self:_over(x, y, w, h)
     end
     function Window:_tooltip(widget, x, y, w, h, owner)
         if self:_hotInteraction() then
@@ -1417,7 +1429,7 @@ function GalaxObsidian:CreateWindow(options)
                 return false
             end
         end
-        return self.Mouse1Clicked and not self.BlockClicks and self:_mouseAllowed(owner) and self:_over(x, y, w, h)
+        return self.Mouse1Clicked and not self.BlockClicks and (not self._focus or self._focus == owner) and self:_over(x, y, w, h)
     end
     function Window:_clickFor(owner, x, y, w, h)
         return self:_click(x, y, w, h, owner)
@@ -1680,22 +1692,21 @@ function GalaxObsidian:CreateWindow(options)
         self.HoldKey = nil
         self.HoldStarted = 0
         self.HoldLastRepeat = 0
-        self.MouseLockOwner = nil
+        self._focus = nil
         self.DragOffset = nil
         self.ResizeOffset = nil
         self.KeybindMenuDrag = nil
         self.BlockClicks = false
     end
     function Window:_claimInteraction(owner)
-        self.MouseLockOwner = owner
-        self.Mouse1Clicked = false
+        self:MouseFocus(owner)
     end
     function Window:_releaseInteraction(owner, keepClick)
-        if owner == nil or self.MouseLockOwner == owner then
-            self.MouseLockOwner = nil
-        end
-        if keepClick ~= true then
-            self.Mouse1Clicked = false
+        if owner == nil or self._focus == owner then
+            self._focus = nil
+            if keepClick ~= true then
+                self.Mouse1Clicked = false
+            end
         end
     end
     function Window:_closeFloating(except)
@@ -3035,7 +3046,7 @@ function GalaxObsidian:CreateWindow(options)
                                 true,
                                 z + 3
                             )
-                            if addon.disabled ~= true and self.Mouse2Clicked and self:_mouseAllowed(addon) and self:_over(ax, y + math.floor(3 * scale), aw, addonSize) then
+                            if addon.disabled ~= true and self.Mouse2Clicked and (not self._focus or self._focus == addon) and self:_over(ax, y + math.floor(3 * scale), aw, addonSize) then
                                 self:_openKeybindModePopup(addon, ax, y + math.floor(3 * scale), aw)
                             end
                             if addon.disabled ~= true and self:_click(ax, y + math.floor(3 * scale), aw, addonSize) then
@@ -3517,7 +3528,7 @@ function GalaxObsidian:CreateWindow(options)
         if
             self.Mouse1Clicked
             and not self.BlockClicks
-            and self.MouseLockOwner == widget
+            and self._focus == widget
             and not self:_over(info.x, info.y - math.floor(22 * scale), info.w, height + math.floor(22 * scale))
         then
             widget._searchText = ""
@@ -3710,7 +3721,7 @@ function GalaxObsidian:CreateWindow(options)
             true,
             z + 4
         )
-        if self.Mouse1Clicked and not self.BlockClicks and self.MouseLockOwner == widget and not self:_over(x, y - math.floor(22 * scale), info.w, info.h + math.floor(22 * scale)) then
+        if self.Mouse1Clicked and not self.BlockClicks and self._focus == widget and not self:_over(x, y - math.floor(22 * scale), info.w, info.h + math.floor(22 * scale)) then
             self.ColorPickerTarget = nil
             self.ColorPickerDrag = nil
             self:_releaseInteraction(widget)
@@ -3872,7 +3883,7 @@ function GalaxObsidian:CreateWindow(options)
                     2
                 )
                 if row.widget and row.widget.type == "keybind" and self.Mouse2Clicked and self:_hover(x, ry, width, rowH, row.widget) then
-                    self:_openKeybindModePopup(row.widget, mouse.X, mouse.Y, math.floor(80 * scale))
+                    self:_openKeybindModePopup(row.widget, mouse.X, mouse.Y - math.floor(23 * scale), math.floor(80 * scale))
                 end
             end
         end
