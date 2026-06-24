@@ -82,8 +82,6 @@ local IconManager = loadCoreAddon("addons/IconManager.lua")
 
 local AnimationManager = loadCoreAddon("addons/AnimationManager.lua")
 
-local SizeManager = loadCoreAddon("addons/SizeManager.lua")
-
 local DialogManager = loadCoreAddon("addons/DialogManager.lua")
 
 local NotificationManager = loadCoreAddon("addons/NotificationManager.lua")
@@ -95,8 +93,6 @@ GalaxObsidian.IconManager = IconManager
 GalaxObsidian.AnimationManager = AnimationManager
 GalaxObsidian.DialogManager = DialogManager
 GalaxObsidian.NotificationManager = NotificationManager
-SizeManager:SetTextManager(TextManager)
-GalaxObsidian.SizeManager = SizeManager
 GalaxObsidian.ValueWatcher = ValueWatcher
 local function clamp(value, minValue, maxValue)
     if value < minValue then
@@ -3188,28 +3184,9 @@ function GalaxObsidian:CreateWindow(options)
         local scrollTrackW = math.floor(8 * scale)
         local scrollGap = math.floor(6 * scale)
         local scrollSlot = scrollTrackW + scrollGap
-        local useTwoColumns = SizeManager:GetWindowState(self).UseTwoColumns
-        local columnW = useTwoColumns and math.floor((w - pad * 2 - columnGap) / 2) or math.floor(w - pad * 2)
-        tab._singleColumnSide = tab._singleColumnSide or "Left"
-        local hasBothSides = false
-        if not useTwoColumns then
-            local leftCount, rightCount = 0, 0
-            for _, section in ipairs(tab.Sections) do
-                if self:_sectionVisible(section) then
-                    local s = section.side or "Left"
-                    if s == "Left" then leftCount = leftCount + 1
-                    else rightCount = rightCount + 1 end
-                end
-            end
-            hasBothSides = leftCount > 0 and rightCount > 0
-        end
+        local columnW = math.floor((w - pad * 2 - columnGap) / 2)
         local leftY = y + pad
         local rightY = y + pad
-        if hasBothSides then
-            local toggleOffset = math.floor(26 * scale) + math.floor(6 * scale)
-            leftY = leftY + toggleOffset
-            rightY = rightY + toggleOffset
-        end
         local layouts = {}
         tab._scrollOwners = tab._scrollOwners or { Left = {}, Right = {} }
         if type(self.TabScroll[tab]) ~= "table" then
@@ -3219,14 +3196,11 @@ function GalaxObsidian:CreateWindow(options)
 
         for index, section in ipairs(tab.Sections) do
             if self:_sectionVisible(section) then
-                if not useTwoColumns and hasBothSides and (section.side or "Left") ~= tab._singleColumnSide then
-                    -- skip, filtered by column toggle
-                else
                 local side = section.side
                 if not side then
-                    side = (useTwoColumns and index % 2 == 0) and "Right" or "Left"
+                    side = (index % 2 == 0) and "Right" or "Left"
                 end
-                local sideName = useTwoColumns and side == "Right" and "Right" or "Left"
+                local sideName = side == "Right" and "Right" or "Left"
                 local useRight = sideName == "Right"
                 local sx = x + pad
                 local sy = leftY
@@ -3241,7 +3215,6 @@ function GalaxObsidian:CreateWindow(options)
                     rightY = rightY + sh + math.floor(14 * scale)
                 else
                     leftY = leftY + sh + math.floor(14 * scale)
-                end
                 end
             end
         end
@@ -3298,37 +3271,8 @@ function GalaxObsidian:CreateWindow(options)
                 self:_releaseInteraction(owner)
             end
         end
-        if useTwoColumns then
-            renderColumnScroll("Left", x + pad + columnW - scrollTrackW)
-            renderColumnScroll("Right", x + pad + columnW + columnGap + columnW - scrollTrackW)
-        else
-            renderColumnScroll("Left", x + pad + columnW - scrollTrackW)
-        end
-        if hasBothSides then
-            local toggleGap = math.floor(8 * scale)
-            local toggleW = columnW - math.floor(14 * scale)
-            local halfW = math.floor((toggleW - toggleGap) / 2)
-            local toggleH = math.floor(26 * scale)
-            local toggleRadius = math.floor(4 * scale)
-            local toggleX = x + pad + math.floor(7 * scale)
-            local toggleY = y + pad
-            local leftActive = tab._singleColumnSide == "Left"
-            local leftFill = self:_anim(tab, "colToggle.L", leftActive and Theme.Muted or Theme.Background, 18)
-            local rightActive = tab._singleColumnSide == "Right"
-            local rightFill = self:_anim(tab, "colToggle.R", rightActive and Theme.Muted or Theme.Background, 18)
-            if toggleY + toggleH > y and toggleY < y + h then
-                self:_square(toggleX, toggleY, halfW, toggleH, leftFill, true, 1, toggleRadius, z + 5)
-                self:_square(toggleX, toggleY, halfW, toggleH, Theme.Outline, false, 1, toggleRadius, z + 6)
-                if self:_click(toggleX, toggleY, halfW, toggleH) then
-                    tab._singleColumnSide = "Left"
-                end
-                self:_square(toggleX + halfW + toggleGap, toggleY, halfW, toggleH, rightFill, true, 1, toggleRadius, z + 5)
-                self:_square(toggleX + halfW + toggleGap, toggleY, halfW, toggleH, Theme.Outline, false, 1, toggleRadius, z + 6)
-                if self:_click(toggleX + halfW + toggleGap, toggleY, halfW, toggleH) then
-                    tab._singleColumnSide = "Right"
-                end
-            end
-        end
+        renderColumnScroll("Left", x + pad + columnW - scrollTrackW)
+        renderColumnScroll("Right", x + pad + columnW + columnGap + columnW - scrollTrackW)
         local clipTop = clipTopOverride or y
         local clipBottom = clipBottomOverride or (y + h)
         for _, layout in ipairs(layouts) do
@@ -4026,8 +3970,7 @@ function GalaxObsidian:CreateWindow(options)
         local x, y = self.Position.X, self.Position.Y
         local w, h = self.Size.X, self.Size.Y
         local scale = self:GetScale()
-        local sizeState = SizeManager:GetWindowState(self)
-        local sidebarW = sizeState.SidebarWidth
+        local sidebarW = math.floor(200 * scale)
         local topH = math.floor(48 * scale)
         local bottomH = math.floor(20 * scale)
         local topPad = math.floor(8 * scale)
@@ -4244,24 +4187,22 @@ function GalaxObsidian:CreateWindow(options)
             if active then
                 self:_square(x, chromeTabY, sidebarW, tabEntryH, sidebarBg, true, 1, 0, chromeZ + 2)
             end
-            local iconX = x + (sizeState.SidebarMode == "icon" and math.floor(sidebarW / 2) or math.floor(14 * scale))
+            local iconX = x + math.floor(14 * scale)
             local iconY = chromeTabY + math.floor(tabEntryH / 2)
             local tabColor = self:_animOrSnap(tab, "sidebar.text", (active or over) and Theme.Text or Theme.Muted, 16)
             local iconColor = self:_animOrSnap(tab, "sidebar.icon", active and self.Accent or Theme.Muted, 16)
             self:_drawIcon(tab.Icon or tab.Name, iconX, iconY, math.floor(16 * scale), iconColor, chromeZ + 4)
-            if sizeState.SidebarMode ~= "icon" then
-                self:_text(
-                    fitTextToWidth(tab.Name, sidebarW - math.floor(38 * scale), 16, Theme.Font),
-                    x + math.floor(38 * scale),
-                    chromeTabY + math.floor(12 * scale),
-                    tabColor,
-                    16,
-                    Drawing.Fonts.Monospace,
-                    false,
-                    true,
-                    chromeZ + 5
-                )
-            end
+            self:_text(
+                fitTextToWidth(tab.Name, sidebarW - math.floor(38 * scale), 16, Theme.Font),
+                x + math.floor(38 * scale),
+                chromeTabY + math.floor(12 * scale),
+                tabColor,
+                16,
+                Drawing.Fonts.Monospace,
+                false,
+                true,
+                chromeZ + 5
+            )
             chromeTabY = chromeTabY + tabEntryH
         end
         if self.SidebarImageReady and self.SidebarImageData then
