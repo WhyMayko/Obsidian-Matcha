@@ -2105,7 +2105,8 @@ function GalaxObsidian:CreateWindow(options)
             local textSize = widget.size or 14
             local hasAddon = widget.addons and #widget.addons > 0
             if widget.doesWrap ~= false then
-                local lines = wrapTextLines(widget.text or "", 200 * scale, textSize, 8, Theme.Font)
+                local labelWidth = widget._calcWidth or math.floor(200 * scale)
+                local lines = wrapTextLines(widget.text or "", labelWidth, textSize, 8, Theme.Font)
                 base = math.max(hasAddon and 21 or 18, #lines * textSize + 4)
             else
                 base = math.max(hasAddon and 21 or 18, textSize + 4)
@@ -3156,6 +3157,7 @@ function GalaxObsidian:CreateWindow(options)
             local scale = self:GetScale()
             for _, widget in ipairs(section.widgets) do
                 if widget.visible ~= false then
+                    widget._calcWidth = contentW
                     totalH = totalH + self:_widgetHeight(widget)
                     visibleCount = visibleCount + 1
                 end
@@ -3216,6 +3218,10 @@ function GalaxObsidian:CreateWindow(options)
                 if useRight then
                     sx = x + pad + columnW + columnGap
                     sy = rightY
+                end
+                local widgetW = columnW - math.floor(14 * scale)
+                for _, widget in ipairs(section.widgets) do
+                    widget._calcWidth = widgetW
                 end
                 local sh = self:_sectionHeight(section)
                 layouts[#layouts + 1] = { section = section, side = sideName, x = sx, y = sy, w = columnW, h = sh }
@@ -3786,7 +3792,7 @@ function GalaxObsidian:CreateWindow(options)
             self.KeybindMenuDrag = nil
         end
         self.KeybindMenuX, self.KeybindMenuY = x, y
-        self:_square(x, y, width, height, Theme.Background, true, 1, 4, 0)
+        self:_square(x, y, width, height, Theme.Topbar, true, 1, 4, 0)
         self:_square(x, y, width, height, Theme.SoftOutline, false, 1, 4, 1)
         self:_text("Keybinds", x + math.floor(10 * scale), y + math.floor(10 * scale), Theme.Text, 14, Drawing.Fonts.Monospace, false, true, 2)
         self:_line(x + math.floor(4 * scale), y + dragH - math.floor(2 * scale), x + width - math.floor(4 * scale), y + dragH - math.floor(2 * scale), Theme.Outline, 1, 2)
@@ -4091,8 +4097,8 @@ function GalaxObsidian:CreateWindow(options)
         self:_text(
             footerText,
             footerX,
-            y + h - bottomH + math.floor((bottomH - scaledFooterTextSize) / 2) - yOfs,
-            Theme.FooterText,
+                y + h - bottomH + math.floor((bottomH - scaledFooterTextSize) / 2) - yOfs,
+            Theme.Text,
             footerTextSize,
             Drawing.Fonts.Monospace,
             false,
@@ -4193,7 +4199,7 @@ function GalaxObsidian:CreateWindow(options)
             self.SearchFocused = false
             self:_releaseInteraction("Search", true)
         end
-        self:_drawIcon("move", dragX, dragY, dragSize, Theme.Outline2, chromeZ + 5)
+        self:_drawIcon("move", dragX, dragY, dragSize, Theme.Text, chromeZ + 5)
         local chromeTabY = y + topH
         for _, tab in ipairs(self.Tabs) do
             local active = tab == self.ActiveTab
