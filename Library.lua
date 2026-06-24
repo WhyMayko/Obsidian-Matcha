@@ -987,7 +987,10 @@ function GalaxObsidian:CreateWindow(options)
         TransparencyTextureData = GalaxObsidian.ImageCache[GalaxObsidian.TransparencyTextureUrl],
         SaturationTextureData = GalaxObsidian.ImageCache[GalaxObsidian.SaturationTextureUrl],
         LogicalSize = resolvedSize,
-        Size = Vector2.new(math.floor(resolvedSize.X * initialScale + 0.5), math.floor(resolvedSize.Y * initialScale + 0.5)),
+        Size = Vector2.new(
+            math.max(math.floor(resolvedMinSize.X * initialScale + 0.5), math.floor(resolvedSize.X * initialScale + 0.5)),
+            math.max(math.floor(resolvedMinSize.Y * initialScale + 0.5), math.floor(resolvedSize.Y * initialScale + 0.5))
+        ),
         MinSize = resolvedMinSize,
         DPIScale = initialDPIScale,
         Resizable = options.Resizable ~= false,
@@ -1917,7 +1920,13 @@ function GalaxObsidian:CreateWindow(options)
                 elseif mode == "Always" then
                     if widget._state ~= true then
                         widget._state = true
-                        safeCall(widget.callback, true)
+                        if widget.parent and (widget.parent.type == "toggle" or widget.parent.type == "checkbox") then
+                            widget.parent.value = true
+                            safeCall(widget.parent.callback, true)
+                            safeCall(widget.parent.changed, true)
+                        else
+                            safeCall(widget.callback, true)
+                        end
                     end
                     keyHeld = true
                 elseif mode == "Press" then
@@ -2488,7 +2497,7 @@ function GalaxObsidian:CreateWindow(options)
         self:_text(
             fitTextToWidth(widget.label, w, 14, Theme.Font),
             x,
-            y + math.floor(1 * scale),
+            y + math.floor(2 * scale),
             dropdownLabel,
             14,
             Drawing.Fonts.Monospace,
@@ -2613,7 +2622,7 @@ function GalaxObsidian:CreateWindow(options)
         self:_text(
             fitTextToWidth(widget.label or widget.text or "", w, 14, Theme.Font),
             x,
-            y + math.floor(1 * scale),
+            y + math.floor(2 * scale),
             Theme.Text,
             14,
             Drawing.Fonts.Monospace,
@@ -3712,8 +3721,8 @@ function GalaxObsidian:CreateWindow(options)
                 local mode = tostring(widget.mode or "Hold")
                 rows[#rows + 1] = {
                     text = TextManager:FormatKeybind(widget.value, widget.label or "Keybind", mode),
-                    toggle = mode == "Toggle",
-                    checked = widget.parent ~= nil and widget.parent.value == true or widget.parent == nil and widget._state == true,
+                    toggle = mode == "Toggle" or mode == "Always",
+                    checked = (mode == "Always") or (widget.parent ~= nil and widget.parent.value == true) or (widget.parent == nil and widget._state == true),
                     widget = widget,
                 }
             elseif (widget.type == "toggle" or widget.type == "checkbox") and widget.keybind then
@@ -3819,9 +3828,20 @@ function GalaxObsidian:CreateWindow(options)
                             safeCall(target.changed, target.value)
                         elseif target and target.type == "keybind" then
                             if target.parent and (target.parent.type == "toggle" or target.parent.type == "checkbox") then
-                                target.parent.value = not target.parent.value
-                                safeCall(target.parent.callback, target.parent.value)
-                                safeCall(target.parent.changed, target.parent.value)
+                                if target.mode == "Always" then
+                                    target.mode = "Toggle"
+                                    target.parent.value = not target.parent.value
+                                    safeCall(target.parent.callback, target.parent.value)
+                                    safeCall(target.parent.changed, target.parent.value)
+                                else
+                                    target.parent.value = not target.parent.value
+                                    safeCall(target.parent.callback, target.parent.value)
+                                    safeCall(target.parent.changed, target.parent.value)
+                                end
+                            elseif target.mode == "Always" then
+                                target.mode = "Toggle"
+                                target._state = not target._state
+                                safeCall(target.callback, target._state)
                             else
                                 target._state = not target._state
                                 safeCall(target.callback, target._state)
@@ -3846,7 +3866,7 @@ function GalaxObsidian:CreateWindow(options)
                     2
                 )
                 if row.widget and row.widget.type == "keybind" and self.Mouse2Clicked and self:_hover(x, ry, width, rowH, row.widget) then
-                    self:_openKeybindModePopup(row.widget, x + width - math.floor(80 * scale), ry, math.floor(80 * scale))
+                    self:_openKeybindModePopup(row.widget, mouse.X, mouse.Y, math.floor(80 * scale))
                 end
             end
         end
@@ -4187,10 +4207,11 @@ function GalaxObsidian:CreateWindow(options)
             if active then
                 self:_square(x, chromeTabY, sidebarW, tabEntryH, sidebarBg, true, 1, 0, chromeZ + 2)
             end
-            local iconX = x + math.floor(14 * scale)
+            local iconX = x + math.floor(18 * scale)
             local iconY = chromeTabY + math.floor(tabEntryH / 2)
             local tabColor = self:_animOrSnap(tab, "sidebar.text", (active or over) and Theme.Text or Theme.Muted, 16)
-            local iconColor = self:_animOrSnap(tab, "sidebar.icon", active and self.Accent or Theme.Muted, 16)
+            local inactiveIcon = { R = self.Accent.R * 0.5, G = self.Accent.G * 0.5, B = self.Accent.B * 0.5 }
+            local iconColor = self:_animOrSnap(tab, "sidebar.icon", active and self.Accent or inactiveIcon, 16)
             self:_drawIcon(tab.Icon or tab.Name, iconX, iconY, math.floor(16 * scale), iconColor, chromeZ + 4)
             self:_text(
                 fitTextToWidth(tab.Name, sidebarW - math.floor(38 * scale), 16, Theme.Font),
@@ -4332,7 +4353,10 @@ function GalaxObsidian:CreateWindow(options)
             logical = Vector2.new(oldSize.X / oldScale, oldSize.Y / oldScale)
         end
         local scale = clamp(percent / 100, 0.5, 2)
-        local newSize = Vector2.new(math.floor(logical.X * scale + 0.5), math.floor(logical.Y * scale + 0.5))
+        local newSize = Vector2.new(
+            math.max(math.floor((self.MinSize and self.MinSize.X or 480) * scale + 0.5), math.floor(logical.X * scale + 0.5)),
+            math.max(math.floor((self.MinSize and self.MinSize.Y or 360) * scale + 0.5), math.floor(logical.Y * scale + 0.5))
+        )
 
         self.DPIScale = percent
         self.LogicalSize = logical
