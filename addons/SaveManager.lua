@@ -218,15 +218,15 @@ function SaveManager:RefreshConfigList()
 
 	for _, path in ipairs(listfiles(ConfigFolder) or {}) do
 		local pathText = tostring(path)
-			local baseName = pathText:match("([^/\\]+)$") or pathText
-			if baseName:sub(1, 2) ~= "__" and baseName:match("%.txt$") then
-				local data = readTable(pathText)
-				local name = baseName:gsub("%.txt$", "")
-				if data then
-					self._data[name] = data
-				end
+		local baseName = pathText:match("([^/\\]+)$") or pathText
+		if baseName:sub(1, 2) ~= "__" and baseName:match("%.txt$") then
+			local data = readTable(pathText)
+			local name = baseName:gsub("%.txt$", "")
+			if data then
+				self._data[name] = data
 			end
 		end
+	end
 
 	local names = {}
 

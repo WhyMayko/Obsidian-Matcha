@@ -250,6 +250,7 @@ function ThemeManager:ApplyTheme(name, themeType)
 			data.SidebarImageX,
 			data.SidebarImageY
 		)
+		Library.ActiveWindow.SidebarImageAspect = data.SidebarImageAspect
 	end
 
 	local win = Library.ActiveWindow
@@ -284,6 +285,7 @@ function ThemeManager:SaveCustomTheme(name)
 	theme.SidebarImageScale = existingTheme.SidebarImageScale or (Library.ActiveWindow and Library.ActiveWindow.SidebarImageScale)
 	theme.SidebarImageX = existingTheme.SidebarImageX or (Library.ActiveWindow and Library.ActiveWindow.SidebarImageX)
 	theme.SidebarImageY = existingTheme.SidebarImageY or (Library.ActiveWindow and Library.ActiveWindow.SidebarImageY)
+	theme.SidebarImageAspect = existingTheme.SidebarImageAspect or (Library.ActiveWindow and Library.ActiveWindow.SidebarImageAspect)
 	theme.WindowIcon = existingTheme.WindowIcon or (Library.ActiveWindow and Library.ActiveWindow.IconUrl)
 	theme.WindowTitle = existingTheme.WindowTitle
 	theme.WindowFooter = existingTheme.WindowFooter
@@ -327,14 +329,14 @@ function ThemeManager:ReloadCustomThemes()
 
 	for _, path in ipairs(listfiles(ThemeFolder) or {}) do
 		local pathText = tostring(path)
-			local baseName = pathText:match("([^/\\]+)$") or pathText
-			if baseName:match("%.txt$") then
-				local data = readTable(pathText)
-				if data and data.name then
-					self.CustomThemes[data.name] = data
-				end
+		local baseName = pathText:match("([^/\\]+)$") or pathText
+		if baseName:match("%.txt$") then
+			local data = readTable(pathText)
+			if data and data.name then
+				self.CustomThemes[data.name] = data
 			end
 		end
+	end
 
 	local names = {}
 

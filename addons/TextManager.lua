@@ -354,10 +354,6 @@ function TextManager:KeyName(key)
 	return tostring(key)
 end
 
-function TextManager:ReadKeyName(key)
-	return self:KeyName(key)
-end
-
 function TextManager:ReadTextKey(key, shift)
 	local char = TextChars[key]
 	if not char then
@@ -386,7 +382,8 @@ function TextManager:Draw(drawText, text, x, y, width, options)
 	options = options or {}
 	local size = options.Size or options.size or 13
 	local font = options.Font or options.font or Drawing.Fonts.Monospace
-	local display = options.Fit == false and tostring(text or "") or self:Fit(text, width or math.huge, size, font)
+	local scale = options.Scale or options.scale
+	local display = options.Fit == false and tostring(text or "") or self:Fit(text, width or math.huge, size, font, scale)
 	local tx = self:AlignX(display, x or 0, width or 0, size, font, options.Align or options.align)
 
 	return drawText(

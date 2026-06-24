@@ -72,7 +72,6 @@ function EssentialsManager:BuildSection(tab)
 		})
 
 	Library.Options.MenuKeybind:OnChanged(function(Value)
-		Library.Options.MenuKeybind.Mode = "Toggle"
 		Library.ActiveWindow.MenuKey = Value
 	end)
 
@@ -86,8 +85,6 @@ function EssentialsManager:BuildSection(tab)
 end
 
 _G.Galax = _G.Galax or {}
-if _G.Galax then
-	_G.Galax["addons/EssentialsManager.lua"] = EssentialsManager
-end
+_G.Galax["addons/EssentialsManager.lua"] = EssentialsManager
 
 return EssentialsManager

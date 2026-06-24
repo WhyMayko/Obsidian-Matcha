@@ -84,7 +84,7 @@ function DialogManager:RenderDialogs(window)
 		local pad = math.floor(12 * scale)
 		local titleY = dy + pad
 		window:_text(
-			TM:Fit(dialog.title, dw - pad * 2, 18, window.Theme.Font),
+			TM:Fit(dialog.title, dw - pad * 2, 18, window.Theme.Font, scale),
 			dx + pad, titleY,
 			window.Theme.Text, 18,
 			Drawing.Fonts.Monospace, false, false, z + 3
@@ -93,7 +93,7 @@ function DialogManager:RenderDialogs(window)
 		window:_line(dx + pad, titleY + math.floor(22 * scale), dx + dw - pad, titleY + math.floor(22 * scale), window.Theme.Outline, 1, z + 3)
 
 		local msgY = titleY + math.floor(30 * scale)
-		local msg = TM:Fit(dialog.message, dw - pad * 2, 14, window.Theme.Font)
+		local msg = TM:Fit(dialog.message, dw - pad * 2, 14, window.Theme.Font, scale)
 		window:_text(msg, dx + pad, msgY, window.Theme.Muted, 14, Drawing.Fonts.Monospace, false, false, z + 3)
 
 		local btnY = dy + dh - math.floor(36 * scale)
@@ -103,7 +103,7 @@ function DialogManager:RenderDialogs(window)
 		local totalBtnW = 0
 
 		for i, btn in ipairs(dialog.buttons) do
-			local bw = math.max(math.floor(60 * scale), math.floor(TM:Measure(btn.Text or "OK", 14, window.Theme.Font) + math.floor(24 * scale)))
+			local bw = math.max(math.floor(60 * scale), math.floor(TM:Measure(btn.Text or "OK", 14, window.Theme.Font, scale) + math.floor(24 * scale)))
 			btnWidths[i] = bw
 			totalBtnW = totalBtnW + bw + (i > 1 and btnGap or 0)
 		end
@@ -125,7 +125,7 @@ function DialogManager:RenderDialogs(window)
 			window:_square(bx, btnY, bw, btnH, btnColor, true, 1, 5, z + 4)
 			window:_square(bx, btnY, bw, btnH, window.Theme.Outline, false, 1, 5, z + 5)
 			window:_text(
-				TM:Fit(btn.Text or "OK", bw - math.floor(12 * scale), 14, window.Theme.Font),
+				TM:Fit(btn.Text or "OK", bw - math.floor(12 * scale), 14, window.Theme.Font, scale),
 				bx + math.floor(bw / 2), btnY + math.floor(6 * scale),
 				primary and Color3.new(1, 1, 1) or window.Theme.Text,
 				14, Drawing.Fonts.Monospace, true, false, z + 6

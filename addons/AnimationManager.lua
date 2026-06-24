@@ -56,17 +56,17 @@ function AnimationManager:Lerp(fromValue, toValue, alpha)
 		return fromValue + (toValue - fromValue) * alpha
 	end
 
-	if kind == "Color3" then
+	if kind == "Color3" and Color3 ~= nil and Color3.new then
 		local fr, fg, fb = colorComponents(fromValue)
 		local tr, tg, tb = colorComponents(toValue)
 		return Color3.new(fr + (tr - fr) * alpha, fg + (tg - fg) * alpha, fb + (tb - fb) * alpha)
 	end
 
-	if kind == "Vector2" then
+	if kind == "Vector2" and Vector2 ~= nil and Vector2.new then
 		return Vector2.new(fromValue.X + (toValue.X - fromValue.X) * alpha, fromValue.Y + (toValue.Y - fromValue.Y) * alpha)
 	end
 
-	if kind == "Vector3" then
+	if kind == "Vector3" and Vector3 ~= nil and Vector3.new then
 		return Vector3.new(fromValue.X + (toValue.X - fromValue.X) * alpha, fromValue.Y + (toValue.Y - fromValue.Y) * alpha, fromValue.Z + (toValue.Z - fromValue.Z) * alpha)
 	end
 
