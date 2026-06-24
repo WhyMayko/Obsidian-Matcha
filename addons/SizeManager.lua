@@ -10,8 +10,10 @@ end
 
 SizeManager.TextManager = nil
 
+SizeManager._prevMode = nil
+
 SizeManager.SidebarWidths = {
-    MinLogical    = 300,
+    MinLogical    = 220,
     IconLevel     = 48,
     FullMin       = 128,
     FullMax       = 200,
@@ -60,7 +62,8 @@ function SizeManager:GetWindowState(window)
 
     local mode, sidebarW
 
-    if logicalW <= self.SidebarWidths.MinLogical or not canFitText then
+    local mThreshold = (self._prevMode == "icon") and (self.SidebarWidths.MinLogical + 30) or self.SidebarWidths.MinLogical
+    if logicalW <= mThreshold or not canFitText then
         mode = "icon"
         sidebarW = iconSidebarW
     else
@@ -83,6 +86,8 @@ function SizeManager:GetWindowState(window)
     if mode == "icon" then
         twoColumns = false
     end
+
+    self._prevMode = mode
 
     return {
         SidebarMode  = mode,
