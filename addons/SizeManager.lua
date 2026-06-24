@@ -21,8 +21,8 @@ SizeManager.SidebarWidths = {
 SizeManager.ColumnConfig = {
     MinLogicalWidth = 260,
     MinContentWidth = 490,
-    PaddingX = 10,
-    ColumnGap = 18,
+    PaddingX = 6,
+    ColumnGap = 6,
 }
 
 function SizeManager:SetTextManager(tm)

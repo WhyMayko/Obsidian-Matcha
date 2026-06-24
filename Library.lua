@@ -2101,7 +2101,7 @@ function GalaxObsidian:CreateWindow(options)
             local hasAddon = widget.addons and #widget.addons > 0
             base = math.max(hasAddon and 22 or 18, #lines * 14 + 4)
         elseif widget.type == "slider" then
-            base = 33
+            base = widget.compact and 15 or 33
         elseif widget.type == "toggle" or widget.type == "checkbox" then
             base = 18
         elseif widget.type == "dropdown" or widget.type == "multidropdown" then
@@ -2117,9 +2117,9 @@ function GalaxObsidian:CreateWindow(options)
     end
     function Window:_sectionHeight(section)
         local scale = self:GetScale()
-        local height = math.floor(49 * scale)
+        local height = math.floor(42 * scale)
         if section.Name and section.Name:sub(1, 2) == "__" then
-            height = math.floor(14 * scale)
+            height = math.floor(10 * scale)
         end
         local count = 0
         for _, widget in ipairs(section.widgets) do
@@ -2349,7 +2349,7 @@ function GalaxObsidian:CreateWindow(options)
             self:_text(
                 fitTextToWidth(widget.label, w, 14, Theme.Font),
                 x,
-                y + math.floor(1 * scale),
+                y + math.floor(2 * scale),
                 sliderLabelText,
                 14,
                 Drawing.Fonts.Monospace,
@@ -2358,11 +2358,11 @@ function GalaxObsidian:CreateWindow(options)
                 z + 2
             )
         end
-        local labelH = compact and 0 or math.floor(17 * scale)
-        local barH = math.floor(13 * scale)
+        local labelH = compact and 0 or math.floor(18 * scale)
+        local barH = math.floor(15 * scale)
         local barX, barY, barW = x, y + labelH, w
         if compact then
-            barY = y + math.floor(2 * scale)
+            barY = y
         end
         local percent = 0
         if widget.max ~= widget.min then
@@ -4064,7 +4064,7 @@ function GalaxObsidian:CreateWindow(options)
             end
         end
         local windowCorner =
-            math.min(10, math.max(0, math.floor(self._cornerRadius or GalaxObsidian.CornerRadius or 0)))
+            math.min(20, math.max(0, math.floor(self._cornerRadius or GalaxObsidian.CornerRadius or 0)))
         self:_square(x - 1, y - 1, w + 2, h + 2, Theme.Dark, true, 1, windowCorner, 1)
         self:_square(x, y, w, h, Theme.Background, true, 1, windowCorner, 2)
         self:_square(x, y, w, h, Theme.SoftOutline, false, 1, windowCorner, 3)
