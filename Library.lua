@@ -123,11 +123,11 @@ local function rgbToHsv(color)
     if type(color) == "table" then
         r, g, b = color.R or color.r, color.G or color.g, color.B or color.b
     end
-    if not r then
+    if r == nil then
         local str = tostring(color)
         r, g, b = str:match("([%d%.]+)%D+([%d%.]+)%D+([%d%.]+)")
     end
-    if not r then
+    if r == nil then
         r, g, b = 0, 0, 0
     end
     r, g, b = tonumber(r), tonumber(g), tonumber(b)
@@ -1418,7 +1418,7 @@ function GalaxObsidian:CreateWindow(options)
                 return false
             end
         end
-        return self.Mouse1Clicked and not self.BlockClicks and self:_mouseCanTake(owner) and self:_over(x, y, w, h)
+        return self.Mouse1Clicked and not self.BlockClicks and self:_mouseAllowed(owner) and self:_over(x, y, w, h)
     end
     function Window:_clickFor(owner, x, y, w, h)
         return self:_click(x, y, w, h, owner)
