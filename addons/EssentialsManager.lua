@@ -29,7 +29,7 @@ function EssentialsManager:BuildSection(tab)
 		Default = "Right",
 		Text = "Notification Side",
 		Callback = function(Value)
-			Library.NotifySide = Value
+			Library:SetNotifySide(Value)
 		end,
 	})
 

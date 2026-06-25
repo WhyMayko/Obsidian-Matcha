@@ -2780,10 +2780,11 @@ function GalaxObsidian:CreateWindow(options)
             if close then
                 self:_releaseInteraction(widget)
             else
+                widget.hue, widget.sat, widget.vib = rgbToHsv(widget.value or Color3.new(1, 1, 1))
                 self:_claimInteraction(widget)
             end
         end
-    end
+	end
 
     function Window:_renderColorPicker(widget, x, y, w, z)
         local disabled = widget.disabled == true
