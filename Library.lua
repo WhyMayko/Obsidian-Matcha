@@ -3157,9 +3157,9 @@ function GalaxObsidian:CreateWindow(options)
                 layouts[#layouts + 1] = { section = section, side = sideName, x = sx, y = sy, w = columnW, h = sh }
 
                 if useRight then
-                    rightY = rightY + sh + math.floor(10 * scale)
+                    rightY = rightY + sh + math.floor(2 * scale)
                 else
-                    leftY = leftY + sh + math.floor(10 * scale)
+                    leftY = leftY + sh + math.floor(2 * scale)
                 end
             end
         end
