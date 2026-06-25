@@ -583,54 +583,36 @@ do
     end
 end
 
-local function applyChromeOffsets(base)
+local function applyChromeOffsets(base, skip)
     for field, offset in pairs(ChromeOffsets) do
-        Theme[field] = Color3.new(
-            clamp(base.R + offset.R, 0, 1),
-            clamp(base.G + offset.G, 0, 1),
-            clamp(base.B + offset.B, 0, 1)
-        )
+        if not (skip and skip[field]) then
+            Theme[field] = Color3.new(
+                clamp(base.R + offset.R, 0, 1),
+                clamp(base.G + offset.G, 0, 1),
+                clamp(base.B + offset.B, 0, 1)
+            )
+        end
     end
 end
 
 function GalaxObsidian:AddDraggableLabel(text)
     local outline = Drawing.new("Square")
     outline.Filled = true
-    outline.Color = Theme.Outline2
-    outline.Corner = 4
     outline.Transparency = 1
     outline.ZIndex = 198
     local bg = Drawing.new("Square")
-    bg.Size = Vector2.new(10, 10)
-    bg.Color = Theme.Background
     bg.Filled = true
-    bg.Corner = 4
     bg.Transparency = 1
     bg.ZIndex = 199
     local label = Drawing.new("Text")
-    label.Text = tostring(text)
-    label.Color = Theme.Muted
-    label.Size = 15
-    label.Font = Theme.Font
     label.Center = true
     label.Outline = false
     label.Transparency = 1
     label.ZIndex = 200
-    label.Visible = true
     local px, py = 100, 100
-    label.Position = Vector2.new(px, py)
     local dragging = false
     local doffX, doffY = 0, 0
-    local font = Theme.Font
-    local tw = estimateTextWidth(tostring(text), 15, font) + 24
-    local th = 28
-    local bgX = px - tw / 2
-    local bgY = py - th / 2
-    bg.Position = Vector2.new(bgX, bgY)
-    bg.Size = Vector2.new(tw, th)
     bg.Visible = true
-    outline.Position = Vector2.new(bgX - 1, bgY - 1)
-    outline.Size = Vector2.new(tw + 2, th + 2)
     outline.Visible = true
     table.insert(DraggableLabels, outline)
     table.insert(DraggableLabels, bg)
@@ -638,15 +620,31 @@ function GalaxObsidian:AddDraggableLabel(text)
     task.spawn(function()
         while not GalaxObsidian.Unloaded do
             task.wait(0.01)
+            local corner = math.min(10, GalaxObsidian.CornerRadius or 4)
+            local dpiScale = math.max(0.5, (GalaxObsidian.DPIScale or 100) / 100)
+            local font = Theme.Font
+            local tw = estimateTextWidth(tostring(text), 15, font) + math.floor(24 * dpiScale)
+            local th = math.floor(28 * dpiScale)
+            local bgX = px - tw / 2
+            local bgY = py - th / 2
+            outline.Color = Theme.Outline
+            outline.Corner = corner
+            outline.Size = Vector2.new(tw + 2, th + 2)
+            outline.Position = Vector2.new(math.floor(bgX - 1), math.floor(bgY - 1))
+            bg.Color = Theme.Topbar
+            bg.Corner = corner
+            bg.Size = Vector2.new(tw, th)
+            bg.Position = Vector2.new(math.floor(bgX), math.floor(bgY))
+            label.Text = tostring(text)
+            label.Color = Theme.Text
+            label.Size = math.floor(15 * dpiScale)
+            label.Font = font
+            label.Position = Vector2.new(math.floor(px), math.floor(py))
             if isrbxactive() then
                 local mx, my = getMousePos()
                 if ismouse1pressed() then
                     if not dragging then
-                        local bgx = bg.Position.X
-                        local bgy = bg.Position.Y
-                        local bgw = bg.Size.X
-                        local bgh = bg.Size.Y
-                        if mx >= bgx and mx <= bgx + bgw and my >= bgy and my <= bgy + bgh then
+                        if mx >= bgX and mx <= bgX + tw and my >= bgY and my <= bgY + th then
                             dragging = true
                             doffX = mx - px
                             doffY = my - py
@@ -661,11 +659,6 @@ function GalaxObsidian:AddDraggableLabel(text)
                 if dragging then
                     px = mx - doffX
                     py = my - doffY
-                    label.Position = Vector2.new(px, py)
-                    local newBgX = px - tw / 2
-                    local newBgY = py - th / 2
-                    bg.Position = Vector2.new(newBgX, newBgY)
-                    outline.Position = Vector2.new(newBgX - 1, newBgY - 1)
                 end
             else
                 label.Visible = false
@@ -811,9 +804,6 @@ local function widestLineWidth(lines, size, font)
     return width
 end
 
-local function inactiveTextColor()
-    return Theme.Muted or Theme.DimText
-end
 local function themeColor(value)
     if type(value) == "table" and value.R ~= nil then
         return value
@@ -1566,15 +1556,18 @@ function GalaxObsidian:CreateWindow(options)
         self.Mouse2Clicked = down2 and not self.PrevMouse2
         self.Mouse2Held = down2
         self.PrevMouse2 = down2
-        local down3 = type(ismouse3pressed) == "function" and ismouse3pressed() == true or false
+        local down3 = type(ismouse3pressed) == "function" and ismouse3pressed() == true
+            or type(iskeypressed) == "function" and iskeypressed(4) == true
         self.Mouse3Clicked = down3 and not self.PrevMouse3
         self.Mouse3Held = down3
         self.PrevMouse3 = down3
-        local down4 = type(ismouse4pressed) == "function" and ismouse4pressed() == true or false
+        local down4 = type(ismouse4pressed) == "function" and ismouse4pressed() == true
+            or type(iskeypressed) == "function" and iskeypressed(5) == true
         self.Mouse4Clicked = down4 and not self.PrevMouse4
         self.Mouse4Held = down4
         self.PrevMouse4 = down4
-        local down5 = type(ismouse5pressed) == "function" and ismouse5pressed() == true or false
+        local down5 = type(ismouse5pressed) == "function" and ismouse5pressed() == true
+            or type(iskeypressed) == "function" and iskeypressed(6) == true
         self.Mouse5Clicked = down5 and not self.PrevMouse5
         self.Mouse5Held = down5
         self.PrevMouse5 = down5
@@ -1612,7 +1605,7 @@ function GalaxObsidian:CreateWindow(options)
         end
         for key, char in pairs(TextChars) do
             if self:_keyPressed(key) then
-                if iskeypressed(0x10) then
+                if iskeypressed(0x10) or iskeypressed(0xA1) then
                     return string.upper(char)
                 end
                 return char
@@ -1860,6 +1853,9 @@ function GalaxObsidian:CreateWindow(options)
         if self.SearchFocused or self.TextTarget or self.KeyListenTarget or self.DropdownSearch then
             return nil
         end
+        if self.DropdownTarget or self.ColorPickerTarget or self.KeybindModeTarget then
+            return nil
+        end
         if #self.Tabs <= 0 then
             return nil
         end
@@ -1903,10 +1899,13 @@ function GalaxObsidian:CreateWindow(options)
                 local keyHeld
                 if resolvedKey == 4 then
                     keyHeld = type(ismouse3pressed) == "function" and ismouse3pressed() == true
+                        or type(iskeypressed) == "function" and iskeypressed(4) == true
                 elseif resolvedKey == 5 then
                     keyHeld = type(ismouse4pressed) == "function" and ismouse4pressed() == true
+                        or type(iskeypressed) == "function" and iskeypressed(5) == true
                 elseif resolvedKey == 6 then
                     keyHeld = type(ismouse5pressed) == "function" and ismouse5pressed() == true
+                        or type(iskeypressed) == "function" and iskeypressed(6) == true
                 else
                     keyHeld = resolvedKey ~= nil and iskeypressed(resolvedKey) == true
                 end
@@ -1981,28 +1980,8 @@ function GalaxObsidian:CreateWindow(options)
             handle.Type = TypeMap[widget.type] or widget.type:sub(1, 1):upper() .. widget.type:sub(2)
         end
         handle.AddColorPicker = function(_, name, info)
-            info = info or {}
             widget.addons = widget.addons or {}
-            local default = info.Default or Color3.new(1, 1, 1)
-            local hue, sat, vib = rgbToHsv(default)
-            local addon = {
-                type = "colorpicker",
-                id = name,
-                label = info.Text or info.Label or info.Title or tostring(name or "Color"),
-                title = info.Title,
-                value = default,
-                hue = hue,
-                sat = sat,
-                vib = vib,
-                transparency = info.Transparency or 0,
-                transparencyEnabled = info.Transparency ~= nil,
-                callback = info.Callback,
-                changed = info.Changed,
-                tooltip = info.Tooltip,
-                disabled = info.Disabled == true,
-                visible = info.Visible ~= false,
-                popup = nil,
-            }
+            local addon = makeColorPickerAddon(name, info)
             widget.addons[#widget.addons + 1] = addon
             return Window:_widgetHandle(addon)
         end
@@ -2018,26 +1997,7 @@ function GalaxObsidian:CreateWindow(options)
                 return Window:_widgetHandle(widget)
             end
             widget.addons = widget.addons or {}
-            local addon = {
-                type = "keybind",
-                id = name,
-                label = info.Text or info.Label or tostring(name or "Keybind"),
-                value = info.Default,
-                mode = info.Mode or "Hold",
-                callback = info.Callback,
-                changed = info.Changed or info.ChangedCallback,
-                tooltip = info.Tooltip,
-                disabled = info.Disabled == true,
-                visible = info.Visible ~= false,
-                _state = false,
-                _prevHeld = false,
-                popup = nil,
-            }
-            if info.Popup ~= nil then
-                local enabled, modes = resolveKeybindPopupConfig(info.Popup)
-                addon.popupEnabled = enabled
-                addon.popupModes = modes
-            end
+            local addon = makeKeybindAddon(name, info)
             widget.addons[#widget.addons + 1] = addon
             return Window:_widgetHandle(addon)
         end
@@ -2183,7 +2143,7 @@ function GalaxObsidian:CreateWindow(options)
             widget.value and Theme.Outline2 or (overBox and Theme.Outline2 or Theme.Outline),
             16
         )
-        local checkText = self:_anim(widget, "checkbox.text", widget.value and Theme.Text or inactiveTextColor(), 16)
+        local checkText = self:_anim(widget, "checkbox.text", widget.value and Theme.Text or Theme.Muted or Theme.DimText, 16)
         self:_tooltip(widget, x, y, w, math.floor(21 * scale), widget)
         local boxY = y + math.floor(2 * scale)
         local boxSize = math.floor(14 * scale)
@@ -2210,7 +2170,7 @@ function GalaxObsidian:CreateWindow(options)
             local keyOutline = self:_anim(
                 widget,
                 "checkbox.key.outline",
-                widget.listening and Theme.Text or (overKey and Theme.Outline2 or Theme.Outline),
+                widget.listening and self.Accent or (overKey and Theme.Outline2 or Theme.Outline),
                 16
             )
             local keyText = self:_anim(widget, "checkbox.key.text", Theme.Text, 16)
@@ -2265,7 +2225,7 @@ function GalaxObsidian:CreateWindow(options)
         local addonAreaW = addonCount > 0 and (addonCount * addonSize + (addonCount - 1) * addonGap + math.floor(4 * scale)) or 0
         local addonStartX = switchX - addonAreaW - math.floor(6 * scale)
         local keyX = addonStartX - keyW - math.floor(6 * scale)
-        local toggleText = self:_anim(widget, "toggle.text", widget.value and Theme.Text or inactiveTextColor(), 16)
+        local toggleText = self:_anim(widget, "toggle.text", widget.value and Theme.Text or Theme.Muted or Theme.DimText, 16)
         self:_tooltip(widget, x, y, w, math.floor(21 * scale), widget)
         self:_text(
             fitTextToWidth(widget.label, w - switchW - keyW - addonAreaW - math.floor(18 * scale), 14, Theme.Font),
@@ -2281,7 +2241,7 @@ function GalaxObsidian:CreateWindow(options)
         if keyLabel then
             local keyBg = self:_anim(widget, "toggle.key.bg", Theme.Surface, 16)
             local keyOutline =
-                self:_anim(widget, "toggle.key.outline", widget.listening and Theme.Text or Theme.Outline, 16)
+                self:_anim(widget, "toggle.key.outline", widget.listening and self.Accent or Theme.Outline, 16)
             local keyText = self:_anim(widget, "toggle.key.text", Theme.Text, 16)
             local kY = y + math.floor(0 * scale)
             self:_square(keyX, kY, keyW, keyH, keyBg, true, 1, 2, z + 1)
@@ -2489,9 +2449,9 @@ function GalaxObsidian:CreateWindow(options)
         local showSearchText = searchable and isOpen
         local buttonDisplay = showSearchText and searchText or display
         local buttonPlaceholder = showSearchText and "Search..." or ""
-        local dropdownBg = self:_anim(widget, "dropdown.bg", isOpen and Theme.Surface2 or Theme.Surface, 16)
+        local dropdownBg = self:_anim(widget, "dropdown.bg", Theme.Surface, 16)
         local dropdownOutline =
-            self:_anim(widget, "dropdown.outline", (isOpen or searchActive) and Theme.SoftOutline or Theme.Outline, 16)
+            self:_anim(widget, "dropdown.outline", Theme.Outline, 16)
         local dropdownIcon = self:_anim(
             widget,
             "dropdown.icon",
@@ -2570,7 +2530,7 @@ function GalaxObsidian:CreateWindow(options)
         local keyOutline = self:_anim(
             widget,
             "keybind.outline",
-            widget.listening and Theme.Text or (overKey and Theme.Outline2 or Theme.Outline),
+            widget.listening and self.Accent or (overKey and Theme.Outline2 or Theme.Outline),
             16
         )
         self:_tooltip(widget, x, y, w, math.floor(24 * scale), widget)
@@ -3027,7 +2987,7 @@ function GalaxObsidian:CreateWindow(options)
                                 y + math.floor(3 * scale),
                                 aw,
                                 addonSize,
-                                addon.listening and Theme.Text or Theme.Outline,
+                                addon.listening and self.Accent or Theme.Outline,
                                 false,
                                 1,
                                 2,
@@ -3736,10 +3696,13 @@ function GalaxObsidian:CreateWindow(options)
             end
             if widget.type == "keybind" and widget.value then
                 local mode = tostring(widget.mode or "Hold")
+                local active = mode == "Always"
+                    or (widget.parent ~= nil and widget.parent.value == true)
+                    or (widget.parent == nil and widget._state == true)
                 rows[#rows + 1] = {
                     text = TextManager:FormatKeybind(widget.value, widget.label or "Keybind", mode),
-                    toggle = mode == "Toggle" or mode == "Always",
-                    checked = (mode == "Always") or (widget.parent ~= nil and widget.parent.value == true) or (widget.parent == nil and widget._state == true),
+                    toggle = mode == "Toggle",
+                    checked = mode == "Always" or active,
                     widget = widget,
                 }
             elseif (widget.type == "toggle" or widget.type == "checkbox") and widget.keybind then
@@ -3776,7 +3739,7 @@ function GalaxObsidian:CreateWindow(options)
         end
         local scale = self:GetScale()
         local rows = self:_collectKeybindRows()
-        local rowH = math.floor(24 * scale)
+        local rowH = math.floor(20 * scale)
         local logicalWidth = self.KeybindMenuWidth or 260
         local width = math.floor(logicalWidth * scale)
         local dragH = math.floor(32 * scale)
@@ -3947,6 +3910,7 @@ function GalaxObsidian:CreateWindow(options)
             self:_text(mode, x + math.floor(22 * scale), ry + math.floor(rowH / 2) - math.floor(scaledModeTextSize / 2) - yOfs, selected and Theme.Text or Theme.Muted, 14, Drawing.Fonts.Monospace, false, true, z + 3)
             if self:_click(x + math.floor(3 * scale), ry, w - math.floor(6 * scale), rowH - 1, target) then
                 target.mode = mode
+                target._state = false
                 safeCall(target.changed, target.value, target.modifiers)
                 self:_releaseInteraction(target)
                 self.KeybindModePopup = nil
@@ -4409,12 +4373,15 @@ function GalaxObsidian:CreateWindow(options)
         local base = background
         if base then
             Theme.Background = base
-            applyChromeOffsets(base)
         end
+
+        -- Track which chrome fields were explicitly provided
+        local explicit = {}
 
         if main then
             Theme.Main = main
             Theme.Surface = main
+            explicit.Main = true
         end
         if accent then
             Theme.Accent = accent
@@ -4423,36 +4390,50 @@ function GalaxObsidian:CreateWindow(options)
         if outline then
             Theme.Outline = outline
             Theme.SoftOutline = outline
+            explicit.Outline = true
         end
         if outline2 then
             Theme.Outline2 = outline2
+            explicit.Outline2 = true
         end
         if surface2 then
             Theme.Surface2 = surface2
+            explicit.Surface2 = true
         end
         if muted then
             Theme.Muted = muted
+            explicit.Muted = true
         end
         if dimText then
             Theme.DimText = dimText
+            explicit.DimText = true
         end
         if popupHover then
             Theme.PopupHover = popupHover
+            explicit.PopupHover = true
         end
         if font then
             Theme.Text = font
         end
         if bottombar then
             Theme.Bottombar = bottombar
+            explicit.Bottombar = true
         end
         if bottombarBorder then
             Theme.BottombarBorder = bottombarBorder
+            explicit.BottombarBorder = true
         end
         if footerText then
             Theme.FooterText = footerText
+            explicit.FooterText = true
         end
         if fontFace and TextManager.Fonts[tostring(fontFace)] then
             Theme.Font = TextManager.Fonts[tostring(fontFace)]
+        end
+
+        -- Apply chrome offsets only for fields NOT explicitly provided
+        if base then
+            applyChromeOffsets(base, explicit)
         end
     end
 
@@ -4727,28 +4708,8 @@ function GalaxObsidian:CreateWindow(options)
                     end,
                 })
                 handle.AddColorPicker = function(_, name, info)
-                    info = info or {}
                     widget.addons = widget.addons or {}
-                    local default = info.Default or Color3.new(1, 1, 1)
-                    local hue, sat, vib = rgbToHsv(default)
-                    local addon = {
-                        type = "colorpicker",
-                        id = name,
-                        label = info.Text or info.Label or info.Title or tostring(name or "Color"),
-                        title = info.Title,
-                        value = default,
-                        hue = hue,
-                        sat = sat,
-                        vib = vib,
-                        transparency = info.Transparency or 0,
-                        transparencyEnabled = info.Transparency ~= nil,
-                        callback = info.Callback,
-                        changed = info.Changed,
-                        tooltip = info.Tooltip,
-                        disabled = info.Disabled == true,
-                        visible = info.Visible ~= false,
-                        popup = nil,
-                    }
+                    local addon = makeColorPickerAddon(name, info)
                     widget.addons[#widget.addons + 1] = addon
                     return Window:_widgetHandle(addon, {
                         Get = function()
@@ -4764,31 +4725,8 @@ function GalaxObsidian:CreateWindow(options)
                     })
                 end
                 handle.AddKeyPicker = function(_, name, info)
-                    info = info or {}
                     widget.addons = widget.addons or {}
-                    local addon = {
-                        type = "keybind",
-                        id = name,
-                        label = info.Text or info.Label or tostring(name or "Keybind"),
-                        value = info.Default,
-                        mode = info.Mode or "Hold",
-                        callback = info.Callback,
-                        changed = info.Changed or info.ChangedCallback,
-                        tooltip = info.Tooltip,
-                        disabled = info.Disabled == true,
-                        
-                        
-                        visible = info.Visible ~= false,
-                        _state = false,
-                        _prevHeld = false,
-                        popup = nil,
-                        parent = widget,
-                    }
-                    if info.Popup ~= nil then
-                        local enabled, modes = resolveKeybindPopupConfig(info.Popup)
-                        addon.popupEnabled = enabled
-                        addon.popupModes = modes
-                    end
+                    local addon = makeKeybindAddon(name, info, widget)
                     widget.addons[#widget.addons + 1] = addon
                     return Window:_widgetHandle(addon, {
                         Get = function()
@@ -4859,28 +4797,8 @@ function GalaxObsidian:CreateWindow(options)
                     end,
                 })
                 handle.AddColorPicker = function(_, name, info)
-                    info = info or {}
                     widget.addons = widget.addons or {}
-                    local default = info.Default or Color3.new(1, 1, 1)
-                    local hue, sat, vib = rgbToHsv(default)
-                    local addon = {
-                        type = "colorpicker",
-                        id = name,
-                        label = info.Text or info.Label or info.Title or tostring(name or "Color"),
-                        title = info.Title,
-                        value = default,
-                        hue = hue,
-                        sat = sat,
-                        vib = vib,
-                        transparency = info.Transparency or 0,
-                        transparencyEnabled = info.Transparency ~= nil,
-                        callback = info.Callback,
-                        changed = info.Changed,
-                        tooltip = info.Tooltip,
-                        disabled = info.Disabled == true,
-                        visible = info.Visible ~= false,
-                        popup = nil,
-                    }
+                    local addon = makeColorPickerAddon(name, info)
                     widget.addons[#widget.addons + 1] = addon
                     return Window:_widgetHandle(addon, {
                         Get = function()
@@ -4896,31 +4814,8 @@ function GalaxObsidian:CreateWindow(options)
                     })
                 end
                 handle.AddKeyPicker = function(_, name, info)
-                    info = info or {}
                     widget.addons = widget.addons or {}
-                    local addon = {
-                        type = "keybind",
-                        id = name,
-                        label = info.Text or info.Label or tostring(name or "Keybind"),
-                        value = info.Default,
-                        mode = info.Mode or "Hold",
-                        callback = info.Callback,
-                        changed = info.Changed or info.ChangedCallback,
-                        tooltip = info.Tooltip,
-                        disabled = info.Disabled == true,
-                        
-                        
-                        visible = info.Visible ~= false,
-                        _state = false,
-                        _prevHeld = false,
-                        popup = nil,
-                        parent = widget,
-                    }
-                    if info.Popup ~= nil then
-                        local enabled, modes = resolveKeybindPopupConfig(info.Popup)
-                        addon.popupEnabled = enabled
-                        addon.popupModes = modes
-                    end
+                    local addon = makeKeybindAddon(name, info, widget)
                     widget.addons[#widget.addons + 1] = addon
                     return Window:_widgetHandle(addon, {
                         Get = function()
@@ -5302,7 +5197,57 @@ function GalaxObsidian:CreateWindow(options)
                 local rightWidget = makeWidget(rightLabel, rightInfo)
                 register({ type = "colorpair", left = leftWidget, right = rightWidget, visible = true })
 
-                local function makeHandle(widget)
+local function makeColorPickerAddon(name, info)
+    info = info or {}
+    local default = info.Default or Color3.new(1, 1, 1)
+    local hue, sat, vib = rgbToHsv(default)
+    return {
+        type = "colorpicker",
+        id = name,
+        label = info.Text or info.Label or info.Title or tostring(name or "Color"),
+        title = info.Title,
+        value = default,
+        hue = hue,
+        sat = sat,
+        vib = vib,
+        transparency = info.Transparency or 0,
+        transparencyEnabled = info.Transparency ~= nil,
+        callback = info.Callback,
+        changed = info.Changed,
+        tooltip = info.Tooltip,
+        disabled = info.Disabled == true,
+        visible = info.Visible ~= false,
+        popup = nil,
+    }
+end
+
+local function makeKeybindAddon(name, info, parent)
+    info = info or {}
+    local addon = {
+        type = "keybind",
+        id = name,
+        label = info.Text or info.Label or tostring(name or "Keybind"),
+        value = info.Default,
+        mode = info.Mode or "Hold",
+        callback = info.Callback,
+        changed = info.Changed or info.ChangedCallback,
+        tooltip = info.Tooltip,
+        disabled = info.Disabled == true,
+        visible = info.Visible ~= false,
+        _state = false,
+        _prevHeld = false,
+        popup = nil,
+        parent = parent,
+    }
+    if info.Popup ~= nil then
+        local enabled, modes = resolveKeybindPopupConfig(info.Popup)
+        addon.popupEnabled = enabled
+        addon.popupModes = modes
+    end
+    return addon
+end
+
+local function makeHandle(widget)
                     return Window:_widgetHandle(widget, {
                         Get = function()
                             return widget.value, widget.transparency

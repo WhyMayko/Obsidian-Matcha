@@ -171,6 +171,7 @@ function NotificationManager:RenderNotifications(window)
 			if notif._onClick then
 				local ok, err = pcall(notif._onClick)
 				if not ok then error("NotificationManager _onClick: " .. tostring(err), 2) end
+				notif._onDismiss = nil
 			end
 		end
 
