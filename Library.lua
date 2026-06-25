@@ -325,12 +325,6 @@ local function makeHandle(widget)
             widget.suffix = tostring(value or "")
         end
     end
-    function handle:SetPresets(values)
-        if widget.type == "slider" then
-            widget.presets = values and type(values) == "table" and values or nil
-        end
-    end
-
     function handle:Refresh(newOptions, newDefault)
         if widget.type == "dropdown" or widget.type == "multidropdown" then
             widget.options = newOptions or {}
@@ -2467,16 +2461,6 @@ function GalaxObsidian:CreateWindow(options)
             true,
             z + 4
         )
-        if widget.presets and #widget.presets > 0 then
-            local markerSize = math.max(2, math.floor(3 * scale))
-            local markerH = math.floor(barH * 0.6)
-            for _, preset in ipairs(widget.presets) do
-                local pct = clamp((preset - widget.min) / (widget.max - widget.min), 0, 1)
-                local mx = barX + math.floor(pct * barW)
-                local my = barY + math.floor((barH - markerH) / 2)
-                self:_square(mx - math.floor(markerSize / 2), my, markerSize, markerH, Theme.Muted, true, 1, 0, z + 5)
-            end
-        end
         if not disabled and self:_click(barX, barY - math.floor(4 * scale), barW, barH + math.floor(8 * scale)) then
             self.SliderTarget = widget
             self:_claimInteraction(widget)
@@ -2496,22 +2480,6 @@ function GalaxObsidian:CreateWindow(options)
                 safeCall(widget.changed, widget.value)
             end
         elseif self.SliderTarget == widget then
-            if widget.presets and #widget.presets > 0 then
-                local nearest = widget.value
-                local nearestDist = math.huge
-                for _, preset in ipairs(widget.presets) do
-                    local dist = math.abs(preset - widget.value)
-                    if dist < nearestDist then
-                        nearestDist = dist
-                        nearest = preset
-                    end
-                end
-                if nearest ~= widget.value then
-                    widget.value = nearest
-                    safeCall(widget.callback, widget.value)
-                    safeCall(widget.changed, widget.value)
-                end
-            end
             self.SliderTarget = nil
             self:_releaseInteraction(widget)
         end
@@ -5065,7 +5033,6 @@ function GalaxObsidian:CreateWindow(options)
                     integer = config.Integer == true,
                     compact = config.Compact == true,
                     hideMax = config.HideMax == true,
-                    presets = config.Presets,
                     formatDisplayValue = config.FormatDisplayValue,
                     callback = config.Callback or callback,
                     changed = config.Changed,
