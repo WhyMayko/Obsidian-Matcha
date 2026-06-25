@@ -2071,13 +2071,12 @@ function GalaxObsidian:CreateWindow(options)
             return height
         elseif widget.type == "label" then
             local textSize = widget.size or 14
-            local hasAddon = widget.addons and #widget.addons > 0
             if widget.doesWrap ~= false then
                 local labelWidth = widget._calcWidth or math.floor(200 * scale)
                 local lines = wrapTextLines(widget.text or "", labelWidth, textSize, 8, Theme.Font)
-                base = math.max(hasAddon and 21 or 18, #lines * textSize + 4)
+                base = math.max(18, #lines * textSize + 4)
             else
-                base = math.max(hasAddon and 21 or 18, textSize + 4)
+                base = math.max(18, textSize + 4)
             end
         elseif widget.type == "slider" then
             base = widget.compact and 15 or 33
@@ -2273,7 +2272,7 @@ function GalaxObsidian:CreateWindow(options)
         local thumbR = math.floor(switchH / 2) - math.floor(2 * scale)
         local targetTrack = widget.value and self.Accent or Theme.Surface
         local targetBorder = widget.value and self.Accent or Theme.Outline
-        local targetThumb = widget.value and Theme.Text or Theme.DimText
+        local targetThumb = Color3.fromRGB(255, 255, 255)
         local thumbMinX = switchX + thumbR + math.floor(3 * scale)
         local thumbMaxX = switchX + switchW - thumbR - math.floor(3 * scale)
         local thumbProgress =
@@ -2951,7 +2950,7 @@ function GalaxObsidian:CreateWindow(options)
                     self:_text(
                         fitTextToWidth(line, labelMaxW, textSize, Theme.Font),
                         x,
-                        y + math.floor(addonCount > 0 and math.floor(24 * scale) / 2 or math.floor(18 * scale) / 2) - math.floor(scaledLabelTextSize / 2) - yOfs + (i - 1) * math.floor(textSize * scale),
+                        y + math.floor(math.floor(18 * scale) / 2) - math.floor(scaledLabelTextSize / 2) - yOfs + (i - 1) * math.floor(textSize * scale),
                         Theme.Text,
                         textSize,
                         Drawing.Fonts.Monospace,
@@ -2964,7 +2963,7 @@ function GalaxObsidian:CreateWindow(options)
                 lineCount = 1
                 self:_text(
                     fitTextToWidth(widget.text or "", labelMaxW, textSize, Theme.Font),
-                    x, y + math.floor(addonCount > 0 and math.floor(24 * scale) / 2 or math.floor(18 * scale) / 2) - math.floor(scaledLabelTextSize / 2) - yOfs,
+                    x, y + math.floor(math.floor(18 * scale) / 2) - math.floor(scaledLabelTextSize / 2) - yOfs,
                     Theme.Text, textSize,
                     Drawing.Fonts.Monospace, false, true, z + 2
                 )
@@ -2978,10 +2977,10 @@ function GalaxObsidian:CreateWindow(options)
                         local aw = addonWidths[i] or addonSize
                         if addon.type == "keybind" then
                             local keyLabel = addon.listening and "..." or keyName(addon.value)
-                            self:_square(ax, y + math.floor(3 * scale), aw, addonSize, Theme.Surface, true, 1, 2, z + 1)
+                            self:_square(ax, y, aw, addonSize, Theme.Surface, true, 1, 2, z + 1)
                             self:_square(
                                 ax,
-                                y + math.floor(3 * scale),
+                                y,
                                 aw,
                                 addonSize,
                                 addon.listening and self.Accent or Theme.Outline,
@@ -2995,7 +2994,7 @@ function GalaxObsidian:CreateWindow(options)
                             self:_text(
                                 fitTextToWidth(keyLabel, aw - math.floor(10 * scale), addonTextSize, Theme.Font),
                                 ax + math.floor(aw / 2),
-                                y + math.floor(3 * scale) + math.floor(addonSize / 2) - math.floor(scaledAddonTextSize / 2) - yOfs,
+                                y + math.floor(addonSize / 2) - math.floor(scaledAddonTextSize / 2) - yOfs,
                                 Theme.Text,
                                 addonTextSize,
                                 Theme.Font,
@@ -3003,10 +3002,10 @@ function GalaxObsidian:CreateWindow(options)
                                 true,
                                 z + 3
                             )
-                            if addon.disabled ~= true and self.Mouse2Clicked and (not self._focus or self._focus == addon) and self:_over(ax, y + math.floor(3 * scale), aw, addonSize) then
-                                self:_openKeybindModePopup(addon, ax, y + math.floor(3 * scale), aw)
+                            if addon.disabled ~= true and self.Mouse2Clicked and (not self._focus or self._focus == addon) and self:_over(ax, y, aw, addonSize) then
+                                self:_openKeybindModePopup(addon, ax, y, aw)
                             end
-                            if addon.disabled ~= true and self:_click(ax, y + math.floor(3 * scale), aw, addonSize) then
+                            if addon.disabled ~= true and self:_click(ax, y, aw, addonSize) then
                                 addon.listening = true
                                 self.KeyListenTarget = addon
                                 self.KeyListenStarted = tick()
@@ -3014,7 +3013,7 @@ function GalaxObsidian:CreateWindow(options)
                                 self:_claimInteraction(addon)
                             end
                         else
-                            self:_renderColorSwatch(addon, ax, y + math.floor(3 * scale), addonSize, z + 1)
+                            self:_renderColorSwatch(addon, ax, y, addonSize, z + 1)
                         end
                         ax = ax + aw + addonGap
                     end
@@ -3583,7 +3582,7 @@ function GalaxObsidian:CreateWindow(options)
         if not widget.sat or not widget.vib then
             widget.sat, widget.vib = 0, 0
         end
-        self:_circle(mapX + widget.sat * mapSize, mapY + (1 - widget.vib) * mapSize, math.floor(4 * scale), Theme.Text, true, 1, z + 7)
+        self:_circle(mapX + widget.sat * mapSize, mapY + (1 - widget.vib) * mapSize, math.floor(4 * scale), Color3.fromRGB(255, 255, 255), true, 1, z + 7)
         self:_square(hueX, svY, barW, svSize, Theme.Background, true, 1, 3, z + 2)
         local hueSegments = 96
         for i = 0, hueSegments - 1 do
@@ -4099,9 +4098,6 @@ function GalaxObsidian:CreateWindow(options)
             end
             tabY = tabY + tabEntryH
         end
-        if self.ActiveTab then
-            self:_renderSections(self.ActiveTab, x + sidebarW, y + topH, w - sidebarW, h - topH - bottomH, 10, y, y + h)
-        end
         local chromeZ = 88
         self:_square(x, y, w, topH, Theme.Topbar, true, 1, windowCorner, chromeZ)
         self:_square(x, y + topH, sidebarW, h - topH - bottomH, Theme.Sidebar, true, 1, 0, chromeZ)
@@ -4131,7 +4127,7 @@ function GalaxObsidian:CreateWindow(options)
                 x + w - math.floor(10 * scale),
                 y + h - bottomH / 2,
                 math.floor(14 * scale),
-                self.ResizeOffset and Theme.Text or Theme.Outline,
+                Theme.Outline,
                 chromeZ + 5
             )
         end
@@ -4219,7 +4215,7 @@ function GalaxObsidian:CreateWindow(options)
             self.SearchFocused = false
             self:_releaseInteraction("Search", true)
         end
-        self:_drawIcon("move", dragX, dragY, dragSize, self.DragOffset and Theme.Text or Theme.Outline, chromeZ + 5)
+        self:_drawIcon("move", dragX, dragY, dragSize, Theme.Outline, chromeZ + 5)
         local chromeTabY = y + topH
         for _, tab in ipairs(self.Tabs) do
             local active = tab == self.ActiveTab
@@ -4251,6 +4247,9 @@ function GalaxObsidian:CreateWindow(options)
                 chromeZ + 5
             )
             chromeTabY = chromeTabY + tabEntryH
+        end
+        if self.ActiveTab then
+            self:_renderSections(self.ActiveTab, x + sidebarW, y + topH, w - sidebarW, h - topH - bottomH, 10, y, y + h)
         end
         if self.SidebarImageReady and self.SidebarImageData then
             local maxH = h - topH - bottomH
