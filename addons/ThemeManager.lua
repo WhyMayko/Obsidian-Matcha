@@ -225,8 +225,10 @@ function ThemeManager:ApplyTheme(name, themeType)
 
 	if not Library or not data then
 		error("ThemeManager:ApplyTheme requires Library and theme data", 2)
+		return false, "theme not found"
 	end
 
+	self._applyingTheme = true
 	if Library.ActiveWindow then
 		Library.ActiveWindow:SetTheme(data)
 	end
@@ -264,6 +266,8 @@ function ThemeManager:ApplyTheme(name, themeType)
 			win.Footer = data.WindowFooter
 		end
 	end
+	self._applyingTheme = false
+	return true
 end
 
 function ThemeManager:SaveCustomTheme(name)
@@ -504,10 +508,14 @@ function ThemeManager:CreateThemeManager(groupbox)
 
 	if Library.Options.ThemeManager_ThemeList then
 		Library.Options.ThemeManager_ThemeList:OnChanged(function()
+			local themeName = Library.Options.ThemeManager_ThemeList.Value
+			if not themeName then
+				return
+			end
 			if Library.Options.ThemeManager_CustomThemeList then
 				Library.Options.ThemeManager_CustomThemeList:SetValue(nil)
 			end
-			self:ApplyTheme(Library.Options.ThemeManager_ThemeList.Value, "web")
+			self:ApplyTheme(themeName, "web")
 		end)
 	end
 
@@ -605,6 +613,9 @@ function ThemeManager:CreateThemeManager(groupbox)
 	groupbox:AddButton("Reset default", resetDefaultTheme)
 
 	local function updateTheme()
+		if self._applyingTheme then
+			return
+		end
 		self:ThemeUpdate()
 	end
 
