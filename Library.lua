@@ -1090,28 +1090,32 @@ function GalaxObsidian:CreateWindow(options)
         local function inside(pos)
             return pos and pos.X >= left and pos.X <= right and pos.Y >= top and pos.Y <= bottom
         end
+        local function shouldShift(object)
+            local z = object and object.ZIndex
+            return z and z >= 5 and z < 80
+        end
         for _, object in ipairs(self.Pool.Square) do
-            if object.Visible and inside(object.Position) then
+            if object.Visible and shouldShift(object) and inside(object.Position) then
                 object.Position = Vector2.new(object.Position.X + dx, object.Position.Y + dy)
             end
         end
         for _, object in ipairs(self.Pool.Text) do
-            if object.Visible and inside(object.Position) then
+            if object.Visible and shouldShift(object) and inside(object.Position) then
                 object.Position = Vector2.new(object.Position.X + dx, object.Position.Y + dy)
             end
         end
         for _, object in ipairs(self.Pool.Circle) do
-            if object.Visible and inside(object.Position) then
+            if object.Visible and shouldShift(object) and inside(object.Position) then
                 object.Position = Vector2.new(object.Position.X + dx, object.Position.Y + dy)
             end
         end
         for _, object in ipairs(self.Pool.Image) do
-            if object.Visible and inside(object.Position) then
+            if object.Visible and shouldShift(object) and inside(object.Position) then
                 object.Position = Vector2.new(object.Position.X + dx, object.Position.Y + dy)
             end
         end
         for _, object in ipairs(self.Pool.Line) do
-            if object.Visible and (inside(object.From) or inside(object.To)) then
+            if object.Visible and shouldShift(object) and (inside(object.From) or inside(object.To)) then
                 object.From = Vector2.new(object.From.X + dx, object.From.Y + dy)
                 object.To = Vector2.new(object.To.X + dx, object.To.Y + dy)
             end
