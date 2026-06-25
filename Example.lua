@@ -27,9 +27,7 @@ local Window = Library:CreateWindow({
 	-- Set Center to true if you want the menu to appear in the center
 	-- Set AutoShow to true if you want the menu to appear when it is created
 	-- Set Resizable to true if you want to have in-game resizable Window
-	-- Set MobileButtonsSide to "Left" or "Right" if you want the ui toggle & lock buttons to be on the left or right side of the window
 	-- NotifySide = Changes the side of the notifications (Left, Right) (Default value = Left)
-	-- Each keybind controls its own mode popup via the Popup option (disabled by default)
 	-- Position and Size are also valid options here
 	-- but you do not need to define them unless you are changing them :)
 
