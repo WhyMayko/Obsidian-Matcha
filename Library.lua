@@ -4072,6 +4072,17 @@ function GalaxObsidian:CreateWindow(options)
                 self:_releaseInteraction("WindowResize")
             end
         end
+
+        dragBoxX = x + w - dragMargin - dragBox
+        dragBoxY = y + topPad
+        dragX = dragBoxX + dragBox / 2
+        dragY = dragBoxY + dragBox / 2
+        searchX = x + sidebarW + searchGap
+        searchY = y + topPad
+        searchW = math.max(0, dragBoxX - searchGap - searchX)
+        searchVisible = self.ShowSearch and searchW > 40
+        self.SearchHitbox = searchVisible and { x = searchX, y = searchY, w = searchW, h = searchH } or nil
+
         local windowCorner =
             math.min(20, math.max(0, math.floor(self._cornerRadius or GalaxObsidian.CornerRadius or 0)))
         self:_square(x - 1, y - 1, w + 2, h + 2, Theme.SoftOutline, true, 1, windowCorner, 1)
@@ -4248,9 +4259,6 @@ function GalaxObsidian:CreateWindow(options)
             )
             chromeTabY = chromeTabY + tabEntryH
         end
-        if self.ActiveTab then
-            self:_renderSections(self.ActiveTab, x + sidebarW, y + topH, w - sidebarW, h - topH - bottomH, 10, y, y + h)
-        end
         if self.SidebarImageReady and self.SidebarImageData then
             local maxH = h - topH - bottomH
 
@@ -4283,6 +4291,9 @@ function GalaxObsidian:CreateWindow(options)
                 imgY = y + h - bottomH - imgH
             end
             self:_image(self.SidebarImageData, imgX, imgY, imgW, imgH, 0, chromeZ + 3)
+        end
+        if self.ActiveTab then
+            self:_renderSections(self.ActiveTab, x + sidebarW, y + topH, w - sidebarW, h - topH - bottomH, 10, y, y + h)
         end
         self:_square(x, y, w, h, Theme.SoftOutline, false, 1, windowCorner, chromeZ + 7)
         self:_renderDropdownPopup()
