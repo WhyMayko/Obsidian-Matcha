@@ -1080,6 +1080,44 @@ function GalaxObsidian:CreateWindow(options)
             end
         end
     end
+
+    function Window:_translateVisibleInBounds(dx, dy, bx, by, bw, bh)
+        if (dx == 0 and dy == 0) or not bx or not by or not bw or not bh then
+            return nil
+        end
+        local left, top = bx - 2, by - 2
+        local right, bottom = bx + bw + 2, by + bh + 2
+        local function inside(pos)
+            return pos and pos.X >= left and pos.X <= right and pos.Y >= top and pos.Y <= bottom
+        end
+        for _, object in ipairs(self.Pool.Square) do
+            if object.Visible and inside(object.Position) then
+                object.Position = Vector2.new(object.Position.X + dx, object.Position.Y + dy)
+            end
+        end
+        for _, object in ipairs(self.Pool.Text) do
+            if object.Visible and inside(object.Position) then
+                object.Position = Vector2.new(object.Position.X + dx, object.Position.Y + dy)
+            end
+        end
+        for _, object in ipairs(self.Pool.Circle) do
+            if object.Visible and inside(object.Position) then
+                object.Position = Vector2.new(object.Position.X + dx, object.Position.Y + dy)
+            end
+        end
+        for _, object in ipairs(self.Pool.Image) do
+            if object.Visible and inside(object.Position) then
+                object.Position = Vector2.new(object.Position.X + dx, object.Position.Y + dy)
+            end
+        end
+        for _, object in ipairs(self.Pool.Line) do
+            if object.Visible and (inside(object.From) or inside(object.To)) then
+                object.From = Vector2.new(object.From.X + dx, object.From.Y + dy)
+                object.To = Vector2.new(object.To.X + dx, object.To.Y + dy)
+            end
+        end
+    end
+
     function Window:_get(kind)
         self.Index[kind] = self.Index[kind] + 1
         local max = self.MaxPoolSize[kind] or 9999
@@ -4016,6 +4054,7 @@ function GalaxObsidian:CreateWindow(options)
         end
         local x, y = self.Position.X, self.Position.Y
         local w, h = self.Size.X, self.Size.Y
+        local prevX, prevY, prevW, prevH = x, y, w, h
         local scale = self:GetScale()
         local sidebarW = math.floor(200 * scale)
         local topH = math.floor(48 * scale)
@@ -4072,6 +4111,8 @@ function GalaxObsidian:CreateWindow(options)
                 self:_releaseInteraction("WindowResize")
             end
         end
+
+        self:_translateVisibleInBounds(x - prevX, y - prevY, prevX, prevY, prevW, prevH)
 
         dragBoxX = x + w - dragMargin - dragBox
         dragBoxY = y + topPad
