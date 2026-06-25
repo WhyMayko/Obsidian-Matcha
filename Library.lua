@@ -3888,9 +3888,7 @@ function GalaxObsidian:CreateWindow(options)
             local text = label.text or ""
             if text ~= "" then
                 local px, py = label.px or 100, label.py or 100
-                local corner = math.min(10, self._cornerRadius or GalaxObsidian.CornerRadius or 4)
-                local font = Theme.Font
-                local tw = estimateTextWidth(tostring(text), 15, font) + math.floor(24 * scale)
+                local tw = estimateTextWidth(tostring(text), 15, Drawing.Fonts.Monospace) + math.floor(24 * scale)
                 local th = math.floor(28 * scale)
                 local bgX = math.floor(px - tw / 2)
                 local bgY = math.floor(py - th / 2)
@@ -3911,20 +3909,21 @@ function GalaxObsidian:CreateWindow(options)
                     self:_claimInteraction(label)
                 end
 
-                self:_square(bgX - 1, bgY - 1, tw + 2, th + 2, Theme.Outline, true, 1, corner, 148)
-                self:_square(bgX, bgY, tw, th, Theme.Topbar, true, 1, corner, 149)
-                local textSize = math.floor(15 * scale + 0.5)
+                self:_square(bgX, bgY, tw, th, Theme.Topbar, true, 1, 4, 0)
+                self:_square(bgX, bgY, tw, th, Theme.SoftOutline, false, 1, 4, 1)
+                local textSize = 14
+                local scaledTextSize = math.floor(textSize * scale + 0.5)
                 local yOfs = scale > 1 and -math.floor((scale - 1) * 3) or 0
                 self:_text(
                     tostring(text),
-                    math.floor(px),
-                    math.floor(py) - math.floor(textSize / 2) - yOfs,
+                    bgX + math.floor(10 * scale),
+                    bgY + math.floor(th / 2) - math.floor(scaledTextSize / 2) - yOfs,
                     Theme.Text,
-                    15,
+                    textSize,
                     Drawing.Fonts.Monospace,
                     false,
                     true,
-                    150
+                    2
                 )
             end
         end
