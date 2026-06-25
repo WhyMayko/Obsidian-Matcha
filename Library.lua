@@ -67,9 +67,12 @@ local function loadCoreAddon(path)
     end)
     if not ok then error(path .. " (network): " .. tostring(source), 2) end
     local chunk, err = loadstring(source)
-    if not chunk then error(path .. " (syntax): " .. tostring(err), 2) end
-    local ok2, err2 = pcall(chunk)
-    if not ok2 then error(path .. " (runtime): " .. tostring(err2), 2) end
+    if type(chunk) == "function" then
+        local ok2, err2 = pcall(chunk)
+        if not ok2 then error(path .. " (runtime): " .. tostring(err2), 2) end
+    elseif chunk ~= nil then
+        error(path .. " (syntax): " .. tostring(err), 2)
+    end
     local module = _G.Galax and _G.Galax[path]
     if type(module) ~= "table" then error(path .. " did not export", 2) end
     return module
