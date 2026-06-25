@@ -54,7 +54,6 @@ GalaxObsidian.NotifySide = "Right"
 GalaxObsidian.CornerRadius = 4
 GalaxObsidian.DPIScale = 100
 
-local DraggableLabels = {}
 local Theme
 
 
@@ -498,29 +497,10 @@ function GalaxObsidian:Unload()
         local ok, err = pcall(cb)
         if not ok then error("Unload callback: " .. tostring(err), 2) end
     end
-    for _, d in ipairs(DraggableLabels) do
-        local ok, err = pcall(function()
-            if d.Remove then d:Remove() end
-        end)
-        if not ok then error("Unload DraggableLabels: " .. tostring(err), 2) end
-    end
-    DraggableLabels = {}
-
     if self.ActiveWindow then
         self.ActiveWindow:Destroy()
     end
 end
-local function getMousePos()
-    local players = game:GetService("Players")
-    if players and players.LocalPlayer then
-        local m = players.LocalPlayer:GetMouse()
-        if m then
-            return m.X, m.Y
-        end
-    end
-    return 0, 0
-end
-
 local function estimateTextWidth(text, size, font)
     local scale = GalaxObsidian.ActiveWindow and GalaxObsidian.ActiveWindow:GetScale() or 1.0
     return TextManager:Measure(text, size or GalaxObsidian.FontSize or 14, font or Theme.Font, scale)
@@ -596,83 +576,11 @@ local function applyChromeOffsets(base, skip)
 end
 
 function GalaxObsidian:AddDraggableLabel(text)
-    local outline = Drawing.new("Square")
-    outline.Filled = true
-    outline.Transparency = 1
-    outline.ZIndex = 198
-    local bg = Drawing.new("Square")
-    bg.Filled = true
-    bg.Transparency = 1
-    bg.ZIndex = 199
-    local label = Drawing.new("Text")
-    label.Center = true
-    label.Outline = false
-    label.Transparency = 1
-    label.ZIndex = 200
-    local px, py = 100, 100
-    local dragging = false
-    local doffX, doffY = 0, 0
-    bg.Visible = true
-    outline.Visible = true
-    table.insert(DraggableLabels, outline)
-    table.insert(DraggableLabels, bg)
-    table.insert(DraggableLabels, label)
-    task.spawn(function()
-        while not GalaxObsidian.Unloaded do
-            task.wait(0.01)
-            local corner = math.min(10, GalaxObsidian.CornerRadius or 4)
-            local dpiScale = math.max(0.5, (GalaxObsidian.DPIScale or 100) / 100)
-            local font = Theme.Font
-            local tw = estimateTextWidth(tostring(text), 15, font) + math.floor(24 * dpiScale)
-            local th = math.floor(28 * dpiScale)
-            local bgX = px - tw / 2
-            local bgY = py - th / 2
-            outline.Color = Theme.Outline
-            outline.Corner = corner
-            outline.Size = Vector2.new(tw + 2, th + 2)
-            outline.Position = Vector2.new(math.floor(bgX - 1), math.floor(bgY - 1))
-            bg.Color = Theme.Topbar
-            bg.Corner = corner
-            bg.Size = Vector2.new(tw, th)
-            bg.Position = Vector2.new(math.floor(bgX), math.floor(bgY))
-            label.Text = tostring(text)
-            label.Color = Theme.Text
-            label.Size = math.floor(15 * dpiScale)
-            label.Font = font
-            label.Position = Vector2.new(math.floor(px), math.floor(py))
-            if isrbxactive() then
-                local mx, my = getMousePos()
-                if ismouse1pressed() then
-                    if not dragging then
-                        if mx >= bgX and mx <= bgX + tw and my >= bgY and my <= bgY + th then
-                            dragging = true
-                            doffX = mx - px
-                            doffY = my - py
-                        end
-                    end
-                else
-                    dragging = false
-                end
-                label.Visible = true
-                bg.Visible = true
-                outline.Visible = true
-                if dragging then
-                    px = mx - doffX
-                    py = my - doffY
-                end
-            else
-                label.Visible = false
-                bg.Visible = false
-                outline.Visible = false
-            end
-        end
-        local ok, err = pcall(function()
-            label:Remove()
-            bg:Remove()
-            outline:Remove()
-        end)
-        if not ok then error("DraggableLabels cleanup: " .. tostring(err), 2) end
-    end)
+    local win = self.ActiveWindow
+    if not win then
+        error("AddDraggableLabel: no active window", 2)
+    end
+    return win:AddDraggableLabel(text)
 end
 
 local TextChars = TextManager.TextChars
@@ -1034,6 +942,7 @@ function GalaxObsidian:CreateWindow(options)
         TooltipText = nil,
         _focus = nil,
         KeybindMenuDrag = nil,
+        DraggableLabels = {},
         LastRobloxInputBlocked = nil,
         BlockClicks = false,
         _cornerRadius = GalaxObsidian.CornerRadius or 0,
@@ -3971,6 +3880,56 @@ function GalaxObsidian:CreateWindow(options)
         end
     end
 
+    function Window:_renderDraggableLabels()
+        local labels = self.DraggableLabels
+        if not labels or #labels == 0 then return nil end
+        local scale = self:GetScale()
+        for _, label in ipairs(labels) do
+            local text = label.text or ""
+            if text ~= "" then
+                local px, py = label.px or 100, label.py or 100
+                local corner = math.min(10, self._cornerRadius or GalaxObsidian.CornerRadius or 4)
+                local font = Theme.Font
+                local tw = estimateTextWidth(tostring(text), 15, font) + math.floor(24 * scale)
+                local th = math.floor(28 * scale)
+                local bgX = math.floor(px - tw / 2)
+                local bgY = math.floor(py - th / 2)
+
+                if label.dragging then
+                    if self.Mouse1Held then
+                        px = mouse.X - label.doffX
+                        py = mouse.Y - label.doffY
+                        label.px, label.py = px, py
+                    else
+                        label.dragging = false
+                        self:_releaseInteraction(label)
+                    end
+                elseif self:_click(bgX, bgY, tw, th, label) then
+                    label.dragging = true
+                    label.doffX = mouse.X - px
+                    label.doffY = mouse.Y - py
+                    self:_claimInteraction(label)
+                end
+
+                self:_square(bgX - 1, bgY - 1, tw + 2, th + 2, Theme.Outline, true, 1, corner, 148)
+                self:_square(bgX, bgY, tw, th, Theme.Topbar, true, 1, corner, 149)
+                local textSize = math.floor(15 * scale + 0.5)
+                local yOfs = scale > 1 and -math.floor((scale - 1) * 3) or 0
+                self:_text(
+                    tostring(text),
+                    math.floor(px),
+                    math.floor(py) - math.floor(textSize / 2) - yOfs,
+                    Theme.Text,
+                    15,
+                    Drawing.Fonts.Monospace,
+                    false,
+                    true,
+                    150
+                )
+            end
+        end
+    end
+
     function Window:_renderTooltip()
         local text = self.TooltipText
         if not text or text == "" or self.Mouse1Held then
@@ -4013,6 +3972,7 @@ function GalaxObsidian:CreateWindow(options)
         if not self.Open then
             self:_renderKeybindMenu()
             self:_renderKeybindModePopup()
+            self:_renderDraggableLabels()
             NotificationManager:RenderNotifications(self)
             self:_renderTooltip()
             self:_hideUnused()
@@ -4295,6 +4255,7 @@ function GalaxObsidian:CreateWindow(options)
         self:_renderColorPickerPopup()
         self:_renderKeybindMenu()
         self:_renderKeybindModePopup()
+        self:_renderDraggableLabels()
         NotificationManager:RenderNotifications(self)
         self:_renderTooltip()
         GalaxObsidian.DialogManager:RenderDialogs(self)
@@ -4305,6 +4266,20 @@ function GalaxObsidian:CreateWindow(options)
     function Window:Notify(message, title, duration)
         return NotificationManager:Notify(message, title, duration)
     end
+    function Window:AddDraggableLabel(text)
+        local labels = self.DraggableLabels
+        local entry = {
+            text = tostring(text or ""),
+            px = 100,
+            py = 100,
+            dragging = false,
+            doffX = 0,
+            doffY = 0,
+        }
+        table.insert(labels, entry)
+        return entry
+    end
+
     function Window:GetMemoryUsage()
         local total = 0
         local byKind = {}
