@@ -2384,7 +2384,7 @@ function GalaxObsidian:CreateWindow(options)
         if widget.max ~= widget.min then
             percent = clamp((widget.value - widget.min) / (widget.max - widget.min), 0, 1)
         end
-        local fillW = math.floor(self:_anim(widget, "slider.fill", barW * percent, 18) + 0.5)
+        local fillW = math.floor(self:_animOrSnap(widget, "slider.fill", barW * percent, 18, self.SliderTarget == widget) + 0.5)
         local sliderFillColor = self:_anim(widget, "slider.fillColor", disabled and Theme.Outline2 or self.Accent, 16)
         self:_square(barX, barY, barW, barH, Theme.Main, true, disabled and 0.45 or 1, 3, z + 1)
         self:_square(barX, barY, barW, barH, Theme.Outline, false, disabled and 0.45 or 1, 3, z + 2)
