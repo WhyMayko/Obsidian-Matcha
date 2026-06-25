@@ -3702,7 +3702,7 @@ function GalaxObsidian:CreateWindow(options)
         local logicalWidth = self.KeybindMenuWidth or 260
         local width = math.floor(logicalWidth * scale)
         local dragH = math.floor(32 * scale)
-        local height = dragH + math.floor(28 * scale) + #rows * rowH
+        local height = dragH + math.floor(12 * scale) + #rows * rowH
         if self.KeybindMenuX == nil then
             local camera = workspace.CurrentCamera
             local viewport = camera and camera.ViewportSize
@@ -3909,8 +3909,8 @@ function GalaxObsidian:CreateWindow(options)
                     self:_claimInteraction(label)
                 end
 
-                self:_square(bgX, bgY, tw, th, Theme.Topbar, true, 1, 4, 0)
-                self:_square(bgX, bgY, tw, th, Theme.SoftOutline, false, 1, 4, 1)
+                self:_square(bgX, bgY, tw, th, Theme.Topbar, true, 1, 4, -3)
+                self:_square(bgX, bgY, tw, th, Theme.SoftOutline, false, 1, 4, -2)
                 local textSize = 14
                 local scaledTextSize = math.floor(textSize * scale + 0.5)
                 local yOfs = scale > 1 and -math.floor((scale - 1) * 3) or 0
@@ -3923,7 +3923,7 @@ function GalaxObsidian:CreateWindow(options)
                     Drawing.Fonts.Monospace,
                     false,
                     true,
-                    2
+                    -1
                 )
             end
         end
