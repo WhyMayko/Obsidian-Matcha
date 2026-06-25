@@ -3157,9 +3157,9 @@ function GalaxObsidian:CreateWindow(options)
                 layouts[#layouts + 1] = { section = section, side = sideName, x = sx, y = sy, w = columnW, h = sh }
 
                 if useRight then
-                    rightY = rightY + sh + math.floor(14 * scale)
+                    rightY = rightY + sh + math.floor(10 * scale)
                 else
-                    leftY = leftY + sh + math.floor(14 * scale)
+                    leftY = leftY + sh + math.floor(10 * scale)
                 end
             end
         end
@@ -3733,7 +3733,7 @@ function GalaxObsidian:CreateWindow(options)
             self:_text(
                     "No keybinds",
                 x + math.floor(10 * scale),
-                y + dragH + math.floor(8 * scale),
+                y + dragH + math.floor(4 * scale),
                 Theme.DimText,
                 14,
                 Drawing.Fonts.Monospace,
@@ -3743,7 +3743,7 @@ function GalaxObsidian:CreateWindow(options)
             )
         else
             for i, row in ipairs(rows) do
-                local ry = y + dragH + math.floor(8 * scale) + (i - 1) * rowH
+                local ry = y + dragH + math.floor(4 * scale) + (i - 1) * rowH
                 local textX = x + math.floor(10 * scale)
                 if row.toggle then
                     local cbX = x + math.floor(10 * scale)
