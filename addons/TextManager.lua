@@ -131,14 +131,15 @@ local FontMetrics = {
 }
 
 local KeyNameMap = {
-	["1"] = "M1", ["2"] = "M2", ["4"] = "M3", ["5"] = "M4", ["6"] = "M5",
-	["8"] = "BACK", ["9"] = "TAB", ["12"] = "CLEAR", ["13"] = "ENTER",
-	["16"] = "SHIFT", ["17"] = "CTRL", ["18"] = "ALT", ["19"] = "PAUSE",
-	["20"] = "CAPS", ["27"] = "ESC", ["32"] = "SPACE", ["33"] = "PAGEUP",
-	["34"] = "PAGEDOWN", ["35"] = "END", ["36"] = "HOME", ["37"] = "LEFT",
-	["38"] = "UP", ["39"] = "RIGHT", ["40"] = "DOWN", ["41"] = "SELECT",
-	["42"] = "PRINT", ["43"] = "EXECUTE", ["44"] = "PRTSC", ["45"] = "INS",
-	["46"] = "DEL", ["47"] = "HELP",
+	["1"] = "M1", ["2"] = "M2", ["3"] = "Break", ["4"] = "M3", ["5"] = "M4", ["6"] = "M5",
+	["8"] = "Back", ["9"] = "Tab", ["12"] = "Clear", ["13"] = "Enter",
+	["16"] = "Shift", ["17"] = "Ctrl", ["18"] = "Alt", ["19"] = "Pause",
+	["20"] = "Caps", ["21"] = "Kana", ["23"] = "Junja", ["24"] = "Final", ["25"] = "Kanji",
+	["27"] = "Esc", ["28"] = "Convert", ["29"] = "NonConvert", ["30"] = "Accept", ["31"] = "ModeChange",
+	["32"] = "Space", ["33"] = "PageUp", ["34"] = "PageDown", ["35"] = "End", ["36"] = "Home",
+	["37"] = "Left", ["38"] = "Up", ["39"] = "Right", ["40"] = "Down", ["41"] = "Select",
+	["42"] = "Print", ["43"] = "Execute", ["44"] = "PrintScreen", ["45"] = "Insert",
+	["46"] = "Delete", ["47"] = "Help",
 	["48"] = "0", ["49"] = "1", ["50"] = "2", ["51"] = "3", ["52"] = "4",
 	["53"] = "5", ["54"] = "6", ["55"] = "7", ["56"] = "8", ["57"] = "9",
 	["65"] = "A", ["66"] = "B", ["67"] = "C", ["68"] = "D", ["69"] = "E",
@@ -146,32 +147,34 @@ local KeyNameMap = {
 	["75"] = "K", ["76"] = "L", ["77"] = "M", ["78"] = "N", ["79"] = "O",
 	["80"] = "P", ["81"] = "Q", ["82"] = "R", ["83"] = "S", ["84"] = "T",
 	["85"] = "U", ["86"] = "V", ["87"] = "W", ["88"] = "X", ["89"] = "Y",
-	["90"] = "Z", ["91"] = "LWIN", ["92"] = "RWIN", ["93"] = "APPS", ["95"] = "SLEEP",
-	["96"] = "NUM0", ["97"] = "NUM1", ["98"] = "NUM2", ["99"] = "NUM3",
-	["100"] = "NUM4", ["101"] = "NUM5", ["102"] = "NUM6", ["103"] = "NUM7",
-	["104"] = "NUM8", ["105"] = "NUM9", ["106"] = "NUM*", ["107"] = "NUM+",
-	["108"] = "NUMSEP", ["109"] = "NUM-", ["110"] = "NUM.", ["111"] = "NUM/",
+	["90"] = "Z", ["91"] = "LWin", ["92"] = "RWin", ["93"] = "Apps", ["95"] = "Sleep",
+	["96"] = "Num0", ["97"] = "Num1", ["98"] = "Num2", ["99"] = "Num3",
+	["100"] = "Num4", ["101"] = "Num5", ["102"] = "Num6", ["103"] = "Num7",
+	["104"] = "Num8", ["105"] = "Num9", ["106"] = "Num*", ["107"] = "Num+",
+	["108"] = "NumSep", ["109"] = "Num-", ["110"] = "Num.", ["111"] = "Num/",
 	["112"] = "F1", ["113"] = "F2", ["114"] = "F3", ["115"] = "F4",
 	["116"] = "F5", ["117"] = "F6", ["118"] = "F7", ["119"] = "F8",
 	["120"] = "F9", ["121"] = "F10", ["122"] = "F11", ["123"] = "F12",
 	["124"] = "F13", ["125"] = "F14", ["126"] = "F15", ["127"] = "F16",
 	["128"] = "F17", ["129"] = "F18", ["130"] = "F19", ["131"] = "F20",
 	["132"] = "F21", ["133"] = "F22", ["134"] = "F23", ["135"] = "F24",
-	["144"] = "NUMLOCK", ["145"] = "SCROLL",
-	["160"] = "LSHIFT", ["161"] = "RSHIFT", ["162"] = "LCTRL", ["163"] = "RCTRL",
-	["164"] = "LALT", ["165"] = "RALT",
-	["166"] = "BROWSER_BACK", ["167"] = "BROWSER_FORWARD", ["168"] = "BROWSER_REFRESH",
-	["169"] = "BROWSER_STOP", ["170"] = "BROWSER_SEARCH", ["171"] = "BROWSER_FAVORITES",
-	["172"] = "BROWSER_HOME", ["173"] = "VOLUME_MUTE", ["174"] = "VOLUME_DOWN",
-	["175"] = "VOLUME_UP", ["176"] = "MEDIA_NEXT", ["177"] = "MEDIA_PREV",
-	["178"] = "MEDIA_STOP", ["179"] = "MEDIA_PLAY", ["180"] = "MAIL",
-	["181"] = "MEDIA_SELECT", ["182"] = "APP1", ["183"] = "APP2",
+	["136"] = "NavView", ["137"] = "NavMenu", ["138"] = "NavUp", ["139"] = "NavDown",
+	["140"] = "NavLeft", ["141"] = "NavRight", ["142"] = "NavAccept", ["143"] = "NavCancel",
+	["144"] = "NumLock", ["145"] = "Scroll",
+	["160"] = "LShift", ["161"] = "RShift", ["162"] = "LCtrl", ["163"] = "RCtrl",
+	["164"] = "LAlt", ["165"] = "RAlt",
+	["166"] = "BrowserBack", ["167"] = "BrowserForward", ["168"] = "BrowserRefresh",
+	["169"] = "BrowserStop", ["170"] = "BrowserSearch", ["171"] = "BrowserFavorites",
+	["172"] = "BrowserHome", ["173"] = "VolumeMute", ["174"] = "VolumeDown",
+	["175"] = "VolumeUp", ["176"] = "MediaNext", ["177"] = "MediaPrev",
+	["178"] = "MediaStop", ["179"] = "MediaPlay", ["180"] = "Mail",
+	["181"] = "MediaSelect", ["182"] = "App1", ["183"] = "App2",
 	["186"] = ";", ["187"] = "=", ["188"] = ",", ["189"] = "-",
 	["190"] = ".", ["191"] = "/", ["192"] = "`", ["219"] = "[",
-	["220"] = "\\", ["221"] = "]", ["222"] = "'", ["226"] = "OEM102",
-	["229"] = "PROCESS", ["246"] = "ATTN", ["247"] = "CRSEL", ["248"] = "EXSEL",
-	["249"] = "EREOF", ["250"] = "PLAY", ["251"] = "ZOOM", ["252"] = "NONAME",
-	["253"] = "PA1", ["254"] = "CLEAR2",
+	["220"] = "\\", ["221"] = "]", ["222"] = "'", ["223"] = "OEM8", ["226"] = "OEM102",
+	["229"] = "Process", ["230"] = "Packet", ["246"] = "Attn", ["247"] = "CrSel", ["248"] = "ExSel",
+	["249"] = "EraseEOF", ["250"] = "Play", ["251"] = "Zoom", ["252"] = "NoName",
+	["253"] = "PA1", ["254"] = "Clear2",
 }
 
 local TextChars = {}
@@ -348,7 +351,7 @@ function TextManager:KeyName(key)
 
 	local numberKey = tonumber(key)
 	if numberKey then
-		return KeyNameMap[tostring(numberKey)] or ("0x" .. string.format("%X", numberKey))
+		return KeyNameMap[tostring(numberKey)] or string.format("0x%02X", numberKey)
 	end
 
 	return tostring(key)

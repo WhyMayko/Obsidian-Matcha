@@ -1691,6 +1691,51 @@ function GalaxObsidian:CreateWindow(options)
             end
         end
     end
+
+    function Window:_clearKeybind(widget)
+        if not widget then
+            return nil
+        end
+        if widget.type == "toggle" or widget.type == "checkbox" then
+            widget.keybind = nil
+            widget.value = false
+            safeCall(widget.callback, false)
+            safeCall(widget.changed, false)
+        else
+            widget.value = nil
+            widget._state = false
+            widget._prevHeld = false
+            safeCall(widget.changed, nil)
+            safeCall(widget.callback, false)
+            if widget.parent and (widget.parent.type == "toggle" or widget.parent.type == "checkbox") then
+                widget.parent.value = false
+                safeCall(widget.parent.callback, false)
+                safeCall(widget.parent.changed, false)
+            end
+        end
+        widget._keybindCleared = true
+        widget.listening = false
+        if self.KeyListenTarget == widget then
+            self.KeyListenTarget = nil
+            self.KeyListenStarted = 0
+        end
+        self:_releaseInteraction(widget)
+    end
+
+    function Window:_handleKeybindHoldClear(widget)
+        if
+            widget
+            and widget.listening == true
+            and self.KeyListenTarget == widget
+            and self.Mouse1Held
+            and tick() - self.KeyListenStarted >= 1
+        then
+            self:_clearKeybind(widget)
+            return true
+        end
+        return false
+    end
+
     function Window:_closeFloating(except)
         if except ~= "dropdown" then
             local old = self.DropdownTarget
@@ -1741,9 +1786,6 @@ function GalaxObsidian:CreateWindow(options)
     end
 
     function Window:_handleGlobalInput()
-        if self:_keyPressed(self.MenuKey) then
-            self:_setOpen(not self.Open)
-        end
         if self.KeyListenTarget then
             local key = self:_readListenKey()
             if key then
@@ -1753,16 +1795,21 @@ function GalaxObsidian:CreateWindow(options)
                     self.KeyListenTarget.value = key
                     safeCall(self.KeyListenTarget.changed, key)
                 end
+                self.KeyListenTarget._keybindCleared = false
                 self.KeyListenTarget.listening = false
                 self.KeyListenTarget = nil
                 self.KeyListenStarted = 0
                 self:_releaseInteraction()
-            elseif (self.Mouse1Clicked or self.Mouse2Clicked) and tick() - self.KeyListenStarted > 0.1 then
+            elseif self.Mouse1Clicked and tick() - self.KeyListenStarted > 0.1 then
                 self.KeyListenTarget.listening = false
                 self.KeyListenTarget = nil
                 self.KeyListenStarted = 0
                 self:_releaseInteraction()
             end
+            return nil
+        end
+        if self:_keyPressed(self.MenuKey) then
+            self:_setOpen(not self.Open)
         end
         if self.SearchFocused then
             local char = self:_readTextInput()
@@ -2167,12 +2214,14 @@ function GalaxObsidian:CreateWindow(options)
         local scale = self:GetScale()
         local boxX = x
         local disabled = widget.disabled == true
-        local keyLabel = widget.keybind and (widget.listening and "..." or keyName(widget.keybind)) or nil
+        local keyLabel = (widget.keybind or widget.listening or widget._keybindCleared)
+            and (widget.listening and "..." or (widget.keybind and keyName(widget.keybind) or "?"))
+            or nil
         local keyTextSize = 14
         local keyH = math.floor(18 * scale)
         local keyW = keyLabel and math.max(math.floor(40 * scale), math.floor(estimateTextWidth(keyLabel, keyTextSize, Theme.Font) + math.floor(26 * scale))) or 0
         local keyX = keyLabel and (x + w - keyW) or nil
-        local labelMaxW = widget.keybind and (w - keyW - math.floor(34 * scale)) or (w - math.floor(26 * scale))
+        local labelMaxW = keyLabel and (w - keyW - math.floor(34 * scale)) or (w - math.floor(26 * scale))
         local overBox = not disabled and self:_hover(x, y, w, math.floor(18 * scale), widget)
         local checkBoxBg = self:_anim(widget, "checkbox.bg", overBox and Theme.Surface2 or Theme.Main, 16)
         local checkBoxOutline = self:_anim(
@@ -2202,6 +2251,7 @@ function GalaxObsidian:CreateWindow(options)
             z + 2
         )
         if keyLabel then
+            self:_handleKeybindHoldClear(widget)
             local kY = y + math.floor(0 * scale)
             local overKey = self:_hover(keyX, kY, keyW, keyH, widget)
             local keyBg = self:_anim(widget, "checkbox.key.bg", overKey and Theme.Surface2 or Theme.Surface, 16)
@@ -2227,6 +2277,7 @@ function GalaxObsidian:CreateWindow(options)
             )
             if not disabled and self:_click(keyX, kY, keyW, keyH) then
                 widget.listening = true
+                widget._keybindCleared = false
                 self.KeyListenTarget = widget
                 self.KeyListenStarted = tick()
                 self.BlockClicks = true
@@ -2247,7 +2298,9 @@ function GalaxObsidian:CreateWindow(options)
         local switchH = math.floor(18 * scale)
         local switchX = x + w - switchW
         local switchY = y + math.floor(0 * scale)
-        local keyLabel = widget.listening and "..." or (widget.keybind and keyName(widget.keybind) or nil)
+        local keyLabel = (widget.keybind or widget.listening or widget._keybindCleared)
+            and (widget.listening and "..." or (widget.keybind and keyName(widget.keybind) or "?"))
+            or nil
         local keyTextSize = 14
         local keyH = math.floor(18 * scale)
         local keyW = keyLabel and math.max(math.floor(40 * scale), math.floor(estimateTextWidth(keyLabel, keyTextSize, Theme.Font) + math.floor(26 * scale))) or 0
@@ -2277,6 +2330,7 @@ function GalaxObsidian:CreateWindow(options)
             z + 2
         )
         if keyLabel then
+            self:_handleKeybindHoldClear(widget)
             local keyBg = self:_anim(widget, "toggle.key.bg", Theme.Surface, 16)
             local keyOutline =
                 self:_anim(widget, "toggle.key.outline", widget.listening and self.Accent or Theme.Outline, 16)
@@ -2297,6 +2351,7 @@ function GalaxObsidian:CreateWindow(options)
             )
             if not disabled and self:_click(keyX, kY, keyW, keyH) then
                 widget.listening = true
+                widget._keybindCleared = false
                 self.KeyListenTarget = widget
                 self.KeyListenStarted = tick()
                 self.BlockClicks = true
@@ -2555,7 +2610,7 @@ function GalaxObsidian:CreateWindow(options)
 
     function Window:_renderKeybind(widget, x, y, w, z)
         local disabled = widget.disabled == true
-        local label = widget.listening and "..." or keyName(widget.value)
+        local label = widget.listening and "..." or (widget.value and keyName(widget.value) or "?")
         local scale = self:GetScale()
         local keyTextSize = 14
         local scaledKeyTextSize = math.floor(keyTextSize * scale + 0.5)
@@ -2600,11 +2655,13 @@ function GalaxObsidian:CreateWindow(options)
             true,
             z + 3
         )
+        self:_handleKeybindHoldClear(widget)
         if not disabled and self.Mouse2Clicked and self:_hover(keyX, keyBtnY, keyW, keyH, widget) then
             self:_openKeybindModePopup(widget, keyX, keyBtnY, keyW)
         end
         if not disabled and self:_click(keyX, keyBtnY, keyW, keyH) then
             widget.listening = true
+            widget._keybindCleared = false
             self.KeyListenTarget = widget
             self.KeyListenStarted = tick()
             self.BlockClicks = true
@@ -2970,7 +3027,7 @@ function GalaxObsidian:CreateWindow(options)
                 if a.visible ~= false then
                     local aw = addonSize
                     if a.type == "keybind" then
-                        local keyLabel = a.listening and "..." or keyName(a.value or 0)
+                        local keyLabel = a.listening and "..." or (a.value and keyName(a.value) or "?")
                         local textW = estimateTextWidth(keyLabel, addonTextSize, Theme.Font)
                         aw = math.max(addonSize, textW + math.floor(12 * scale))
                     end
@@ -3019,7 +3076,8 @@ function GalaxObsidian:CreateWindow(options)
                     if addon.visible ~= false then
                         local aw = addonWidths[i] or addonSize
                         if addon.type == "keybind" then
-                            local keyLabel = addon.listening and "..." or keyName(addon.value)
+                            local keyLabel = addon.listening and "..." or (addon.value and keyName(addon.value) or "?")
+                            self:_handleKeybindHoldClear(addon)
                             self:_square(ax, y, aw, addonSize, Theme.Surface, true, 1, 2, z + 1)
                             self:_square(
                                 ax,
@@ -3050,6 +3108,7 @@ function GalaxObsidian:CreateWindow(options)
                             end
                             if addon.disabled ~= true and self:_click(ax, y, aw, addonSize) then
                                 addon.listening = true
+                                addon._keybindCleared = false
                                 self.KeyListenTarget = addon
                                 self.KeyListenStarted = tick()
                                 self.BlockClicks = true
