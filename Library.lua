@@ -1958,6 +1958,56 @@ function GalaxObsidian:CreateWindow(options)
         end
     end
 
+    local function makeColorPickerAddon(name, info)
+        info = info or {}
+        local default = info.Default or Color3.new(1, 1, 1)
+        local hue, sat, vib = rgbToHsv(default)
+        return {
+            type = "colorpicker",
+            id = name,
+            label = info.Text or info.Label or info.Title or tostring(name or "Color"),
+            title = info.Title,
+            value = default,
+            hue = hue,
+            sat = sat,
+            vib = vib,
+            transparency = info.Transparency or 0,
+            transparencyEnabled = info.Transparency ~= nil,
+            callback = info.Callback,
+            changed = info.Changed,
+            tooltip = info.Tooltip,
+            disabled = info.Disabled == true,
+            visible = info.Visible ~= false,
+            popup = nil,
+        }
+    end
+
+    local function makeKeybindAddon(name, info, parent)
+        info = info or {}
+        local addon = {
+            type = "keybind",
+            id = name,
+            label = info.Text or info.Label or tostring(name or "Keybind"),
+            value = info.Default,
+            mode = info.Mode or "Hold",
+            callback = info.Callback,
+            changed = info.Changed or info.ChangedCallback,
+            tooltip = info.Tooltip,
+            disabled = info.Disabled == true,
+            visible = info.Visible ~= false,
+            _state = false,
+            _prevHeld = false,
+            popup = nil,
+            parent = parent,
+        }
+        if info.Popup ~= nil then
+            local enabled, modes = resolveKeybindPopupConfig(info.Popup)
+            addon.popupEnabled = enabled
+            addon.popupModes = modes
+        end
+        return addon
+    end
+
     function Window:_widgetHandle(widget, getters)
         local handle = makeHandle(widget)
         if getters then
@@ -5225,56 +5275,6 @@ function GalaxObsidian:CreateWindow(options)
                     })
                 end
                 return makeHandle(leftWidget), makeHandle(rightWidget)
-            end
-
-            local function makeColorPickerAddon(name, info)
-                info = info or {}
-                local default = info.Default or Color3.new(1, 1, 1)
-                local hue, sat, vib = rgbToHsv(default)
-                return {
-                    type = "colorpicker",
-                    id = name,
-                    label = info.Text or info.Label or info.Title or tostring(name or "Color"),
-                    title = info.Title,
-                    value = default,
-                    hue = hue,
-                    sat = sat,
-                    vib = vib,
-                    transparency = info.Transparency or 0,
-                    transparencyEnabled = info.Transparency ~= nil,
-                    callback = info.Callback,
-                    changed = info.Changed,
-                    tooltip = info.Tooltip,
-                    disabled = info.Disabled == true,
-                    visible = info.Visible ~= false,
-                    popup = nil,
-                }
-            end
-
-            local function makeKeybindAddon(name, info, parent)
-                info = info or {}
-                local addon = {
-                    type = "keybind",
-                    id = name,
-                    label = info.Text or info.Label or tostring(name or "Keybind"),
-                    value = info.Default,
-                    mode = info.Mode or "Hold",
-                    callback = info.Callback,
-                    changed = info.Changed or info.ChangedCallback,
-                    tooltip = info.Tooltip,
-                    disabled = info.Disabled == true,
-                    visible = info.Visible ~= false,
-                    _state = false,
-                    _prevHeld = false,
-                    popup = nil,
-                    parent = parent,
-                }
-                if info.Popup ~= nil then
-                    local enabled, modes = resolveKeybindPopupConfig(info.Popup)
-                    addon.popupEnabled = enabled
-                    addon.popupModes = modes
-                end
-                return addon
             end
 
             function Section:AddTextbox(label, default, callback, placeholder)
