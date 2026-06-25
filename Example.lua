@@ -1,16 +1,16 @@
 local repo = "https://raw.githubusercontent.com/WhyMayko/Obsidian-Matcha/refs/heads/main/"
 
-loadstring(game:HttpGet(repo .. "Library.lua"))
-local Library = _G.Galax["Library.lua"]
+local Library = loadstring(game:HttpGet(repo .. "Library.lua"))()
+Library = _G.Galax["Library.lua"]
 
-loadstring(game:HttpGet(repo .. "addons/ThemeManager.lua"))
-local ThemeManager = _G.Galax["addons/ThemeManager.lua"]
+local ThemeManager = loadstring(game:HttpGet(repo .. "addons/ThemeManager.lua"))()
+ThemeManager = _G.Galax["addons/ThemeManager.lua"]
 
-loadstring(game:HttpGet(repo .. "addons/SaveManager.lua"))
-local SaveManager = _G.Galax["addons/SaveManager.lua"]
+local SaveManager = loadstring(game:HttpGet(repo .. "addons/SaveManager.lua"))()
+SaveManager = _G.Galax["addons/SaveManager.lua"]
 
-loadstring(game:HttpGet(repo .. "addons/EssentialsManager.lua"))
-local EssentialsManager = _G.Galax["addons/EssentialsManager.lua"]
+local EssentialsManager = loadstring(game:HttpGet(repo .. "addons/EssentialsManager.lua"))()
+EssentialsManager = _G.Galax["addons/EssentialsManager.lua"]
 
 local Options = Library.Options
 local Toggles = Library.Toggles
