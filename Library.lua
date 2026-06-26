@@ -1,7 +1,9 @@
 local GalaxObsidian = {}
 
+-- Bootstrap
 GalaxObsidian.Version = "1.0.0"
 
+-- Runtime Compatibility
 if not Color3.fromRGB then
     Color3.fromRGB = function(r, g, b)
         return Color3.new(r / 255, g / 255, b / 255)
@@ -37,6 +39,7 @@ if not Color3.fromHSV then
     end
 end
 
+-- Public State
 GalaxObsidian.ImageCache = GalaxObsidian.ImageCache or {}
 
 GalaxObsidian.TransparencyTextureUrl =
@@ -56,10 +59,8 @@ GalaxObsidian.DPIScale = 100
 
 local Theme
 
-
-
+-- Addon Loading
 local AddonRepo = "https://raw.githubusercontent.com/WhyMayko/Obsidian-Matcha/refs/heads/main/"
-
 
 local function loadCoreAddon(path)
     local ok, source = pcall(function()
@@ -67,13 +68,17 @@ local function loadCoreAddon(path)
     end)
     if not ok then error(path .. " (network): " .. tostring(source), 2) end
     local chunk, err = loadstring(source)
+    local module
     if type(chunk) == "function" then
-        local ok2, err2 = pcall(chunk)
-        if not ok2 then error(path .. " (runtime): " .. tostring(err2), 2) end
+        local ok2, result = pcall(chunk)
+        if not ok2 then error(path .. " (runtime): " .. tostring(result), 2) end
+        module = result
     elseif chunk ~= nil then
         error(path .. " (syntax): " .. tostring(err), 2)
     end
-    local module = _G.Galax and _G.Galax[path]
+    if type(module) ~= "table" then
+        module = _G.Galax and _G.Galax[path]
+    end
     if type(module) ~= "table" then error(path .. " did not export", 2) end
     return module
 end
@@ -96,6 +101,8 @@ GalaxObsidian.AnimationManager = AnimationManager
 GalaxObsidian.DialogManager = DialogManager
 GalaxObsidian.NotificationManager = NotificationManager
 GalaxObsidian.ValueWatcher = ValueWatcher
+
+-- Shared Utilities
 local function clamp(value, minValue, maxValue)
     if value < minValue then
         return minValue

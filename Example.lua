@@ -1,16 +1,34 @@
 local repo = "https://raw.githubusercontent.com/WhyMayko/Obsidian-Matcha/refs/heads/main/"
 
-local Library = loadstring(game:HttpGet(repo .. "Library.lua"))()
-Library = _G.Galax["Library.lua"]
+local function loadGalax(path)
+    local ok, source = pcall(function()
+        return game:HttpGet(repo .. path)
+    end)
+    if not ok then error(path .. " (network): " .. tostring(source), 2) end
 
-local ThemeManager = loadstring(game:HttpGet(repo .. "addons/ThemeManager.lua"))()
-ThemeManager = _G.Galax["addons/ThemeManager.lua"]
+    local chunk, err = loadstring(source)
+    local module
+    if type(chunk) == "function" then
+        local ok2, result = pcall(chunk)
+        if not ok2 then error(path .. " (runtime): " .. tostring(result), 2) end
+        module = result
+    elseif chunk ~= nil then
+        error(path .. " (syntax): " .. tostring(err), 2)
+    end
 
-local SaveManager = loadstring(game:HttpGet(repo .. "addons/SaveManager.lua"))()
-SaveManager = _G.Galax["addons/SaveManager.lua"]
+    if type(module) ~= "table" then
+        module = _G.Galax and _G.Galax[path]
+    end
+    if type(module) ~= "table" then
+        error(path .. " did not export", 2)
+    end
+    return module
+end
 
-local EssentialsManager = loadstring(game:HttpGet(repo .. "addons/EssentialsManager.lua"))()
-EssentialsManager = _G.Galax["addons/EssentialsManager.lua"]
+local Library = loadGalax("Library.lua")
+local ThemeManager = loadGalax("addons/ThemeManager.lua")
+local SaveManager = loadGalax("addons/SaveManager.lua")
+local EssentialsManager = loadGalax("addons/EssentialsManager.lua")
 
 local Options = Library.Options
 local Toggles = Library.Toggles
