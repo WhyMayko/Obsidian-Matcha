@@ -7,8 +7,15 @@ Obsidian Matcha is a Drawing API UI library for Matcha.
 ```lua
 local repo = "https://raw.githubusercontent.com/WhyMayko/Obsidian-Matcha/refs/heads/main/"
 
-loadstring(game:HttpGet(repo .. "Library.lua"))
-local Library = _G.Galax["Library.lua"]
+local function loadGalax(path)
+    local module = loadstring(game:HttpGet(repo .. path))()
+    if type(module) ~= "table" then
+        error(path .. " did not export", 2)
+    end
+    return module
+end
+
+local Library = loadGalax("Library.lua")
 
 local Window = Library:CreateWindow({
     Title = "My Script",
@@ -35,23 +42,18 @@ Group:AddToggle("Enabled", {
 Run the full example:
 
 ```lua
-loadstring(game:HttpGet("https://raw.githubusercontent.com/WhyMayko/Obsidian-Matcha/refs/heads/main/Example.lua"))
+loadstring(game:HttpGet("https://raw.githubusercontent.com/WhyMayko/Obsidian-Matcha/refs/heads/main/Example.lua"))()
 ```
 
 ## Loading Addons
 
 ```lua
-loadstring(game:HttpGet(repo .. "addons/ThemeManager.lua"))
-local ThemeManager = _G.Galax["addons/ThemeManager.lua"]
-
-loadstring(game:HttpGet(repo .. "addons/SaveManager.lua"))
-local SaveManager = _G.Galax["addons/SaveManager.lua"]
-
-loadstring(game:HttpGet(repo .. "addons/EssentialsManager.lua"))
-local EssentialsManager = _G.Galax["addons/EssentialsManager.lua"]
+local ThemeManager = loadGalax("addons/ThemeManager.lua")
+local SaveManager = loadGalax("addons/SaveManager.lua")
+local EssentialsManager = loadGalax("addons/EssentialsManager.lua")
 ```
 
-Core addons are loaded by `Library.lua`: TextManager, IconManager, AnimationManager, SizeManager, DialogManager, NotificationManager, and ValueWatcher.
+Core addons are loaded by `Library.lua`: TextManager, IconManager, AnimationManager, DialogManager, NotificationManager, and ValueWatcher.
 
 ## Supported UI
 
@@ -118,7 +120,7 @@ ThemeManager:ApplyToTab(Tabs.Settings)
 
 ## Notes
 
-- Matcha `loadstring` exports modules through `_G.Galax`; read the module from `_G.Galax[...]` after loading.
+- Modules now return their table directly through `loadstring(... )()`. `_G.Galax[...]` remains as a compatibility fallback for older loaders.
 - Keybinds use Win32 virtual-key codes, for example `0x02` for right mouse and `0x70` for F1.
 - Supported Drawing fonts are `UI`, `System`, `SystemBold`, `Minecraft`, `Monospace`, `Pixel`, and `Fortnite`.
 - Configs are saved under `Galax/Obsidian/Settings/Configs/`.
