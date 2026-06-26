@@ -1115,8 +1115,13 @@ function GalaxObsidian:CreateWindow(options)
         local function inside(pos)
             return pos and pos.X >= left and pos.X <= right and pos.Y >= top and pos.Y <= bottom
         end
+        local outerOutlineZ = 95
+        local function inShiftLayer(z)
+            return (z >= 10 and z < 88) or z == outerOutlineZ
+        end
         local function shouldShift(object)
-            return object.Visible and inside(object.Position) and (object.ZIndex or 0) < 88
+            local z = object.ZIndex or 0
+            return object.Visible and inside(object.Position) and inShiftLayer(z)
         end
         for _, object in ipairs(self.Pool.Square) do
             if shouldShift(object) then
@@ -1139,7 +1144,8 @@ function GalaxObsidian:CreateWindow(options)
             end
         end
         for _, object in ipairs(self.Pool.Line) do
-            if object.Visible and (inside(object.From) or inside(object.To)) and (object.ZIndex or 0) < 88 then
+            local z = object.ZIndex or 0
+            if object.Visible and (inside(object.From) or inside(object.To)) and inShiftLayer(z) then
                 object.From = Vector2.new(object.From.X + dx, object.From.Y + dy)
                 object.To = Vector2.new(object.To.X + dx, object.To.Y + dy)
             end
@@ -4110,6 +4116,35 @@ function GalaxObsidian:CreateWindow(options)
         return math.max(0.5, (self.DPIScale or 100) / 100)
     end
 
+    function Window:_windowLayout(x, y, w, h, scale)
+        local sidebarW = math.floor(200 * scale)
+        local topH = math.floor(48 * scale)
+        local bottomH = math.floor(20 * scale)
+        local pad = math.floor(8 * scale)
+        local searchH = topH - pad * 2
+        local dragBox = searchH
+        local dragMargin = pad
+        local dragBoxX = x + w - dragMargin - dragBox
+        local dragBoxY = y + pad
+        local searchGap = pad
+        local searchX = x + sidebarW + searchGap
+        local searchY = y + pad
+        local searchW = math.max(0, dragBoxX - searchGap - searchX)
+        return {
+            sidebarW = sidebarW,
+            topH = topH,
+            bottomH = bottomH,
+            dragSize = math.floor(28 * scale),
+            dragX = dragBoxX + dragBox / 2,
+            dragY = dragBoxY + dragBox / 2,
+            searchX = searchX,
+            searchY = searchY,
+            searchW = searchW,
+            searchH = searchH,
+            searchVisible = self.ShowSearch and searchW > 40,
+        }
+    end
+
     function Window:_render()
         self:_resetPool()
         self.BlockClicks = false
@@ -4127,23 +4162,18 @@ function GalaxObsidian:CreateWindow(options)
         local w, h = self.Size.X, self.Size.Y
         local prevX, prevY, prevW, prevH = x, y, w, h
         local scale = self:GetScale()
-        local sidebarW = math.floor(200 * scale)
-        local topH = math.floor(48 * scale)
-        local bottomH = math.floor(20 * scale)
-        local topPad = math.floor(8 * scale)
-        local searchH = topH - topPad * 2
-        local dragBox = searchH
-        local dragSize = math.floor(28 * scale)
-        local dragMargin = math.floor(8 * scale)
-        local dragBoxX = x + w - dragMargin - dragBox
-        local dragBoxY = y + topPad
-        local dragX = dragBoxX + dragBox / 2
-        local dragY = dragBoxY + dragBox / 2
-        local searchGap = math.floor(8 * scale)
-        local searchX = x + sidebarW + searchGap
-        local searchY = y + topPad
-        local searchW = math.max(0, dragBoxX - searchGap - searchX)
-        local searchVisible = self.ShowSearch and searchW > 40
+        local layout = self:_windowLayout(x, y, w, h, scale)
+        local sidebarW = layout.sidebarW
+        local topH = layout.topH
+        local bottomH = layout.bottomH
+        local dragSize = layout.dragSize
+        local dragX = layout.dragX
+        local dragY = layout.dragY
+        local searchX = layout.searchX
+        local searchY = layout.searchY
+        local searchW = layout.searchW
+        local searchH = layout.searchH
+        local searchVisible = layout.searchVisible
         self.SearchHitbox = searchVisible and { x = searchX, y = searchY, w = searchW, h = searchH } or nil
         self:_consumeOutsideFloatingClick()
         local overSearch = searchVisible and self:_over(searchX, searchY, searchW, searchH)
@@ -4185,14 +4215,18 @@ function GalaxObsidian:CreateWindow(options)
 
         self:_translateVisibleInBounds(x - prevX, y - prevY, prevX, prevY, prevW, prevH)
 
-        dragBoxX = x + w - dragMargin - dragBox
-        dragBoxY = y + topPad
-        dragX = dragBoxX + dragBox / 2
-        dragY = dragBoxY + dragBox / 2
-        searchX = x + sidebarW + searchGap
-        searchY = y + topPad
-        searchW = math.max(0, dragBoxX - searchGap - searchX)
-        searchVisible = self.ShowSearch and searchW > 40
+        layout = self:_windowLayout(x, y, w, h, scale)
+        sidebarW = layout.sidebarW
+        topH = layout.topH
+        bottomH = layout.bottomH
+        dragSize = layout.dragSize
+        dragX = layout.dragX
+        dragY = layout.dragY
+        searchX = layout.searchX
+        searchY = layout.searchY
+        searchW = layout.searchW
+        searchH = layout.searchH
+        searchVisible = layout.searchVisible
         self.SearchHitbox = searchVisible and { x = searchX, y = searchY, w = searchW, h = searchH } or nil
 
         local windowCorner =
