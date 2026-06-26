@@ -1,6 +1,6 @@
 # Obsidian Matcha
 
-Obsidian Matcha is a Drawing API UI library for Matcha. It keeps the Obsidian/Linoria-style scripting API while avoiding Roblox UI objects such as `ScreenGui`, `Frame`, and `Instance.new`.
+Obsidian Matcha is a Drawing API UI library for Matcha.
 
 ## Quick Start
 

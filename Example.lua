@@ -131,12 +131,12 @@ MainLeft:AddSlider("MySlider", {
     Disabled = false,
     Visible = true,
     Callback = function(value)
-        print("[cb] MySlider:", value)
+        print("[cb] MySlider was changed! New value:", value)
     end,
 })
 
 Options.MySlider:OnChanged(function()
-    print("MySlider changed:", Options.MySlider.Value)
+    print("MySlider was changed! New value:", Options.MySlider.Value)
 end)
 
 Options.MySlider:SetValue(3)
@@ -205,13 +205,16 @@ Options.KeyPicker:OnClick(function()
     print("Keybind state:", Options.KeyPicker:GetState())
 end)
 
+local KeybindNumber = 0
+
 MainLeft:AddLabel("Press Keybind"):AddKeyPicker("KeyPicker2", {
     Default = 0x58,
     Mode = "Press",
     Text = "Increase Number",
     Popup = { "Press" },
     Callback = function()
-        print("Pressed X")
+        KeybindNumber = KeybindNumber + 1
+        print("[cb] Keybind clicked! Number increased to:", KeybindNumber)
     end,
 })
 

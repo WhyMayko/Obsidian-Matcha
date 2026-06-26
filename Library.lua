@@ -129,6 +129,9 @@ local function rgbToHsv(color)
         r, g, b = 0, 0, 0
     end
     r, g, b = tonumber(r), tonumber(g), tonumber(b)
+    if math.max(r, g, b) > 1 then
+        r, g, b = r / 255, g / 255, b / 255
+    end
     local maxValue = math.max(r, g, b)
     local minValue = math.min(r, g, b)
     local delta = maxValue - minValue
@@ -148,6 +151,27 @@ local function rgbToHsv(color)
         saturation = delta / maxValue
     end
     return hue, saturation, maxValue
+end
+
+local function roundNumber(value, decimals)
+    decimals = tonumber(decimals) or 0
+    if decimals <= 0 then
+        return math.floor(value + 0.5)
+    end
+    local mult = 10 ^ decimals
+    return math.floor(value * mult + 0.5) / mult
+end
+
+local function formatNumber(value, decimals)
+    if decimals == false then
+        return tostring(value)
+    end
+    decimals = tonumber(decimals) or 0
+    value = roundNumber(value, decimals)
+    if decimals <= 0 then
+        return tostring(math.floor(value + 0.5))
+    end
+    return tostring(value)
 end
 local function hsvToRgb(h, s, v)
     local i = math.floor(h * 6)
@@ -2389,8 +2413,8 @@ function GalaxObsidian:CreateWindow(options)
     function Window:_renderSlider(widget, x, y, w, z)
         local disabled = widget.disabled == true
         local compact = widget.compact == true
-        local currentText = tostring(math.floor(widget.value * 100 + 0.5) / 100)
-        local maxText = tostring(math.floor((widget.max or 0) * 100 + 0.5) / 100)
+        local currentText = formatNumber(widget.value, widget.rounding)
+        local maxText = formatNumber(widget.max or 0, widget.rounding)
         if widget.formatDisplayValue then
             local custom = widget.formatDisplayValue(widget, widget.value)
             if custom ~= nil then
@@ -2447,15 +2471,15 @@ function GalaxObsidian:CreateWindow(options)
         if fillW > 0 then
             self:_square(barX, barY, fillW, barH, sliderFillColor, true, 1, 3, z + 3)
         end
-            local centeredValueW = estimateTextWidth(valueText, 14, Theme.Font)
-            local scaledValTextSize = math.floor(14 * scale + 0.5)
-            local sliderValueText = self:_anim(widget, "slider.value.text", disabled and Theme.DimText or Theme.Text, 16)
-            self:_text(
-                valueText,
-                barX + math.floor((barW - centeredValueW) / 2),
-                barY + math.floor((barH - scaledValTextSize) / 2),
-                sliderValueText,
-                14,
+        local centeredValueW = estimateTextWidth(valueText, 14, Theme.Font)
+        local scaledValTextSize = math.floor(14 * scale + 0.5)
+        local sliderValueText = self:_anim(widget, "slider.value.text", disabled and Theme.DimText or Theme.Text, 16)
+        self:_text(
+            valueText,
+            barX + math.floor((barW - centeredValueW) / 2),
+            barY + math.floor((barH - scaledValTextSize) / 2),
+            sliderValueText,
+            14,
             Drawing.Fonts.Monospace,
             false,
             true,
@@ -2468,8 +2492,8 @@ function GalaxObsidian:CreateWindow(options)
         if self.SliderTarget == widget and self.Mouse1Held then
             local nextPercent = clamp((mouse.X - barX) / barW, 0, 1)
             local nextValue = widget.min + (widget.max - widget.min) * nextPercent
-            if widget.round then
-                nextValue = math.floor(nextValue + 0.5)
+            if widget.rounding ~= false then
+                nextValue = roundNumber(nextValue, widget.rounding)
             end
             if widget.integer then
                 nextValue = math.floor(nextValue)
@@ -3571,6 +3595,9 @@ function GalaxObsidian:CreateWindow(options)
         local widget = self.ColorPickerTarget
         if not widget or not widget.popup then
             return nil
+        end
+        if not self.ColorPickerDrag then
+            widget.hue, widget.sat, widget.vib = rgbToHsv(widget.value or Color3.new(1, 1, 1))
         end
         local scale = self:GetScale()
         local info = widget.popup
@@ -5029,7 +5056,7 @@ function GalaxObsidian:CreateWindow(options)
                     _default = clamp(default, minValue, maxValue),
                     prefix = config.Prefix or "",
                     suffix = config.Suffix or "",
-                    round = config.Round ~= false,
+                    rounding = config.Round == false and false or (config.Rounding or config.Precision or 0),
                     integer = config.Integer == true,
                     compact = config.Compact == true,
                     hideMax = config.HideMax == true,
