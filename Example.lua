@@ -1,24 +1,7 @@
 local repo = "https://raw.githubusercontent.com/WhyMayko/Obsidian-Matcha/refs/heads/main/"
 
 local function loadGalax(path)
-    local ok, source = pcall(function()
-        return game:HttpGet(repo .. path)
-    end)
-    if not ok then error(path .. " (network): " .. tostring(source), 2) end
-
-    local chunk, err = loadstring(source)
-    local module
-    if type(chunk) == "function" then
-        local ok2, result = pcall(chunk)
-        if not ok2 then error(path .. " (runtime): " .. tostring(result), 2) end
-        module = result
-    elseif chunk ~= nil then
-        error(path .. " (syntax): " .. tostring(err), 2)
-    end
-
-    if type(module) ~= "table" then
-        module = _G.Galax and _G.Galax[path]
-    end
+    local module = loadstring(game:HttpGet(repo .. path))()
     if type(module) ~= "table" then
         error(path .. " did not export", 2)
     end
