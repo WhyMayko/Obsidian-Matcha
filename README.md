@@ -7,9 +7,7 @@ Obsidian Matcha is a Drawing API UI library for Matcha.
 ```lua
 local repo = "https://raw.githubusercontent.com/WhyMayko/Obsidian-Matcha/refs/heads/main/"
 
-local function loadGalax(path)
-    return loadstring(game:HttpGet(repo .. path))()
-end
+local function loadGalax(path) local chunk = loadstring(game:HttpGet(repo .. path)); local module = type(chunk) == "function" and chunk() or nil; return type(module) == "table" and module or _G.Galax[path] end
 
 local Library = loadGalax("Library.lua")
 
@@ -116,7 +114,6 @@ ThemeManager:ApplyToTab(Tabs.Settings)
 
 ## Notes
 
-- Modules now return their table directly through `loadstring(... )()`. `_G.Galax[...]` remains as a compatibility fallback for older loaders.
 - Keybinds use Win32 virtual-key codes, for example `0x02` for right mouse and `0x70` for F1.
 - Supported Drawing fonts are `UI`, `System`, `SystemBold`, `Minecraft`, `Monospace`, `Pixel`, and `Fortnite`.
 - Configs are saved under `Galax/Obsidian/Settings/Configs/`.

@@ -1,8 +1,6 @@
 local repo = "https://raw.githubusercontent.com/WhyMayko/Obsidian-Matcha/refs/heads/main/"
 
-local function loadGalax(path)
-    return loadstring(game:HttpGet(repo .. path))()
-end
+local function loadGalax(path) local chunk = loadstring(game:HttpGet(repo .. path)); local module = type(chunk) == "function" and chunk() or nil; return type(module) == "table" and module or _G.Galax[path] end
 
 local Library = loadGalax("Library.lua")
 local ThemeManager = loadGalax("addons/ThemeManager.lua")
