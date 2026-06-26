@@ -118,8 +118,12 @@ end
 
 local function rgbToHsv(color)
     local r, g, b
-    if type(color) == "table" then
-        r, g, b = color.R or color.r, color.G or color.g, color.B or color.b
+    local colorType = type(color)
+    if colorType == "table" or typeof(color) == "Color3" then
+        r, g, b = color.R, color.G, color.B
+    end
+    if r == nil and (colorType == "table" or typeof(color) == "Color3") then
+        r, g, b = color.r, color.g, color.b
     end
     if r == nil then
         local str = tostring(color)
@@ -1113,7 +1117,7 @@ function GalaxObsidian:CreateWindow(options)
         end
         local function shouldShift(object)
             local z = object and object.ZIndex
-            return z and z >= 5 and z < 80
+            return z and z >= 1 and z < 80
         end
         for _, object in ipairs(self.Pool.Square) do
             if object.Visible and shouldShift(object) and inside(object.Position) then
