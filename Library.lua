@@ -1106,7 +1106,42 @@ function GalaxObsidian:CreateWindow(options)
         end
     end
 
-
+    function Window:_translateVisibleInBounds(dx, dy, bx, by, bw, bh)
+        if (dx == 0 and dy == 0) or not bx or not by or not bw or not bh then
+            return nil
+        end
+        local left, top = bx - 2, by - 2
+        local right, bottom = bx + bw + 2, by + bh + 2
+        local function inside(pos)
+            return pos and pos.X >= left and pos.X <= right and pos.Y >= top and pos.Y <= bottom
+        end
+        for _, object in ipairs(self.Pool.Square) do
+            if object.Visible and inside(object.Position) then
+                object.Position = Vector2.new(object.Position.X + dx, object.Position.Y + dy)
+            end
+        end
+        for _, object in ipairs(self.Pool.Text) do
+            if object.Visible and inside(object.Position) then
+                object.Position = Vector2.new(object.Position.X + dx, object.Position.Y + dy)
+            end
+        end
+        for _, object in ipairs(self.Pool.Circle) do
+            if object.Visible and inside(object.Position) then
+                object.Position = Vector2.new(object.Position.X + dx, object.Position.Y + dy)
+            end
+        end
+        for _, object in ipairs(self.Pool.Image) do
+            if object.Visible and inside(object.Position) then
+                object.Position = Vector2.new(object.Position.X + dx, object.Position.Y + dy)
+            end
+        end
+        for _, object in ipairs(self.Pool.Line) do
+            if object.Visible and (inside(object.From) or inside(object.To)) then
+                object.From = Vector2.new(object.From.X + dx, object.From.Y + dy)
+                object.To = Vector2.new(object.To.X + dx, object.To.Y + dy)
+            end
+        end
+    end
 
     function Window:_get(kind)
         self.Index[kind] = self.Index[kind] + 1
@@ -2429,7 +2464,13 @@ function GalaxObsidian:CreateWindow(options)
         if widget.max ~= widget.min then
             percent = clamp((widget.value - widget.min) / (widget.max - widget.min), 0, 1)
         end
-        local fillW = math.floor(self:_animOrSnap(widget, "slider.fill", barW * percent, 18, self.SliderTarget ~= widget) + 0.5)
+        local fillW
+        if self:_hotInteraction() then
+            AnimationManager:Reset(widget, "slider.fill")
+            fillW = math.floor(barW * percent + 0.5)
+        else
+            fillW = math.floor(self:_anim(widget, "slider.fill", barW * percent, 18) + 0.5)
+        end
         local sliderFillColor = self:_anim(widget, "slider.fillColor", disabled and Theme.Outline2 or self.Accent, 16)
         self:_square(barX, barY, barW, barH, Theme.Main, true, disabled and 0.45 or 1, 3, z + 1)
         self:_square(barX, barY, barW, barH, Theme.Outline, false, disabled and 0.45 or 1, 3, z + 2)
@@ -4081,6 +4122,7 @@ function GalaxObsidian:CreateWindow(options)
         end
         local x, y = self.Position.X, self.Position.Y
         local w, h = self.Size.X, self.Size.Y
+        local prevX, prevY, prevW, prevH = x, y, w, h
         local scale = self:GetScale()
         local sidebarW = math.floor(200 * scale)
         local topH = math.floor(48 * scale)
@@ -4138,6 +4180,8 @@ function GalaxObsidian:CreateWindow(options)
             end
         end
 
+        self:_translateVisibleInBounds(x - prevX, y - prevY, prevX, prevY, prevW, prevH)
+
         dragBoxX = x + w - dragMargin - dragBox
         dragBoxY = y + topPad
         dragX = dragBoxX + dragBox / 2
@@ -4173,9 +4217,6 @@ function GalaxObsidian:CreateWindow(options)
                 self:_closeFloating()
             end
             tabY = tabY + tabEntryH
-        end
-        if self.ActiveTab then
-            self:_renderSections(self.ActiveTab, x + sidebarW, y + topH, w - sidebarW, h - topH - bottomH, 10, y, y + h)
         end
         local chromeZ = 88
         self:_square(x, y, w, topH, Theme.Topbar, true, 1, windowCorner, chromeZ)
@@ -4359,6 +4400,9 @@ function GalaxObsidian:CreateWindow(options)
                 imgY = y + h - bottomH - imgH
             end
             self:_image(self.SidebarImageData, imgX, imgY, imgW, imgH, 0, chromeZ + 3)
+        end
+        if self.ActiveTab then
+            self:_renderSections(self.ActiveTab, x + sidebarW, y + topH, w - sidebarW, h - topH - bottomH, 10, y, y + h)
         end
         self:_square(x, y, w, h, Theme.SoftOutline, false, 1, windowCorner, chromeZ + 7)
         self:_renderDropdownPopup()
