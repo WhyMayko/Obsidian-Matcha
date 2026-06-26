@@ -8,11 +8,7 @@ Obsidian Matcha is a Drawing API UI library for Matcha.
 local repo = "https://raw.githubusercontent.com/WhyMayko/Obsidian-Matcha/refs/heads/main/"
 
 local function loadGalax(path)
-    local module = loadstring(game:HttpGet(repo .. path))()
-    if type(module) ~= "table" then
-        error(path .. " did not export", 2)
-    end
-    return module
+    return loadstring(game:HttpGet(repo .. path))()
 end
 
 local Library = loadGalax("Library.lua")
