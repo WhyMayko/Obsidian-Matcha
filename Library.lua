@@ -1124,7 +1124,7 @@ function GalaxObsidian:CreateWindow(options)
         end
         local outerOutlineZ = 95
         local function inShiftLayer(z)
-            return (z >= 10 and z < 88) or z == outerOutlineZ
+            return (z >= 10 and z < 88) or (z >= 90 and z <= outerOutlineZ)
         end
         local function shouldShift(object)
             local z = object.ZIndex or 0
