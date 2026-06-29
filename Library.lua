@@ -3922,7 +3922,7 @@ function GalaxObsidian:CreateWindow(options)
         local logicalWidth = self.KeybindMenuWidth or 260
         local width = math.floor(logicalWidth * scale)
         local dragH = math.floor(32 * scale)
-        local height = dragH + math.floor(12 * scale) + #rows * rowH
+        local height = dragH + math.floor(12 * scale) + math.max(#rows, 1) * rowH
         if self.KeybindMenuX == nil then
             local camera = workspace.CurrentCamera
             local viewport = camera and camera.ViewportSize
