@@ -20,6 +20,7 @@ GalaxObsidian.UnloadCallbacks = {}
 GalaxObsidian.NotifySide = "Right"
 GalaxObsidian.CornerRadius = 4
 GalaxObsidian.DPIScale = 100
+GalaxObsidian.ShowToggleFrameInKeybinds = true
 
 local Theme
 
@@ -1773,6 +1774,14 @@ function GalaxObsidian:CreateWindow(options)
         return false
     end
 
+    function Window:_syncToggleKeypickerAddons(toggleWidget)
+        for _, addon in ipairs(toggleWidget.addons or {}) do
+            if addon.type == "keybind" and addon.syncToggleState then
+                addon._state = toggleWidget.value == true
+            end
+        end
+    end
+
     function Window:_closeFloating(except)
         if except ~= "dropdown" then
             local old = self.DropdownTarget
@@ -1959,6 +1968,7 @@ function GalaxObsidian:CreateWindow(options)
             then
                 if self:_keyPressed(widget.keybind) then
                     widget.value = not widget.value
+                    self:_syncToggleKeypickerAddons(widget)
                     safeCall(widget.callback, widget.value)
                     safeCall(widget.changed, widget.value)
                 end
@@ -1994,6 +2004,7 @@ function GalaxObsidian:CreateWindow(options)
                         widget._state = not widget._state
                         if widget.parent and (widget.parent.type == "toggle" or widget.parent.type == "checkbox") then
                             widget.parent.value = widget._state
+                            self:_syncToggleKeypickerAddons(widget.parent)
                             safeCall(widget.parent.callback, widget.parent.value)
                             safeCall(widget.parent.changed, widget.parent.value)
                         else
@@ -2005,6 +2016,7 @@ function GalaxObsidian:CreateWindow(options)
                         widget._state = true
                         if widget.parent and (widget.parent.type == "toggle" or widget.parent.type == "checkbox") then
                             widget.parent.value = true
+                            self:_syncToggleKeypickerAddons(widget.parent)
                             safeCall(widget.parent.callback, true)
                             safeCall(widget.parent.changed, true)
                         else
@@ -2063,6 +2075,7 @@ function GalaxObsidian:CreateWindow(options)
             label = info.Text or info.Label or tostring(name or "Keybind"),
             value = info.Default,
             mode = info.Mode or "Hold",
+            syncToggleState = info.SyncToggleState == true,
             callback = info.Callback,
             changed = info.Changed or info.ChangedCallback,
             tooltip = info.Tooltip,
@@ -2110,6 +2123,11 @@ function GalaxObsidian:CreateWindow(options)
         end
         handle.AddKeyPicker = function(_, name, info)
             info = info or {}
+            if info.Mode == "Press" then
+                assert(widget.type == "label", "KeyPicker with mode 'Press' can only be applied on Labels.")
+                info.SyncToggleState = false
+                info.Modes = { "Press" }
+            end
             widget.addons = widget.addons or {}
             local addon = makeKeybindAddon(name, info, widget)
             addon.mode = info.Mode or "Toggle"
@@ -2324,6 +2342,7 @@ function GalaxObsidian:CreateWindow(options)
         end
         if not disabled and self:_click(x, y, w, math.floor(18 * scale)) then
             widget.value = not widget.value
+            self:_syncToggleKeypickerAddons(widget)
             safeCall(widget.callback, widget.value)
             safeCall(widget.changed, widget.value)
         end
@@ -2343,15 +2362,25 @@ function GalaxObsidian:CreateWindow(options)
         local keyH = math.floor(18 * scale)
         local keyW = keyLabel and math.max(math.floor(40 * scale), math.floor(estimateTextWidth(keyLabel, keyTextSize, Theme.Font) + math.floor(26 * scale))) or 0
         local addons = widget.addons or {}
+        local addonSize = math.floor(18 * scale)
+        local addonGap = math.floor(4 * scale)
         local addonCount = 0
-        for _, addon in ipairs(addons) do
-            if addon.visible ~= false then
+        local addonTotalW = 0
+        local addonWidths = {}
+        for i, a in ipairs(addons) do
+            if a.visible ~= false then
+                local aw = addonSize
+                if a.type == "keybind" then
+                    local kLabel = a.listening and "..." or (a.value and keyName(a.value) or "?")
+                    local textW = estimateTextWidth(kLabel, keyTextSize, Theme.Font)
+                    aw = math.max(addonSize, textW + math.floor(12 * scale))
+                end
+                addonWidths[i] = aw
+                addonTotalW = addonTotalW + aw
                 addonCount = addonCount + 1
             end
         end
-        local addonSize = math.floor(18 * scale)
-        local addonGap = math.floor(4 * scale)
-        local addonAreaW = addonCount > 0 and (addonCount * addonSize + (addonCount - 1) * addonGap + math.floor(4 * scale)) or 0
+        local addonAreaW = addonCount > 0 and (addonTotalW + (addonCount - 1) * addonGap + math.floor(4 * scale)) or 0
         local addonStartX = switchX - addonAreaW - math.floor(6 * scale)
         local keyX = addonStartX - keyW - math.floor(6 * scale)
         local toggleText = self:_anim(widget, "toggle.text", widget.value and Theme.Text or Theme.Muted or Theme.DimText, 16)
@@ -2398,38 +2427,40 @@ function GalaxObsidian:CreateWindow(options)
                 self:_claimInteraction(widget)
             end
         end
-        local ai = 0
-        for _, addon in ipairs(addons) do
-            if addon.visible ~= false then
-                local swatchX = addonStartX + ai * (addonSize + addonGap)
-                if addon.type == "keybind" then
-                    local kLabel = addon.listening and "..." or (addon.value and keyName(addon.value) or "?")
-                    self:_handleKeybindHoldClear(addon)
-                    self:_square(swatchX, y, addonSize, addonSize, Theme.Surface, true, 1, 2, z + 1)
-                    self:_square(swatchX, y, addonSize, addonSize, addon.listening and self.Accent or Theme.Outline, false, 1, 2, z + 2)
-                    local scaledKbTextSize = math.floor(keyTextSize * scale + 0.5)
-                    local yOfs = scale > 1 and -math.floor((scale - 1) * 3) or 0
-                    self:_text(
-                        fitTextToWidth(kLabel, addonSize - math.floor(10 * scale), keyTextSize, Theme.Font),
-                        swatchX + math.floor(addonSize / 2),
-                        y + math.floor(addonSize / 2) - math.floor(scaledKbTextSize / 2) - yOfs,
-                        Theme.Text, keyTextSize, Theme.Font, true, true, z + 3
-                    )
-                    if addon.disabled ~= true and self.Mouse2Clicked and self:_over(swatchX, y, addonSize, addonSize) then
-                        self:_openKeybindModePopup(addon, swatchX, y, addonSize)
+        if addonCount > 0 and addonStartX then
+            local ax = addonStartX
+            for i, addon in ipairs(addons) do
+                if addon.visible ~= false then
+                    local aw = addonWidths[i] or addonSize
+                    if addon.type == "keybind" then
+                        local kLabel = addon.listening and "..." or (addon.value and keyName(addon.value) or "?")
+                        self:_handleKeybindHoldClear(addon)
+                        self:_square(ax, y, aw, addonSize, Theme.Surface, true, 1, 2, z + 1)
+                        self:_square(ax, y, aw, addonSize, addon.listening and self.Accent or Theme.Outline, false, 1, 2, z + 2)
+                        local scaledKbTextSize = math.floor(keyTextSize * scale + 0.5)
+                        local yOfs = scale > 1 and -math.floor((scale - 1) * 3) or 0
+                        self:_text(
+                            fitTextToWidth(kLabel, aw - math.floor(10 * scale), keyTextSize, Theme.Font),
+                            ax + math.floor(aw / 2),
+                            y + math.floor(addonSize / 2) - math.floor(scaledKbTextSize / 2) - yOfs,
+                            Theme.Text, keyTextSize, Theme.Font, true, true, z + 3
+                        )
+                        if addon.disabled ~= true and self.Mouse2Clicked and self:_over(ax, y, aw, addonSize) then
+                            self:_openKeybindModePopup(addon, ax, y, aw)
+                        end
+                        if addon.disabled ~= true and self:_click(ax, y, aw, addonSize) then
+                            addon.listening = true
+                            addon._keybindCleared = false
+                            self.KeyListenTarget = addon
+                            self.KeyListenStarted = tick()
+                            self.BlockClicks = true
+                            self:_claimInteraction(addon)
+                        end
+                    else
+                        self:_renderColorSwatch(addon, ax, y + math.floor(0 * scale), addonSize, z + 1)
                     end
-                    if addon.disabled ~= true and self:_click(swatchX, y, addonSize, addonSize) then
-                        addon.listening = true
-                        addon._keybindCleared = false
-                        self.KeyListenTarget = addon
-                        self.KeyListenStarted = tick()
-                        self.BlockClicks = true
-                        self:_claimInteraction(addon)
-                    end
-                else
-                    self:_renderColorSwatch(addon, swatchX, y + math.floor(0 * scale), addonSize, z + 1)
+                    ax = ax + aw + addonGap
                 end
-                ai = ai + 1
             end
         end
         local thumbR = math.floor(switchH / 2) - math.floor(2 * scale)
@@ -2449,6 +2480,7 @@ function GalaxObsidian:CreateWindow(options)
         self:_circle(thumbX, switchY + switchH / 2, thumbR, thumbColor, true, 1, z + 3)
         if not disabled and self:_focusClick(x, y, w, math.floor(21 * scale), widget) then
             widget.value = not widget.value
+            self:_syncToggleKeypickerAddons(widget)
             safeCall(widget.callback, widget.value)
             safeCall(widget.changed, widget.value)
             self:_releaseInteraction(widget)
@@ -3848,7 +3880,7 @@ function GalaxObsidian:CreateWindow(options)
                     or (widget.parent == nil and widget._state == true)
                 rows[#rows + 1] = {
                     text = TextManager:FormatKeybind(widget.value, widget.label or "Keybind", mode),
-                    toggle = mode == "Toggle",
+                    toggle = (mode == "Toggle") and GalaxObsidian.ShowToggleFrameInKeybinds,
                     checked = mode == "Always" or active,
                     widget = widget,
                 }
@@ -4958,6 +4990,7 @@ function GalaxObsidian:CreateWindow(options)
                     end,
                     Set = function(_, value)
                         widget.value = value == true
+                        Window:_syncToggleKeypickerAddons(widget)
                         safeCall(widget.callback, widget.value)
                         safeCall(widget.changed, widget.value)
                     end,
@@ -4987,6 +5020,11 @@ function GalaxObsidian:CreateWindow(options)
                 end
                 handle.AddKeyPicker = function(_, name, info)
                     info = info or {}
+                    if info.Mode == "Press" then
+                        assert(widget.type == "label", "KeyPicker with mode 'Press' can only be applied on Labels.")
+                        info.SyncToggleState = false
+                        info.Modes = { "Press" }
+                    end
                     widget.addons = widget.addons or {}
                     local addon = makeKeybindAddon(name, info, widget)
                     addon.mode = info.Mode or "Toggle"
@@ -5054,6 +5092,7 @@ function GalaxObsidian:CreateWindow(options)
                     end,
                     Set = function(_, value)
                         widget.value = value == true
+                        Window:_syncToggleKeypickerAddons(widget)
                         safeCall(widget.callback, widget.value)
                         safeCall(widget.changed, widget.value)
                     end,
@@ -5083,6 +5122,11 @@ function GalaxObsidian:CreateWindow(options)
                 end
                 handle.AddKeyPicker = function(_, name, info)
                     info = info or {}
+                    if info.Mode == "Press" then
+                        assert(widget.type == "label", "KeyPicker with mode 'Press' can only be applied on Labels.")
+                        info.SyncToggleState = false
+                        info.Modes = { "Press" }
+                    end
                     widget.addons = widget.addons or {}
                     local addon = makeKeybindAddon(name, info, widget)
                     addon.mode = info.Mode or "Toggle"
