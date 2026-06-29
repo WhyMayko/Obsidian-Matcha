@@ -262,6 +262,8 @@ local function charUnit(char, metrics)
 
 	if char == " " then
 		return 0.75
+	elseif char == "?" then
+		return 0.95
 	elseif char:find("[ilI1%|%.%,:;!'`]", 1) then
 		return 0.5
 	elseif char:find("[mwMW@#%%&]", 1) then

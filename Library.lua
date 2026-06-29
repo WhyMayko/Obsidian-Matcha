@@ -1972,7 +1972,16 @@ function GalaxObsidian:CreateWindow(options)
                     safeCall(widget.callback, widget.value)
                     safeCall(widget.changed, widget.value)
                 end
-            elseif
+            end
+            if widget.type == "toggle" or widget.type == "checkbox" then
+                local addons = widget.addons or {}
+                for _, addon in ipairs(addons) do
+                    if addon.type == "keybind" then
+                        processWidget(addon)
+                    end
+                end
+            end
+            if
                 widget.type == "keybind"
                 and widget.value
                 and widget.disabled ~= true
