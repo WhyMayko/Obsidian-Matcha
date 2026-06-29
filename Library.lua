@@ -2112,6 +2112,7 @@ function GalaxObsidian:CreateWindow(options)
             info = info or {}
             if widget.type == "toggle" or widget.type == "checkbox" then
                 widget.keybind = info.Default
+                widget._hasKeyPicker = true
                 if info.Popup ~= nil then
                     local enabled, modes = resolveKeybindPopupConfig(info.Popup)
                     widget.popupEnabled = enabled
@@ -2251,7 +2252,7 @@ function GalaxObsidian:CreateWindow(options)
         local scale = self:GetScale()
         local boxX = x
         local disabled = widget.disabled == true
-        local keyLabel = (widget.keybind or widget.listening or widget._keybindCleared)
+        local keyLabel = (widget._hasKeyPicker or widget.listening or widget._keybindCleared)
             and (widget.listening and "..." or (widget.keybind and keyName(widget.keybind) or "?"))
             or nil
         local keyTextSize = 14
@@ -2335,7 +2336,7 @@ function GalaxObsidian:CreateWindow(options)
         local switchH = math.floor(18 * scale)
         local switchX = x + w - switchW
         local switchY = y + math.floor(0 * scale)
-        local keyLabel = (widget.keybind or widget.listening or widget._keybindCleared)
+        local keyLabel = (widget._hasKeyPicker or widget.listening or widget._keybindCleared)
             and (widget.listening and "..." or (widget.keybind and keyName(widget.keybind) or "?"))
             or nil
         local keyTextSize = 14
@@ -4957,39 +4958,15 @@ function GalaxObsidian:CreateWindow(options)
                     })
                 end
                 handle.AddKeyPicker = function(_, name, info)
-                    widget.addons = widget.addons or {}
-                    local addon = makeKeybindAddon(name, info, widget)
-                    widget.addons[#widget.addons + 1] = addon
-                    return Window:_widgetHandle(addon, {
-                        Get = function()
-                            return addon.value
-                        end,
-                        SetValue = function(_, val, mode)
-                            if type(val) == "table" then
-                                addon.value = val[1] or val.Key or val.key or addon.value
-                                addon.mode = val[2] or val.Mode or val.mode or addon.mode
-                                addon.modifiers = val.Modifiers or val.modifiers
-                            else
-                                addon.value = val
-                                addon.mode = mode or addon.mode
-                            end
-                            safeCall(addon.changed, addon.value, addon.modifiers)
-                        end,
-                        OnChanged = function(_, cb)
-                            addon.changed = cb
-                        end,
-                        OnClick = function(_, cb)
-                            if addon.callback then
-                                local old = addon.callback
-                                addon.callback = function(v)
-                                    old(v)
-                                    cb(v)
-                                end
-                            else
-                                addon.callback = cb
-                            end
-                        end,
-                    })
+                    info = info or {}
+                    widget.keybind = info.Default
+                    widget._hasKeyPicker = true
+                    if info.Popup ~= nil then
+                        local enabled, modes = resolveKeybindPopupConfig(info.Popup)
+                        widget.popupEnabled = enabled
+                        widget.popupModes = modes
+                    end
+                    return handle
                 end
                 return handle
             end
@@ -5046,39 +5023,15 @@ function GalaxObsidian:CreateWindow(options)
                     })
                 end
                 handle.AddKeyPicker = function(_, name, info)
-                    widget.addons = widget.addons or {}
-                    local addon = makeKeybindAddon(name, info, widget)
-                    widget.addons[#widget.addons + 1] = addon
-                    return Window:_widgetHandle(addon, {
-                        Get = function()
-                            return addon.value
-                        end,
-                        SetValue = function(_, val, mode)
-                            if type(val) == "table" then
-                                addon.value = val[1] or val.Key or val.key or addon.value
-                                addon.mode = val[2] or val.Mode or val.mode or addon.mode
-                                addon.modifiers = val.Modifiers or val.modifiers
-                            else
-                                addon.value = val
-                                addon.mode = mode or addon.mode
-                            end
-                            safeCall(addon.changed, addon.value, addon.modifiers)
-                        end,
-                        OnChanged = function(_, cb)
-                            addon.changed = cb
-                        end,
-                        OnClick = function(_, cb)
-                            if addon.callback then
-                                local old = addon.callback
-                                addon.callback = function(v)
-                                    old(v)
-                                    cb(v)
-                                end
-                            else
-                                addon.callback = cb
-                            end
-                        end,
-                    })
+                    info = info or {}
+                    widget.keybind = info.Default
+                    widget._hasKeyPicker = true
+                    if info.Popup ~= nil then
+                        local enabled, modes = resolveKeybindPopupConfig(info.Popup)
+                        widget.popupEnabled = enabled
+                        widget.popupModes = modes
+                    end
+                    return handle
                 end
                 return handle
             end
