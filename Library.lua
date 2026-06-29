@@ -2110,18 +2110,16 @@ function GalaxObsidian:CreateWindow(options)
         end
         handle.AddKeyPicker = function(_, name, info)
             info = info or {}
-            if widget.type == "toggle" or widget.type == "checkbox" then
-                widget.keybind = info.Default
-                widget._hasKeyPicker = true
-                if info.Popup ~= nil then
-                    local enabled, modes = resolveKeybindPopupConfig(info.Popup)
-                    widget.popupEnabled = enabled
-                    widget.popupModes = modes
-                end
-                return Window:_widgetHandle(widget)
-            end
             widget.addons = widget.addons or {}
-            local addon = makeKeybindAddon(name, info)
+            local addon = makeKeybindAddon(name, info, widget)
+            addon.mode = info.Mode or "Toggle"
+            if widget.type == "toggle" or widget.type == "checkbox" then
+                addon.callback = function(v)
+                    if type(v) == "boolean" then widget.value = v else widget.value = not widget.value end
+                    safeCall(widget.callback, widget.value)
+                    safeCall(widget.changed, widget.value)
+                end
+            end
             widget.addons[#widget.addons + 1] = addon
             return Window:_widgetHandle(addon)
         end
@@ -2302,14 +2300,16 @@ function GalaxObsidian:CreateWindow(options)
             local keyText = self:_anim(widget, "checkbox.key.text", Theme.Text, 16)
             self:_square(keyX, kY, keyW, keyH, keyBg, true, 1, 2, z + 1)
             self:_square(keyX, kY, keyW, keyH, keyOutline, false, 1, 2, z + 2)
+            local scaledKeyTextSize = math.floor(keyTextSize * scale + 0.5)
+            local yOfs = scale > 1 and -math.floor((scale - 1) * 3) or 0
             self:_text(
                 fitTextToWidth(keyLabel, keyW - math.floor(10 * scale), keyTextSize, Theme.Font),
-                keyX + math.floor(6 * scale),
-                y + math.floor(2 * scale),
+                keyX + math.floor(keyW / 2),
+                y + math.floor(keyH / 2) - math.floor(scaledKeyTextSize / 2) - yOfs,
                 keyText,
                 keyTextSize,
                 Theme.Font,
-                false,
+                true,
                 true,
                 z + 3
             )
@@ -2374,16 +2374,18 @@ function GalaxObsidian:CreateWindow(options)
                 self:_anim(widget, "toggle.key.outline", widget.listening and self.Accent or Theme.Outline, 16)
             local keyText = self:_anim(widget, "toggle.key.text", Theme.Text, 16)
             local kY = y + math.floor(0 * scale)
+            local scaledKeyTextSize = math.floor(keyTextSize * scale + 0.5)
+            local yOfs = scale > 1 and -math.floor((scale - 1) * 3) or 0
             self:_square(keyX, kY, keyW, keyH, keyBg, true, 1, 2, z + 1)
             self:_square(keyX, kY, keyW, keyH, keyOutline, false, 1, 2, z + 2)
             self:_text(
                 fitTextToWidth(keyLabel, keyW - math.floor(10 * scale), keyTextSize, Theme.Font),
-                keyX + math.floor(6 * scale),
-                y + math.floor(2 * scale),
+                keyX + math.floor(keyW / 2),
+                y + math.floor(keyH / 2) - math.floor(scaledKeyTextSize / 2) - yOfs,
                 keyText,
                 keyTextSize,
                 Theme.Font,
-                false,
+                true,
                 true,
                 z + 3
             )
@@ -2400,7 +2402,33 @@ function GalaxObsidian:CreateWindow(options)
         for _, addon in ipairs(addons) do
             if addon.visible ~= false then
                 local swatchX = addonStartX + ai * (addonSize + addonGap)
-                self:_renderColorSwatch(addon, swatchX, y + math.floor(0 * scale), addonSize, z + 1)
+                if addon.type == "keybind" then
+                    local kLabel = addon.listening and "..." or (addon.value and keyName(addon.value) or "?")
+                    self:_handleKeybindHoldClear(addon)
+                    self:_square(swatchX, y, addonSize, addonSize, Theme.Surface, true, 1, 2, z + 1)
+                    self:_square(swatchX, y, addonSize, addonSize, addon.listening and self.Accent or Theme.Outline, false, 1, 2, z + 2)
+                    local scaledKbTextSize = math.floor(keyTextSize * scale + 0.5)
+                    local yOfs = scale > 1 and -math.floor((scale - 1) * 3) or 0
+                    self:_text(
+                        fitTextToWidth(kLabel, addonSize - math.floor(10 * scale), keyTextSize, Theme.Font),
+                        swatchX + math.floor(addonSize / 2),
+                        y + math.floor(addonSize / 2) - math.floor(scaledKbTextSize / 2) - yOfs,
+                        Theme.Text, keyTextSize, Theme.Font, true, true, z + 3
+                    )
+                    if addon.disabled ~= true and self.Mouse2Clicked and self:_over(swatchX, y, addonSize, addonSize) then
+                        self:_openKeybindModePopup(addon, swatchX, y, addonSize)
+                    end
+                    if addon.disabled ~= true and self:_click(swatchX, y, addonSize, addonSize) then
+                        addon.listening = true
+                        addon._keybindCleared = false
+                        self.KeyListenTarget = addon
+                        self.KeyListenStarted = tick()
+                        self.BlockClicks = true
+                        self:_claimInteraction(addon)
+                    end
+                else
+                    self:_renderColorSwatch(addon, swatchX, y + math.floor(0 * scale), addonSize, z + 1)
+                end
                 ai = ai + 1
             end
         end
@@ -4959,14 +4987,45 @@ function GalaxObsidian:CreateWindow(options)
                 end
                 handle.AddKeyPicker = function(_, name, info)
                     info = info or {}
-                    widget.keybind = info.Default
-                    widget._hasKeyPicker = true
-                    if info.Popup ~= nil then
-                        local enabled, modes = resolveKeybindPopupConfig(info.Popup)
-                        widget.popupEnabled = enabled
-                        widget.popupModes = modes
+                    widget.addons = widget.addons or {}
+                    local addon = makeKeybindAddon(name, info, widget)
+                    addon.mode = info.Mode or "Toggle"
+                    addon.callback = function(v)
+                        if type(v) == "boolean" then widget.value = v else widget.value = not widget.value end
+                        safeCall(widget.callback, widget.value)
+                        safeCall(widget.changed, widget.value)
                     end
-                    return handle
+                    widget.addons[#widget.addons + 1] = addon
+                    return Window:_widgetHandle(addon, {
+                        Get = function()
+                            return addon.value
+                        end,
+                        SetValue = function(_, val, mode)
+                            if type(val) == "table" then
+                                addon.value = val[1] or val.Key or val.key or addon.value
+                                addon.mode = val[2] or val.Mode or val.mode or addon.mode
+                                addon.modifiers = val.Modifiers or val.modifiers
+                            else
+                                addon.value = val
+                                addon.mode = mode or addon.mode
+                            end
+                            safeCall(addon.changed, addon.value, addon.modifiers)
+                        end,
+                        OnChanged = function(_, cb)
+                            addon.changed = cb
+                        end,
+                        OnClick = function(_, cb)
+                            if addon.callback then
+                                local old = addon.callback
+                                addon.callback = function(v)
+                                    old(v)
+                                    cb(v)
+                                end
+                            else
+                                addon.callback = cb
+                            end
+                        end,
+                    })
                 end
                 return handle
             end
@@ -5024,14 +5083,45 @@ function GalaxObsidian:CreateWindow(options)
                 end
                 handle.AddKeyPicker = function(_, name, info)
                     info = info or {}
-                    widget.keybind = info.Default
-                    widget._hasKeyPicker = true
-                    if info.Popup ~= nil then
-                        local enabled, modes = resolveKeybindPopupConfig(info.Popup)
-                        widget.popupEnabled = enabled
-                        widget.popupModes = modes
+                    widget.addons = widget.addons or {}
+                    local addon = makeKeybindAddon(name, info, widget)
+                    addon.mode = info.Mode or "Toggle"
+                    addon.callback = function(v)
+                        if type(v) == "boolean" then widget.value = v else widget.value = not widget.value end
+                        safeCall(widget.callback, widget.value)
+                        safeCall(widget.changed, widget.value)
                     end
-                    return handle
+                    widget.addons[#widget.addons + 1] = addon
+                    return Window:_widgetHandle(addon, {
+                        Get = function()
+                            return addon.value
+                        end,
+                        SetValue = function(_, val, mode)
+                            if type(val) == "table" then
+                                addon.value = val[1] or val.Key or val.key or addon.value
+                                addon.mode = val[2] or val.Mode or val.mode or addon.mode
+                                addon.modifiers = val.Modifiers or val.modifiers
+                            else
+                                addon.value = val
+                                addon.mode = mode or addon.mode
+                            end
+                            safeCall(addon.changed, addon.value, addon.modifiers)
+                        end,
+                        OnChanged = function(_, cb)
+                            addon.changed = cb
+                        end,
+                        OnClick = function(_, cb)
+                            if addon.callback then
+                                local old = addon.callback
+                                addon.callback = function(v)
+                                    old(v)
+                                    cb(v)
+                                end
+                            else
+                                addon.callback = cb
+                            end
+                        end,
+                    })
                 end
                 return handle
             end
