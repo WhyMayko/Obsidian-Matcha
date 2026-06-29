@@ -889,14 +889,14 @@ local function normalizeKeybindModePopupConfig(config, fallbackModes)
 
     for _, mode in ipairs(modes or {}) do
         mode = tostring(mode)
-        if (mode == "Toggle" or mode == "Hold" or mode == "Press") and not seen[mode] then
+        if (mode == "Always" or mode == "Toggle" or mode == "Hold" or mode == "Press") and not seen[mode] then
             clean[#clean + 1] = mode
             seen[mode] = true
         end
     end
 
     if #clean == 0 then
-        clean = { "Toggle", "Hold", "Press" }
+        clean = { "Always", "Toggle", "Hold", "Press" }
     end
 
     return enabled ~= false, clean
@@ -2094,6 +2094,86 @@ function GalaxObsidian:CreateWindow(options)
         return addon
     end
 
+    local function makeAddKeyPickerClosure(widget, keybindGetters)
+        return function(_, name, info)
+            info = info or {}
+            if info.Mode == "Press" then
+                assert(widget.type == "label", "KeyPicker with mode 'Press' can only be applied on Labels.")
+                info.SyncToggleState = false
+                info.Modes = { "Press" }
+            end
+            widget.addons = widget.addons or {}
+            local addon = makeKeybindAddon(name, info, widget)
+            addon.mode = info.Mode or "Toggle"
+            if widget.type == "toggle" or widget.type == "checkbox" then
+                addon.callback = function(v)
+                    if type(v) == "boolean" then widget.value = v else widget.value = not widget.value end
+                    safeCall(widget.callback, widget.value)
+                    safeCall(widget.changed, widget.value)
+                end
+            end
+            widget.addons[#widget.addons + 1] = addon
+            if keybindGetters then
+                return Window:_widgetHandle(addon, {
+                    Get = function()
+                        return addon.value
+                    end,
+                    SetValue = function(_, val, mode)
+                        if type(val) == "table" then
+                            addon.value = val[1] or val.Key or val.key or addon.value
+                            addon.mode = val[2] or val.Mode or val.mode or addon.mode
+                            addon.modifiers = val.Modifiers or val.modifiers
+                        else
+                            addon.value = val
+                            addon.mode = mode or addon.mode
+                        end
+                        safeCall(addon.changed, addon.value, addon.modifiers)
+                    end,
+                    OnChanged = function(_, cb)
+                        addon.changed = cb
+                    end,
+                    OnClick = function(_, cb)
+                        if addon.callback then
+                            local old = addon.callback
+                            addon.callback = function(v)
+                                old(v)
+                                cb(v)
+                            end
+                        else
+                            addon.callback = cb
+                        end
+                    end,
+                })
+            else
+                return Window:_widgetHandle(addon)
+            end
+        end
+    end
+
+    local function makeAddColorPickerClosure(widget, colorpickerGetters)
+        return function(_, name, info)
+            widget.addons = widget.addons or {}
+            local addon = makeColorPickerAddon(name, info)
+            widget.addons[#widget.addons + 1] = addon
+            if colorpickerGetters then
+                return Window:_widgetHandle(addon, {
+                    Get = function()
+                        return addon.value, addon.transparency
+                    end,
+                    SetValueRGB = function(_, color, transparency)
+                        addon.value = color
+                        addon.transparency = addon.transparencyEnabled and (transparency or 0) or 0
+                        addon.hue, addon.sat, addon.vib = rgbToHsv(color)
+                        safeCall(addon.callback, addon.value, addon.transparency)
+                        safeCall(addon.changed, addon.value, addon.transparency)
+                    end,
+                })
+            else
+                return Window:_widgetHandle(addon)
+            end
+        end
+    end
+
     function Window:_widgetHandle(widget, getters)
         local handle = makeHandle(widget)
         if getters then
@@ -2115,32 +2195,8 @@ function GalaxObsidian:CreateWindow(options)
             }
             handle.Type = TypeMap[widget.type] or widget.type:sub(1, 1):upper() .. widget.type:sub(2)
         end
-        handle.AddColorPicker = function(_, name, info)
-            widget.addons = widget.addons or {}
-            local addon = makeColorPickerAddon(name, info)
-            widget.addons[#widget.addons + 1] = addon
-            return Window:_widgetHandle(addon)
-        end
-        handle.AddKeyPicker = function(_, name, info)
-            info = info or {}
-            if info.Mode == "Press" then
-                assert(widget.type == "label", "KeyPicker with mode 'Press' can only be applied on Labels.")
-                info.SyncToggleState = false
-                info.Modes = { "Press" }
-            end
-            widget.addons = widget.addons or {}
-            local addon = makeKeybindAddon(name, info, widget)
-            addon.mode = info.Mode or "Toggle"
-            if widget.type == "toggle" or widget.type == "checkbox" then
-                addon.callback = function(v)
-                    if type(v) == "boolean" then widget.value = v else widget.value = not widget.value end
-                    safeCall(widget.callback, widget.value)
-                    safeCall(widget.changed, widget.value)
-                end
-            end
-            widget.addons[#widget.addons + 1] = addon
-            return Window:_widgetHandle(addon)
-        end
+        handle.AddColorPicker = makeAddColorPickerClosure(widget, false)
+        handle.AddKeyPicker = makeAddKeyPickerClosure(widget, false)
         if widget.id then
             if widget.type == "toggle" or widget.type == "checkbox" then
                 self.Toggles[widget.id] = handle
@@ -5001,70 +5057,8 @@ function GalaxObsidian:CreateWindow(options)
                         widget.changed = cb
                     end,
                 })
-                handle.AddColorPicker = function(_, name, info)
-                    widget.addons = widget.addons or {}
-                    local addon = makeColorPickerAddon(name, info)
-                    widget.addons[#widget.addons + 1] = addon
-                    return Window:_widgetHandle(addon, {
-                        Get = function()
-                            return addon.value, addon.transparency
-                        end,
-                        SetValueRGB = function(_, color, transparency)
-                            addon.value = color
-                            addon.transparency = addon.transparencyEnabled and (transparency or 0) or 0
-                            addon.hue, addon.sat, addon.vib = rgbToHsv(color)
-                            safeCall(addon.callback, addon.value, addon.transparency)
-                            safeCall(addon.changed, addon.value, addon.transparency)
-                        end,
-                    })
-                end
-                handle.AddKeyPicker = function(_, name, info)
-                    info = info or {}
-                    if info.Mode == "Press" then
-                        assert(widget.type == "label", "KeyPicker with mode 'Press' can only be applied on Labels.")
-                        info.SyncToggleState = false
-                        info.Modes = { "Press" }
-                    end
-                    widget.addons = widget.addons or {}
-                    local addon = makeKeybindAddon(name, info, widget)
-                    addon.mode = info.Mode or "Toggle"
-                    addon.callback = function(v)
-                        if type(v) == "boolean" then widget.value = v else widget.value = not widget.value end
-                        safeCall(widget.callback, widget.value)
-                        safeCall(widget.changed, widget.value)
-                    end
-                    widget.addons[#widget.addons + 1] = addon
-                    return Window:_widgetHandle(addon, {
-                        Get = function()
-                            return addon.value
-                        end,
-                        SetValue = function(_, val, mode)
-                            if type(val) == "table" then
-                                addon.value = val[1] or val.Key or val.key or addon.value
-                                addon.mode = val[2] or val.Mode or val.mode or addon.mode
-                                addon.modifiers = val.Modifiers or val.modifiers
-                            else
-                                addon.value = val
-                                addon.mode = mode or addon.mode
-                            end
-                            safeCall(addon.changed, addon.value, addon.modifiers)
-                        end,
-                        OnChanged = function(_, cb)
-                            addon.changed = cb
-                        end,
-                        OnClick = function(_, cb)
-                            if addon.callback then
-                                local old = addon.callback
-                                addon.callback = function(v)
-                                    old(v)
-                                    cb(v)
-                                end
-                            else
-                                addon.callback = cb
-                            end
-                        end,
-                    })
-                end
+                handle.AddColorPicker = makeAddColorPickerClosure(widget, true)
+                handle.AddKeyPicker = makeAddKeyPickerClosure(widget, true)
                 return handle
             end
 
@@ -5103,70 +5097,8 @@ function GalaxObsidian:CreateWindow(options)
                         widget.changed = cb
                     end,
                 })
-                handle.AddColorPicker = function(_, name, info)
-                    widget.addons = widget.addons or {}
-                    local addon = makeColorPickerAddon(name, info)
-                    widget.addons[#widget.addons + 1] = addon
-                    return Window:_widgetHandle(addon, {
-                        Get = function()
-                            return addon.value, addon.transparency
-                        end,
-                        SetValueRGB = function(_, color, transparency)
-                            addon.value = color
-                            addon.transparency = addon.transparencyEnabled and (transparency or 0) or 0
-                            addon.hue, addon.sat, addon.vib = rgbToHsv(color)
-                            safeCall(addon.callback, addon.value, addon.transparency)
-                            safeCall(addon.changed, addon.value, addon.transparency)
-                        end,
-                    })
-                end
-                handle.AddKeyPicker = function(_, name, info)
-                    info = info or {}
-                    if info.Mode == "Press" then
-                        assert(widget.type == "label", "KeyPicker with mode 'Press' can only be applied on Labels.")
-                        info.SyncToggleState = false
-                        info.Modes = { "Press" }
-                    end
-                    widget.addons = widget.addons or {}
-                    local addon = makeKeybindAddon(name, info, widget)
-                    addon.mode = info.Mode or "Toggle"
-                    addon.callback = function(v)
-                        if type(v) == "boolean" then widget.value = v else widget.value = not widget.value end
-                        safeCall(widget.callback, widget.value)
-                        safeCall(widget.changed, widget.value)
-                    end
-                    widget.addons[#widget.addons + 1] = addon
-                    return Window:_widgetHandle(addon, {
-                        Get = function()
-                            return addon.value
-                        end,
-                        SetValue = function(_, val, mode)
-                            if type(val) == "table" then
-                                addon.value = val[1] or val.Key or val.key or addon.value
-                                addon.mode = val[2] or val.Mode or val.mode or addon.mode
-                                addon.modifiers = val.Modifiers or val.modifiers
-                            else
-                                addon.value = val
-                                addon.mode = mode or addon.mode
-                            end
-                            safeCall(addon.changed, addon.value, addon.modifiers)
-                        end,
-                        OnChanged = function(_, cb)
-                            addon.changed = cb
-                        end,
-                        OnClick = function(_, cb)
-                            if addon.callback then
-                                local old = addon.callback
-                                addon.callback = function(v)
-                                    old(v)
-                                    cb(v)
-                                end
-                            else
-                                addon.callback = cb
-                            end
-                        end,
-                    })
-                end
+                handle.AddColorPicker = makeAddColorPickerClosure(widget, true)
+                handle.AddKeyPicker = makeAddKeyPickerClosure(widget, true)
                 return handle
             end
 
