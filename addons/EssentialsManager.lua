@@ -77,9 +77,13 @@ function EssentialsManager:BuildSection(tab)
 
 	Library.ToggleKeybind = Library.Options.MenuKeybind
 
-	MenuGroup:AddButton("Unload", function()
-		Library:Unload()
-	end)
+	MenuGroup:AddButton("Unload", {
+		Text = "Unload",
+		DoubleClick = true,
+		Callback = function()
+			Library:Unload()
+		end,
+	})
 
 	return MenuGroup
 end

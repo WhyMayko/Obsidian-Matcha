@@ -1321,7 +1321,8 @@ function GalaxObsidian:CreateWindow(options)
         end
         object.Center = false
         if d.winAlpha ~= self._winAlpha then
-            object.Transparency = 1 * (self._winAlpha or 1)
+            local visible = (self._winAlpha or 1) > 0.05
+            object.Transparency = visible and 1 or 0
             d.winAlpha = self._winAlpha
         end
         if d.outline ~= outline then
@@ -1361,7 +1362,8 @@ function GalaxObsidian:CreateWindow(options)
             d.thick = thickness
         end
         if d.winAlpha ~= self._winAlpha then
-            object.Transparency = 1 * (self._winAlpha or 1)
+            local visible = (self._winAlpha or 1) > 0.05
+            object.Transparency = visible and 1 or 0
             d.winAlpha = self._winAlpha
         end
         if d.z ~= z then
@@ -1407,7 +1409,8 @@ function GalaxObsidian:CreateWindow(options)
         end
         object.NumSides = 24
         if d.winAlpha ~= self._winAlpha then
-            object.Transparency = 1 * (self._winAlpha or 1)
+            local visible = (self._winAlpha or 1) > 0.05
+            object.Transparency = visible and 1 or 0
             d.winAlpha = self._winAlpha
         end
         if d.z ~= z then
@@ -1450,7 +1453,8 @@ function GalaxObsidian:CreateWindow(options)
             d.round = rounding
         end
         if d.winAlpha ~= self._winAlpha then
-            object.Transparency = 1 * (self._winAlpha or 1)
+            local visible = (self._winAlpha or 1) > 0.05
+            object.Transparency = visible and 1 or 0
             d.winAlpha = self._winAlpha
         end
         if d.z ~= z then
