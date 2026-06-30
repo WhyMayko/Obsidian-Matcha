@@ -916,6 +916,7 @@ function GalaxObsidian:CreateWindow(options)
     elseif type(optSize) == "table" and #optSize >= 2 then
         resolvedSize = Vector2.new(optSize[1], optSize[2])
     end
+    local drawingMeta = setmetatable({}, { __mode = "k" })
     local optMinSize = options.MinSize or options.MinimumSize
     local resolvedMinSize = Vector2.new(480, 360)
     if type(optMinSize) == "table" and optMinSize.X ~= nil then
@@ -1236,8 +1237,8 @@ function GalaxObsidian:CreateWindow(options)
             return nil
         end
         local object = self:_get("Square")
-        local d = object._d
-        if not d then d = {}; object._d = d end
+        local d = drawingMeta[object]
+        if not d then d = {}; drawingMeta[object] = d end
         if d.x ~= x or d.y ~= y then
             object.Position = Vector2.new(x, y)
             d.x, d.y = x, y
@@ -1275,8 +1276,8 @@ function GalaxObsidian:CreateWindow(options)
             return nil
         end
         local object = self:_get("Text")
-        local d = object._d
-        if not d then d = {}; object._d = d end
+        local d = drawingMeta[object]
+        if not d then d = {}; drawingMeta[object] = d end
         local resolvedFont = (font == Drawing.Fonts.Monospace and Theme.Font) or font or Theme.Font
         if d.text ~= content then
             object.Text = content
@@ -1325,8 +1326,8 @@ function GalaxObsidian:CreateWindow(options)
             return nil
         end
         local object = self:_get("Line")
-        local d = object._d
-        if not d then d = {}; object._d = d end
+        local d = drawingMeta[object]
+        if not d then d = {}; drawingMeta[object] = d end
         if d.x1 ~= x1 or d.y1 ~= y1 then
             object.From = Vector2.new(x1, y1)
             d.x1, d.y1 = x1, y1
@@ -1358,8 +1359,8 @@ function GalaxObsidian:CreateWindow(options)
             return nil
         end
         local object = self:_get("Circle")
-        local d = object._d
-        if not d then d = {}; object._d = d end
+        local d = drawingMeta[object]
+        if not d then d = {}; drawingMeta[object] = d end
         if d.x ~= x or d.y ~= y then
             object.Position = Vector2.new(x, y)
             d.x, d.y = x, y
@@ -1414,8 +1415,8 @@ function GalaxObsidian:CreateWindow(options)
             object.Data = data
             self.ImageDataByObject[object] = data
         end
-        local d = object._d
-        if not d then d = {}; object._d = d end
+        local d = drawingMeta[object]
+        if not d then d = {}; drawingMeta[object] = d end
         if d.x ~= x or d.y ~= y then
             object.Position = Vector2.new(x, y)
             d.x, d.y = x, y
