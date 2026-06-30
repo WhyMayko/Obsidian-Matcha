@@ -1663,7 +1663,7 @@ function GalaxObsidian:CreateWindow(options)
         return AnimationManager:Approach(owner or self, key, target, speed or 14)
     end
     function Window:_hotInteraction()
-        return self.DragOffset ~= nil or self.ResizeOffset ~= nil or self.ScrollTarget ~= nil
+        return self.DragOffset ~= nil or self.ResizeOffset ~= nil or self.ScrollTarget ~= nil or self._resizing
     end
     function Window:_animOrSnap(owner, key, target, speed, snap)
         if snap or self:_hotInteraction() then
@@ -4301,6 +4301,7 @@ function GalaxObsidian:CreateWindow(options)
     end
 
     function Window:_render()
+        self._resizing = nil
         if mouse.X ~= self._lastMouseX or mouse.Y ~= self._lastMouseY or self.Mouse1Held or self.Mouse2Held or self.DragOffset or self.ResizeOffset then
             self._lastActivity = tick()
             self._lastMouseX, self._lastMouseY = mouse.X, mouse.Y
@@ -4707,6 +4708,7 @@ function GalaxObsidian:CreateWindow(options)
         self.KeybindMenuWidth = width
     end
     function Window:SetDPIScale(percent)
+        self._resizing = true
         percent = tonumber(percent) or 100
         percent = math.floor(clamp(percent, 50, 200) + 0.5)
         local oldSize = self.Size or self.LogicalSize or Vector2.new(820, 600)
