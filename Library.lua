@@ -1021,9 +1021,7 @@ function GalaxObsidian:CreateWindow(options)
         DraggableLabels = {},
         LastRobloxInputBlocked = nil,
         BlockClicks = false,
-        _clickthroughActive = false,
-        _clickthroughReleasePending = false,
-        _syntheticClicksRemaining = 0,
+        _lastContentEnd = nil,
         _cornerRadius = GalaxObsidian.CornerRadius or 0,
         Options = GalaxObsidian.Options,
         Toggles = GalaxObsidian.Toggles,
@@ -1190,12 +1188,16 @@ function GalaxObsidian:CreateWindow(options)
         return object
     end
 
-    function Window:_shiftAllVisible(dx, dy)
+    function Window:_shiftAllVisible(dx, dy, limit)
         if dx == 0 and dy == 0 then
             return
         end
         local delta = Vector2.new(dx, dy)
-        for _, object in ipairs(self.Pool.Square) do
+        local function within(kind, i)
+            return not limit or not limit[kind] or i <= limit[kind]
+        end
+        for i, object in ipairs(self.Pool.Square) do
+            if not within("Square", i) then break end
             if object.Visible then
                 object.Position = object.Position + delta
                 local d = drawingMeta[object]
@@ -1205,7 +1207,8 @@ function GalaxObsidian:CreateWindow(options)
                 end
             end
         end
-        for _, object in ipairs(self.Pool.Text) do
+        for i, object in ipairs(self.Pool.Text) do
+            if not within("Text", i) then break end
             if object.Visible then
                 object.Position = object.Position + delta
                 local d = drawingMeta[object]
@@ -1215,7 +1218,8 @@ function GalaxObsidian:CreateWindow(options)
                 end
             end
         end
-        for _, object in ipairs(self.Pool.Circle) do
+        for i, object in ipairs(self.Pool.Circle) do
+            if not within("Circle", i) then break end
             if object.Visible then
                 object.Position = object.Position + delta
                 local d = drawingMeta[object]
@@ -1225,7 +1229,8 @@ function GalaxObsidian:CreateWindow(options)
                 end
             end
         end
-        for _, object in ipairs(self.Pool.Image) do
+        for i, object in ipairs(self.Pool.Image) do
+            if not within("Image", i) then break end
             if object.Visible then
                 object.Position = object.Position + delta
                 local d = drawingMeta[object]
@@ -1235,7 +1240,8 @@ function GalaxObsidian:CreateWindow(options)
                 end
             end
         end
-        for _, object in ipairs(self.Pool.Line) do
+        for i, object in ipairs(self.Pool.Line) do
+            if not within("Line", i) then break end
             if object.Visible then
                 object.From = object.From + delta
                 object.To = object.To + delta
@@ -1667,19 +1673,17 @@ function GalaxObsidian:CreateWindow(options)
         return false
     end
     function Window:_updateInputBlock()
-        local shouldBlock = self.Open == true and not self._clickthroughActive
+        local shouldBlock = self.Open == true
         if shouldBlock == self.LastRobloxInputBlocked then
             return nil
         end
         setrobloxinput(not shouldBlock)
-        if shouldBlock or not self._clickthroughActive then
-            task.spawn(function()
-                task.wait(0.1)
-                pcall(mouse1click)
-            end)
-            self.Mouse1Clicked = false
-            self.Mouse1Held = false
-        end
+        task.spawn(function()
+            task.wait(0.1)
+            pcall(mouse1click)
+        end)
+        self.Mouse1Clicked = false
+        self.Mouse1Held = false
         self.LastRobloxInputBlocked = shouldBlock
     end
 
@@ -2003,9 +2007,6 @@ function GalaxObsidian:CreateWindow(options)
     function Window:_setOpen(state)
         self.Open = state == true
         self:_clearInteraction()
-        self._clickthroughActive = false
-        self._clickthroughReleasePending = false
-        self._syntheticClicksRemaining = 0
         self:_updateInputBlock()
     end
 
@@ -4344,31 +4345,6 @@ function GalaxObsidian:CreateWindow(options)
         self:_resetPool()
         self.BlockClicks = false
         self.TooltipText = nil
-
-        if self._syntheticClicksRemaining > 0 then
-            self.BlockClicks = true
-            self._syntheticClicksRemaining = self._syntheticClicksRemaining - 1
-        end
-
-        if self.Open and self.Mouse1Clicked and self._syntheticClicksRemaining == 0 then
-            local inWindow = self:_over(self.Position.X, self.Position.Y, self.Size.X, self.Size.Y)
-            if inWindow then
-                self._clickthroughActive = false
-            elseif not self._clickthroughActive then
-                self._clickthroughActive = true
-                self._clickthroughReleasePending = true
-                self.BlockClicks = true
-            end
-        end
-        if self._clickthroughReleasePending and not self.Mouse1Held then
-            self._clickthroughReleasePending = false
-            task.spawn(function()
-                task.wait(0.1)
-                self._syntheticClicksRemaining = 2
-                pcall(mouse1click)
-            end)
-        end
-
         if not self.Open and (self._winAlpha or 1) <= 0.001 then
             self:_renderKeybindMenu()
             self:_renderKeybindModePopup()
@@ -4433,7 +4409,7 @@ function GalaxObsidian:CreateWindow(options)
             end
         end
 
-        self:_shiftAllVisible(x - prevX, y - prevY)
+        self:_shiftAllVisible(x - prevX, y - prevY, self._lastContentEnd)
         layout = self:_windowLayout(x, y, w, h, scale)
         sidebarW = layout.sidebarW
         topH = layout.topH
@@ -4661,6 +4637,7 @@ function GalaxObsidian:CreateWindow(options)
             self:_renderSections(self.ActiveTab, x + sidebarW, y + topH, w - sidebarW, h - topH - bottomH, 10, y, y + h)
         end
         self:_square(x, y, w, h, Theme.SoftOutline, false, 1, windowCorner, chromeZ + 7)
+        self._lastContentEnd = { Square = self.Index.Square, Text = self.Index.Text, Line = self.Index.Line, Circle = self.Index.Circle, Image = self.Index.Image }
         self:_renderDropdownPopup()
         self:_renderColorPickerPopup()
         self:_renderKeybindMenu()
