@@ -961,6 +961,7 @@ function GalaxObsidian:CreateWindow(options)
         ),
         MinSize = resolvedMinSize,
         DPIScale = initialDPIScale,
+        _lastDPIScale = initialDPIScale,
         Resizable = options.Resizable ~= false,
         MenuKey = options.MenuKey or 0x70,
         Position = Vector2.new(options.X or 180, options.Y or 130),
@@ -4354,6 +4355,11 @@ function GalaxObsidian:CreateWindow(options)
             self:_hideUnused()
             return nil
         end
+        self._resizing = nil
+        if self._lastDPIScale ~= self.DPIScale then
+            self._resizing = true
+            self._lastDPIScale = self.DPIScale
+        end
         local x, y = self.Position.X, self.Position.Y
         local w, h = self.Size.X, self.Size.Y
         local prevX, prevY = x, y
@@ -4748,7 +4754,6 @@ function GalaxObsidian:CreateWindow(options)
         self.KeybindMenuWidth = width
     end
     function Window:SetDPIScale(percent)
-        self._resizing = true
         percent = tonumber(percent) or 100
         percent = math.floor(clamp(percent, 50, 200) + 0.5)
         local oldSize = self.Size or self.LogicalSize or Vector2.new(820, 600)
