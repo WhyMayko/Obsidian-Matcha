@@ -975,7 +975,6 @@ function GalaxObsidian:CreateWindow(options)
         KeybindMenuWidth = options.KeybindMenuWidth or keybindMenuOptions.Width,
         NotifySide = options.NotifySide or "Right",
         Open = options.StartMinimized ~= true,
-        _winAlpha = options.StartMinimized == true and 0 or 1,
         Running = true,
         Tabs = {},
         ActiveTab = nil,
@@ -986,6 +985,7 @@ function GalaxObsidian:CreateWindow(options)
         Pool = { Square = {}, Text = {}, Line = {}, Circle = {}, Image = {} },
         Index = { Square = 0, Text = 0, Line = 0, Circle = 0, Image = 0 },
         HighWater = { Square = 0, Text = 0, Line = 0, Circle = 0, Image = 0 },
+        _winAlpha = options.StartMinimized == true and 0 or 1,
         _lastActivity = tick(),
         ImageDataByObject = {},
         Theme = Theme,
@@ -1267,9 +1267,8 @@ function GalaxObsidian:CreateWindow(options)
             object.Corner = corner or 0
             d.corner = corner
         end
-        local effectiveTrans = (transparency or 1) * (self._winAlpha or 1)
         if d.trans ~= transparency or d.winAlpha ~= self._winAlpha then
-            object.Transparency = effectiveTrans
+            object.Transparency = (transparency or 1) * (self._winAlpha or 1)
             d.trans = transparency
             d.winAlpha = self._winAlpha
         end
@@ -1320,14 +1319,10 @@ function GalaxObsidian:CreateWindow(options)
             d.font = resolvedFont
         end
         object.Center = false
-        if d.winAlpha ~= self._winAlpha then
-            local visible = (self._winAlpha or 1) > 0.05
-            object.Transparency = visible and 1 or 0
-            d.winAlpha = self._winAlpha
-        end
-        if d.outline ~= outline then
-            object.Outline = outline == true
-            d.outline = outline
+        object.Transparency = self._winAlpha or 1
+        if d.outline ~= false then
+            object.Outline = false
+            d.outline = false
         end
         if d.z ~= z then
             object.ZIndex = z or 5
@@ -1361,11 +1356,7 @@ function GalaxObsidian:CreateWindow(options)
             object.Thickness = thickness or 1
             d.thick = thickness
         end
-        if d.winAlpha ~= self._winAlpha then
-            local visible = (self._winAlpha or 1) > 0.05
-            object.Transparency = visible and 1 or 0
-            d.winAlpha = self._winAlpha
-        end
+        object.Transparency = self._winAlpha or 1
         if d.z ~= z then
             object.ZIndex = z or 4
             d.z = z
@@ -1408,11 +1399,7 @@ function GalaxObsidian:CreateWindow(options)
             d.thick = thickness
         end
         object.NumSides = 24
-        if d.winAlpha ~= self._winAlpha then
-            local visible = (self._winAlpha or 1) > 0.05
-            object.Transparency = visible and 1 or 0
-            d.winAlpha = self._winAlpha
-        end
+        object.Transparency = self._winAlpha or 1
         if d.z ~= z then
             object.ZIndex = z or 5
             d.z = z
@@ -1452,11 +1439,7 @@ function GalaxObsidian:CreateWindow(options)
             object.Rounding = rounding or 0
             d.round = rounding
         end
-        if d.winAlpha ~= self._winAlpha then
-            local visible = (self._winAlpha or 1) > 0.05
-            object.Transparency = visible and 1 or 0
-            d.winAlpha = self._winAlpha
-        end
+        object.Transparency = self._winAlpha or 1
         if d.z ~= z then
             object.ZIndex = z or 6
             d.z = z
