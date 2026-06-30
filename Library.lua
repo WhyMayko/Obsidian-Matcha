@@ -1706,7 +1706,7 @@ function GalaxObsidian:CreateWindow(options)
             AnimationManager:Reset(owner or self, key)
             return target
         end
-        return self:_animOrSnap(owner, key, target, speed)
+        return self:_anim(owner, key, target, speed)
     end
     function Window:_openKeybindModePopup(widget, x, y, w)
         if not widget or widget.disabled == true then
