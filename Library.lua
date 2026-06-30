@@ -1,4 +1,4 @@
-﻿local GalaxObsidian = {}
+local GalaxObsidian = {}
 
 -- Bootstrap
 GalaxObsidian.Version = "1.0.0"
