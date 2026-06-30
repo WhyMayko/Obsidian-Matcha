@@ -4331,7 +4331,6 @@ function GalaxObsidian:CreateWindow(options)
     end
 
     function Window:_render()
-        self._resizing = nil
         if mouse.X ~= self._lastMouseX or mouse.Y ~= self._lastMouseY or self.Mouse1Held or self.Mouse2Held or self.DragOffset or self.ResizeOffset then
             self._lastActivity = tick()
             self._lastMouseX, self._lastMouseY = mouse.X, mouse.Y
@@ -4351,6 +4350,7 @@ function GalaxObsidian:CreateWindow(options)
                 self:_renderTooltip()
                 self._winAlpha = saved
             end
+            self._resizing = nil
             self:_hideUnused()
             return nil
         end
@@ -4650,6 +4650,7 @@ function GalaxObsidian:CreateWindow(options)
         GalaxObsidian.DialogManager:RenderDialogs(self)
         self._winAlpha = saved
         GalaxObsidian.ValueWatcher:Update()
+        self._resizing = nil
         self:_hideUnused()
     end
 
