@@ -4346,11 +4346,16 @@ function GalaxObsidian:CreateWindow(options)
         self.BlockClicks = false
         self.TooltipText = nil
         if not self.Open and (self._winAlpha or 1) <= 0.001 then
-            self:_renderKeybindMenu()
-            self:_renderKeybindModePopup()
-            self:_renderDraggableLabels()
-            NotificationManager:RenderNotifications(self)
-            self:_renderTooltip()
+            if not self._unloading then
+                local saved = self._winAlpha
+                self._winAlpha = 1
+                self:_renderKeybindMenu()
+                self:_renderKeybindModePopup()
+                self:_renderDraggableLabels()
+                NotificationManager:RenderNotifications(self)
+                self:_renderTooltip()
+                self._winAlpha = saved
+            end
             self:_hideUnused()
             return nil
         end
@@ -4638,6 +4643,8 @@ function GalaxObsidian:CreateWindow(options)
         end
         self:_square(x, y, w, h, Theme.SoftOutline, false, 1, windowCorner, chromeZ + 7)
         self._lastContentEnd = { Square = self.Index.Square, Text = self.Index.Text, Line = self.Index.Line, Circle = self.Index.Circle, Image = self.Index.Image }
+        local saved = self._winAlpha
+        if not self._unloading then self._winAlpha = 1 end
         self:_renderDropdownPopup()
         self:_renderColorPickerPopup()
         self:_renderKeybindMenu()
@@ -4646,6 +4653,7 @@ function GalaxObsidian:CreateWindow(options)
         NotificationManager:RenderNotifications(self)
         self:_renderTooltip()
         GalaxObsidian.DialogManager:RenderDialogs(self)
+        self._winAlpha = saved
         GalaxObsidian.ValueWatcher:Update()
         self:_hideUnused()
     end
