@@ -1,7 +1,7 @@
 local GalaxObsidian = {}
 
 -- Bootstrap
-GalaxObsidian.Version = "1.0.0"
+GalaxObsidian.Version = "1.0"
 
 -- Public State
 GalaxObsidian.ImageCache = GalaxObsidian.ImageCache or {}
@@ -975,6 +975,8 @@ function GalaxObsidian:CreateWindow(options)
         Notifications = {},
         Pool = { Square = {}, Text = {}, Line = {}, Circle = {}, Image = {} },
         Index = { Square = 0, Text = 0, Line = 0, Circle = 0, Image = 0 },
+        HighWater = { Square = 0, Text = 0, Line = 0, Circle = 0, Image = 0 },
+        _lastActivity = tick(),
         ImageDataByObject = {},
         Theme = Theme,
 
@@ -1101,8 +1103,15 @@ function GalaxObsidian:CreateWindow(options)
     end
     function Window:_hideUnused()
         for kind, list in pairs(self.Pool) do
-            for i = self.Index[kind] + 1, #list do
-                list[i].Visible = false
+            local current = self.Index[kind]
+            local high = self.HighWater[kind]
+            if current < high then
+                for i = current + 1, high do
+                    list[i].Visible = false
+                end
+            end
+            if current > high then
+                self.HighWater[kind] = current
             end
         end
     end
@@ -1227,8 +1236,16 @@ function GalaxObsidian:CreateWindow(options)
             return nil
         end
         local object = self:_get("Square")
-        object.Position = Vector2.new(x, y)
-        object.Size = Vector2.new(w, h)
+        local d = object._d
+        if not d then d = {}; object._d = d end
+        if d.x ~= x or d.y ~= y then
+            object.Position = Vector2.new(x, y)
+            d.x, d.y = x, y
+        end
+        if d.w ~= w or d.h ~= h then
+            object.Size = Vector2.new(w, h)
+            d.w, d.h = w, h
+        end
         if color then
             local ok, err = pcall(function()
                 object.Color = color
@@ -1236,9 +1253,18 @@ function GalaxObsidian:CreateWindow(options)
             if not ok then error("_square Color: " .. tostring(err), 2) end
         end
         object.Filled = filled ~= false
-        object.Corner = corner or 0
-        object.Transparency = transparency or 1
-        object.ZIndex = z or 1
+        if d.corner ~= corner then
+            object.Corner = corner or 0
+            d.corner = corner
+        end
+        if d.trans ~= transparency then
+            object.Transparency = transparency or 1
+            d.trans = transparency
+        end
+        if d.z ~= z then
+            object.ZIndex = z or 1
+            d.z = z
+        end
         return object
     end
     function Window:_text(text, x, y, color, size, font, center, outline, z)
@@ -1249,26 +1275,48 @@ function GalaxObsidian:CreateWindow(options)
             return nil
         end
         local object = self:_get("Text")
+        local d = object._d
+        if not d then d = {}; object._d = d end
         local resolvedFont = (font == Drawing.Fonts.Monospace and Theme.Font) or font or Theme.Font
-        object.Text = content
+        if d.text ~= content then
+            object.Text = content
+            d.text = content
+        end
         local tx = x
         if center == true then
             tx = tx - estimateTextWidth(content, size or GalaxObsidian.FontSize or 14, resolvedFont) / 2
         end
         local yOffset = scale > 1 and -math.floor((scale - 1) * 3) or 0
-        object.Position = Vector2.new(math.floor(tx + 0.5), math.floor(y + yOffset + 0.5))
+        local px = math.floor(tx + 0.5)
+        local py = math.floor(y + yOffset + 0.5)
+        if d.px ~= px or d.py ~= py then
+            object.Position = Vector2.new(px, py)
+            d.px, d.py = px, py
+        end
         if color then
             local ok, err = pcall(function()
                 object.Color = color
             end)
             if not ok then error("_text Color: " .. tostring(err), 2) end
         end
-        object.Size = textSize
-        object.Font = resolvedFont
+        if d.size ~= textSize then
+            object.Size = textSize
+            d.size = textSize
+        end
+        if d.font ~= resolvedFont then
+            object.Font = resolvedFont
+            d.font = resolvedFont
+        end
         object.Center = false
-        object.Outline = outline == true
+        if d.outline ~= outline then
+            object.Outline = outline == true
+            d.outline = outline
+        end
         object.Transparency = 1
-        object.ZIndex = z or 5
+        if d.z ~= z then
+            object.ZIndex = z or 5
+            d.z = z
+        end
         return object
     end
 
@@ -1277,17 +1325,31 @@ function GalaxObsidian:CreateWindow(options)
             return nil
         end
         local object = self:_get("Line")
-        object.From = Vector2.new(x1, y1)
-        object.To = Vector2.new(x2, y2)
+        local d = object._d
+        if not d then d = {}; object._d = d end
+        if d.x1 ~= x1 or d.y1 ~= y1 then
+            object.From = Vector2.new(x1, y1)
+            d.x1, d.y1 = x1, y1
+        end
+        if d.x2 ~= x2 or d.y2 ~= y2 then
+            object.To = Vector2.new(x2, y2)
+            d.x2, d.y2 = x2, y2
+        end
         if color then
             local ok, err = pcall(function()
                 object.Color = color
             end)
             if not ok then error("_line Color: " .. tostring(err), 2) end
         end
-        object.Thickness = thickness or 1
+        if d.thick ~= thickness then
+            object.Thickness = thickness or 1
+            d.thick = thickness
+        end
         object.Transparency = 1
-        object.ZIndex = z or 4
+        if d.z ~= z then
+            object.ZIndex = z or 4
+            d.z = z
+        end
         return object
     end
     function Window:_circle(x, y, radius, color, filled, thickness, z)
@@ -1296,8 +1358,16 @@ function GalaxObsidian:CreateWindow(options)
             return nil
         end
         local object = self:_get("Circle")
-        object.Position = Vector2.new(x, y)
-        object.Radius = radius
+        local d = object._d
+        if not d then d = {}; object._d = d end
+        if d.x ~= x or d.y ~= y then
+            object.Position = Vector2.new(x, y)
+            d.x, d.y = x, y
+        end
+        if d.radius ~= radius then
+            object.Radius = radius
+            d.radius = radius
+        end
         if color then
             local ok, err = pcall(function()
                 object.Color = color
@@ -1309,11 +1379,20 @@ function GalaxObsidian:CreateWindow(options)
             end)
             if not ok then error("_circle Color: " .. tostring(err), 2) end
         end
-        object.Filled = filled ~= false
-        object.Thickness = thickness or 1
+        if d.filled ~= filled then
+            object.Filled = filled ~= false
+            d.filled = filled
+        end
+        if d.thick ~= thickness then
+            object.Thickness = thickness or 1
+            d.thick = thickness
+        end
         object.NumSides = 24
         object.Transparency = 1
-        object.ZIndex = z or 5
+        if d.z ~= z then
+            object.ZIndex = z or 5
+            d.z = z
+        end
         return object
     end
 
@@ -1335,11 +1414,25 @@ function GalaxObsidian:CreateWindow(options)
             object.Data = data
             self.ImageDataByObject[object] = data
         end
-        object.Position = Vector2.new(x, y)
-        object.Size = Vector2.new(w, h)
-        object.Rounding = rounding or 0
+        local d = object._d
+        if not d then d = {}; object._d = d end
+        if d.x ~= x or d.y ~= y then
+            object.Position = Vector2.new(x, y)
+            d.x, d.y = x, y
+        end
+        if d.w ~= w or d.h ~= h then
+            object.Size = Vector2.new(w, h)
+            d.w, d.h = w, h
+        end
+        if d.round ~= rounding then
+            object.Rounding = rounding or 0
+            d.round = rounding
+        end
         object.Transparency = 1
-        object.ZIndex = z or 6
+        if d.z ~= z then
+            object.ZIndex = z or 6
+            d.z = z
+        end
         return object
     end
 
@@ -4197,6 +4290,10 @@ function GalaxObsidian:CreateWindow(options)
     end
 
     function Window:_render()
+        if mouse.X ~= self._lastMouseX or mouse.Y ~= self._lastMouseY or self.Mouse1Held or self.Mouse2Held or self.DragOffset or self.ResizeOffset then
+            self._lastActivity = tick()
+            self._lastMouseX, self._lastMouseY = mouse.X, mouse.Y
+        end
         self:_resetPool()
         self.BlockClicks = false
         self.TooltipText = nil
@@ -5501,10 +5598,15 @@ function GalaxObsidian:CreateWindow(options)
 
     task.spawn(function()
         while Window.Running do
-            task.wait(0.01)
+            local idleTime = tick() - Window._lastActivity
+            local waitTime = idleTime > 0.5 and 0.033 or 0.016
+            task.wait(waitTime)
             if isrbxactive() then
                 Window:_updateInput()
-                Window:_render()
+                local ok, err = pcall(function() Window:_render() end)
+                if not ok then
+                    warn("[GalaxObsidian] Render error: " .. tostring(err))
+                end
                 Window:_handleGlobalInput()
                 Window:_updateInputBlock()
             else
