@@ -1168,17 +1168,37 @@ function GalaxObsidian:CreateWindow(options)
         return object
     end
 
-    function Window:_hidePool()
-        for _, pool in pairs(self.Pool) do
-            for _, object in ipairs(pool) do
-                object.Visible = false
+    function Window:_shiftAllVisible(dx, dy)
+        if dx == 0 and dy == 0 then
+            return
+        end
+        local delta = Vector2.new(dx, dy)
+        for _, object in ipairs(self.Pool.Square) do
+            if object.Visible then
+                object.Position = object.Position + delta
             end
         end
-        self.Index.Square = 0
-        self.Index.Text = 0
-        self.Index.Line = 0
-        self.Index.Circle = 0
-        self.Index.Image = 0
+        for _, object in ipairs(self.Pool.Text) do
+            if object.Visible then
+                object.Position = object.Position + delta
+            end
+        end
+        for _, object in ipairs(self.Pool.Circle) do
+            if object.Visible then
+                object.Position = object.Position + delta
+            end
+        end
+        for _, object in ipairs(self.Pool.Image) do
+            if object.Visible then
+                object.Position = object.Position + delta
+            end
+        end
+        for _, object in ipairs(self.Pool.Line) do
+            if object.Visible then
+                object.From = object.From + delta
+                object.To = object.To + delta
+            end
+        end
     end
 
     function Window:_clipAllowsBox(y, h)
@@ -4244,7 +4264,7 @@ function GalaxObsidian:CreateWindow(options)
             end
         end
 
-        -- drag moves objects naturally via full redraw
+        self:_shiftAllVisible(x - prevX, y - prevY)
 
         layout = self:_windowLayout(x, y, w, h, scale)
         sidebarW = layout.sidebarW
