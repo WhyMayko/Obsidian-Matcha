@@ -1168,6 +1168,19 @@ function GalaxObsidian:CreateWindow(options)
         return object
     end
 
+    function Window:_hidePool()
+        for _, pool in pairs(self.Pool) do
+            for _, object in ipairs(pool) do
+                object.Visible = false
+            end
+        end
+        self.Index.Square = 0
+        self.Index.Text = 0
+        self.Index.Line = 0
+        self.Index.Circle = 0
+        self.Index.Image = 0
+    end
+
     function Window:_clipAllowsBox(y, h)
         if not self._clipTop or not self._clipBottom then
             return true
@@ -4231,7 +4244,7 @@ function GalaxObsidian:CreateWindow(options)
             end
         end
 
-        self:_translateVisibleInBounds(x - prevX, y - prevY, prevX, prevY, prevW, prevH)
+        self:_hidePool()
 
         layout = self:_windowLayout(x, y, w, h, scale)
         sidebarW = layout.sidebarW
