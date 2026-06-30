@@ -1,4 +1,4 @@
-local GalaxObsidian = {}
+﻿local GalaxObsidian = {}
 
 -- Bootstrap
 GalaxObsidian.Version = "1.0.0"
@@ -215,7 +215,7 @@ local function makeHandle(widget)
     handle.__index = handle
 
     function handle:Get()
-        if widget.type == "toggle" or widget.type == "checkbox" then
+        if _isToggle(widget) then
             return widget.value == true
         elseif widget.type == "slider" then
             return widget.value
@@ -249,19 +249,16 @@ local function makeHandle(widget)
     end
 
     function handle:Set(value)
-        if widget.type == "toggle" or widget.type == "checkbox" then
+        if _isToggle(widget) then
             widget.value = value == true
-            safeCall(widget.callback, widget.value)
-            safeCall(widget.changed, widget.value)
+            _fire(widget, widget.value)
         elseif widget.type == "slider" then
             local v = clamp(value, widget.min, widget.max)
             widget.value = v
-            safeCall(widget.callback, widget.value)
-            safeCall(widget.changed, widget.value)
+            _fire(widget, widget.value)
         elseif widget.type == "dropdown" then
             widget.value = value
-            safeCall(widget.callback, widget.value)
-            safeCall(widget.changed, widget.value)
+            _fire(widget, widget.value)
         elseif widget.type == "multidropdown" then
             widget.selected = {}
 
@@ -270,12 +267,10 @@ local function makeHandle(widget)
                     widget.selected[v] = true
                 end
             end
-            safeCall(widget.callback, widget.selected)
-            safeCall(widget.changed, widget.selected)
+            _fire(widget, widget.selected)
         elseif widget.type == "textbox" or widget.type == "keybox" then
             widget.value = tostring(value or "")
-            safeCall(widget.callback, widget.value)
-            safeCall(widget.changed, widget.value)
+            _fire(widget, widget.value)
         elseif widget.type == "keybind" then
             if type(value) == "table" then
                 widget.value = value[1] or value.Key or value.key or widget.value
@@ -295,8 +290,7 @@ local function makeHandle(widget)
             widget.value = color
             widget.transparency = widget.transparencyEnabled and (transparency or 0) or 0
             widget.hue, widget.sat, widget.vib = rgbToHsv(color)
-            safeCall(widget.callback, widget.value, widget.transparency)
-            safeCall(widget.changed, widget.value, widget.transparency)
+            _fire(widget, widget.value, widget.transparency)
         end
     end
 
@@ -431,23 +425,19 @@ local function makeHandle(widget)
     function handle:Select(value)
         if widget.type == "dropdown" then
             widget.value = value
-            safeCall(widget.callback, widget.value)
-            safeCall(widget.changed, widget.value)
+            _fire(widget, widget.value)
         elseif widget.type == "multidropdown" then
             widget.selected[value] = true
-            safeCall(widget.callback, widget.selected)
-            safeCall(widget.changed, widget.selected)
+            _fire(widget, widget.selected)
         end
     end
     function handle:Deselect(value)
         if widget.type == "multidropdown" then
             widget.selected[value] = nil
-            safeCall(widget.callback, widget.selected)
-            safeCall(widget.changed, widget.selected)
+            _fire(widget, widget.selected)
         elseif widget.type == "dropdown" and widget.allowNull then
             widget.value = nil
-            safeCall(widget.callback, widget.value)
-            safeCall(widget.changed, widget.value)
+            _fire(widget, widget.value)
         end
     end
     function handle:GetOptions()
@@ -481,12 +471,10 @@ local function makeHandle(widget)
                     sel[widget._default] = true
                 end
                 widget.selected = sel
-                safeCall(widget.callback, widget.selected)
-                safeCall(widget.changed, widget.selected)
+                _fire(widget, widget.selected)
             else
                 widget.value = widget._default
-                safeCall(widget.callback, widget.value)
-                safeCall(widget.changed, widget.value)
+                _fire(widget, widget.value)
             end
         end
     end
@@ -1734,21 +1722,19 @@ function GalaxObsidian:CreateWindow(options)
         if not widget then
             return nil
         end
-        if widget.type == "toggle" or widget.type == "checkbox" then
+        if _isToggle(widget) then
             widget.keybind = nil
             widget.value = false
-            safeCall(widget.callback, false)
-            safeCall(widget.changed, false)
+            _fire(widget, false)
         else
             widget.value = nil
             widget._state = false
             widget._prevHeld = false
             safeCall(widget.changed, nil)
             safeCall(widget.callback, false)
-            if widget.parent and (widget.parent.type == "toggle" or widget.parent.type == "checkbox") then
+            if widget.parent and _isToggle(widget.parent) then
                 widget.parent.value = false
-                safeCall(widget.parent.callback, false)
-                safeCall(widget.parent.changed, false)
+                _fire(widget.parent, false)
             end
         end
         widget._keybindCleared = true
@@ -1780,6 +1766,26 @@ function GalaxObsidian:CreateWindow(options)
                 addon._state = toggleWidget.value == true
             end
         end
+    end
+
+    local function _scaled(x, s) return math.floor(x * s + 0.5) end
+    local function _yOfs(s) return s > 1 and -math.floor((s - 1) * 3) or 0 end
+    local function _isToggle(w) return w.type == "toggle" or w.type == "checkbox" end
+    local function _fire(w, ...) safeCall(w.callback, ...); safeCall(w.changed, ...) end
+
+    function Window:_startListening(target)
+        target.listening = true
+        target._keybindCleared = false
+        self.KeyListenTarget = target
+        self.KeyListenStarted = tick()
+        self.BlockClicks = true
+        self:_claimInteraction(target)
+    end
+
+    function Window:_flipWidget(w)
+        w.value = not w.value
+        self:_syncToggleKeypickerAddons(w)
+        _fire(w, w.value)
     end
 
     function Window:_closeFloating(except)
@@ -1835,7 +1841,7 @@ function GalaxObsidian:CreateWindow(options)
         if self.KeyListenTarget then
             local key = self:_readListenKey()
             if key then
-                if self.KeyListenTarget.type == "toggle" or self.KeyListenTarget.type == "checkbox" then
+                if _isToggle(self.KeyListenTarget) then
                     self.KeyListenTarget.keybind = key
                 else
                     self.KeyListenTarget.value = key
@@ -1899,18 +1905,15 @@ function GalaxObsidian:CreateWindow(options)
             if char == "backspace" or self:_readBackspaceRepeat() then
                 target.value = string.sub(target.value, 1, math.max(0, #target.value - 1))
                 if target.type ~= "keybox" and not target.finished then
-                    safeCall(target.callback, target.value)
-                    safeCall(target.changed, target.value)
+                    _fire(target, target.value)
                 end
             elseif char == "clear" then
                 target.value = ""
                 if target.type ~= "keybox" and not target.finished then
-                    safeCall(target.callback, target.value)
-                    safeCall(target.changed, target.value)
+                    _fire(target, target.value)
                 end
             elseif char == "enter" then
-                safeCall(target.callback, target.value)
-                safeCall(target.changed, target.value)
+                _fire(target, target.value)
                 self.TextTarget = nil
                 self:_releaseInteraction(target, true)
             elseif char then
@@ -1924,8 +1927,7 @@ function GalaxObsidian:CreateWindow(options)
                     target.value = target.value .. char
                 end
                 if target.type ~= "keybox" and not target.finished then
-                    safeCall(target.callback, target.value)
-                    safeCall(target.changed, target.value)
+                    _fire(target, target.value)
                 end
             end
         end
@@ -1961,19 +1963,16 @@ function GalaxObsidian:CreateWindow(options)
                 return nil
             end
             if
-                (widget.type == "toggle" or widget.type == "checkbox")
+                (_isToggle(widget))
                 and widget.keybind
                 and widget.disabled ~= true
                 and widget.listening ~= true
             then
                 if self:_keyPressed(widget.keybind) then
-                    widget.value = not widget.value
-                    self:_syncToggleKeypickerAddons(widget)
-                    safeCall(widget.callback, widget.value)
-                    safeCall(widget.changed, widget.value)
+                    self:_flipWidget(widget)
                 end
             end
-            if widget.type == "toggle" or widget.type == "checkbox" then
+            if _isToggle(widget) then
                 local addons = widget.addons or {}
                 for _, addon in ipairs(addons) do
                     if addon.type == "keybind" then
@@ -2011,26 +2010,24 @@ function GalaxObsidian:CreateWindow(options)
                 elseif mode == "Toggle" then
                     if keyHeld and not wasHeld then
                         widget._state = not widget._state
-                        if widget.parent and (widget.parent.type == "toggle" or widget.parent.type == "checkbox") then
+                        if widget.parent and _isToggle(widget.parent) then
                             widget.parent.value = widget._state
                             self:_syncToggleKeypickerAddons(widget.parent)
-                            safeCall(widget.parent.callback, widget.parent.value)
-                            safeCall(widget.parent.changed, widget.parent.value)
+                            _fire(widget.parent, widget.parent.value)
                         else
                             safeCall(widget.callback, widget._state)
                         end
                     end
                 elseif mode == "Always" then
-                    if widget._state ~= true then
-                        widget._state = true
-                        if widget.parent and (widget.parent.type == "toggle" or widget.parent.type == "checkbox") then
+                    widget._state = true
+                    if widget.parent and _isToggle(widget.parent) then
+                        if widget.parent.value ~= true then
                             widget.parent.value = true
                             self:_syncToggleKeypickerAddons(widget.parent)
-                            safeCall(widget.parent.callback, true)
-                            safeCall(widget.parent.changed, true)
-                        else
-                            safeCall(widget.callback, true)
+                            _fire(widget.parent, true)
                         end
+                    else
+                        safeCall(widget.callback, true)
                     end
                     keyHeld = true
                 elseif mode == "Press" then
@@ -2114,11 +2111,10 @@ function GalaxObsidian:CreateWindow(options)
             widget.addons = widget.addons or {}
             local addon = makeKeybindAddon(name, info, widget)
             addon.mode = info.Mode or "Toggle"
-            if widget.type == "toggle" or widget.type == "checkbox" then
+            if _isToggle(widget) then
                 addon.callback = function(v)
                     if type(v) == "boolean" then widget.value = v else widget.value = not widget.value end
-                    safeCall(widget.callback, widget.value)
-                    safeCall(widget.changed, widget.value)
+                    _fire(widget, widget.value)
                 end
             end
             widget.addons[#widget.addons + 1] = addon
@@ -2173,8 +2169,7 @@ function GalaxObsidian:CreateWindow(options)
                         addon.value = color
                         addon.transparency = addon.transparencyEnabled and (transparency or 0) or 0
                         addon.hue, addon.sat, addon.vib = rgbToHsv(color)
-                        safeCall(addon.callback, addon.value, addon.transparency)
-                        safeCall(addon.changed, addon.value, addon.transparency)
+                        _fire(addon, addon.value, addon.transparency)
                     end,
                 })
             else
@@ -2207,7 +2202,7 @@ function GalaxObsidian:CreateWindow(options)
         handle.AddColorPicker = makeAddColorPickerClosure(widget, false)
         handle.AddKeyPicker = makeAddKeyPickerClosure(widget, false)
         if widget.id then
-            if widget.type == "toggle" or widget.type == "checkbox" then
+            if _isToggle(widget) then
                 self.Toggles[widget.id] = handle
             else
                 self.Options[widget.id] = handle
@@ -2288,7 +2283,7 @@ function GalaxObsidian:CreateWindow(options)
             end
         elseif widget.type == "slider" then
             base = widget.compact and 15 or 33
-        elseif widget.type == "toggle" or widget.type == "checkbox" then
+        elseif _isToggle(widget) then
             base = 18
         elseif widget.type == "dropdown" or widget.type == "multidropdown" then
             base = 39
@@ -2327,6 +2322,31 @@ function GalaxObsidian:CreateWindow(options)
             end
         end
         return string.lower(self.SearchText or "") == ""
+    end
+
+    function Window:_renderKeybindButton(widget, x, y, w, h, label, ts, z, pfx, bg, ol)
+        self:_handleKeybindHoldClear(widget)
+        local sc = self:GetScale()
+        self:_square(x, y, w, h, self:_anim(widget, pfx.."key.bg", bg, 16), true, 1, 2, z + 1)
+        self:_square(x, y, w, h, self:_anim(widget, pfx.."key.outline", widget.listening and self.Accent or ol, 16), false, 1, 2, z + 2)
+        local txt = self:_anim(widget, pfx.."key.text", Theme.Text, 16)
+        self:_text(fitTextToWidth(label, w - math.floor(10 * sc), ts, Theme.Font), x + math.floor(w / 2), y + math.floor(h / 2) - math.floor(_scaled(ts, sc) / 2) - _yOfs(sc), txt, ts, Theme.Font, true, true, z + 3)
+        if widget.disabled ~= true and self:_click(x, y, w, h) then self:_startListening(widget) end
+    end
+
+    function Window:_renderAddonKeybind(addon, ax, y, aw, asz, ts, z, fc)
+        local l = addon.listening and "..." or (addon.value and keyName(addon.value) or "?")
+        self:_handleKeybindHoldClear(addon)
+        local sc = self:GetScale()
+        self:_square(ax, y, aw, asz, Theme.Surface, true, 1, 2, z + 1)
+        self:_square(ax, y, aw, asz, addon.listening and self.Accent or Theme.Outline, false, 1, 2, z + 2)
+        self:_text(fitTextToWidth(l, aw - math.floor(10 * sc), ts, Theme.Font), ax + math.floor(aw / 2), y + math.floor(asz / 2) - math.floor(_scaled(ts, sc) / 2) - _yOfs(sc), Theme.Text, ts, Theme.Font, true, true, z + 3)
+        if addon.disabled ~= true and self.Mouse2Clicked and (not fc or not self._focus or self._focus == addon) and self:_over(ax, y, aw, asz) then
+            self:_openKeybindModePopup(addon, ax, y, aw)
+        end
+        if addon.disabled ~= true and self:_click(ax, y, aw, asz) then
+            self:_startListening(addon)
+        end
     end
 
     function Window:_renderCheckbox(widget, x, y, w, z)
@@ -2370,46 +2390,13 @@ function GalaxObsidian:CreateWindow(options)
             z + 2
         )
         if keyLabel then
-            self:_handleKeybindHoldClear(widget)
-            local kY = y + math.floor(0 * scale)
-            local overKey = self:_hover(keyX, kY, keyW, keyH, widget)
-            local keyBg = self:_anim(widget, "checkbox.key.bg", overKey and Theme.Surface2 or Theme.Surface, 16)
-            local keyOutline = self:_anim(
-                widget,
-                "checkbox.key.outline",
-                widget.listening and self.Accent or (overKey and Theme.Outline2 or Theme.Outline),
-                16
-            )
-            local keyText = self:_anim(widget, "checkbox.key.text", Theme.Text, 16)
-            self:_square(keyX, kY, keyW, keyH, keyBg, true, 1, 2, z + 1)
-            self:_square(keyX, kY, keyW, keyH, keyOutline, false, 1, 2, z + 2)
-            local scaledKeyTextSize = math.floor(keyTextSize * scale + 0.5)
-            local yOfs = scale > 1 and -math.floor((scale - 1) * 3) or 0
-            self:_text(
-                fitTextToWidth(keyLabel, keyW - math.floor(10 * scale), keyTextSize, Theme.Font),
-                keyX + math.floor(keyW / 2),
-                y + math.floor(keyH / 2) - math.floor(scaledKeyTextSize / 2) - yOfs,
-                keyText,
-                keyTextSize,
-                Theme.Font,
-                true,
-                true,
-                z + 3
-            )
-            if not disabled and self:_click(keyX, kY, keyW, keyH) then
-                widget.listening = true
-                widget._keybindCleared = false
-                self.KeyListenTarget = widget
-                self.KeyListenStarted = tick()
-                self.BlockClicks = true
-                self:_claimInteraction(widget)
-            end
+            local ok = self:_hover(keyX, y, keyW, keyH, widget)
+            self:_renderKeybindButton(widget, keyX, y, keyW, keyH, keyLabel, keyTextSize, z, "checkbox.",
+                ok and Theme.Surface2 or Theme.Surface,
+                ok and Theme.Outline2 or Theme.Outline)
         end
         if not disabled and self:_click(x, y, w, math.floor(18 * scale)) then
-            widget.value = not widget.value
-            self:_syncToggleKeypickerAddons(widget)
-            safeCall(widget.callback, widget.value)
-            safeCall(widget.changed, widget.value)
+            self:_flipWidget(widget)
         end
     end
 
@@ -2462,35 +2449,8 @@ function GalaxObsidian:CreateWindow(options)
             z + 2
         )
         if keyLabel then
-            self:_handleKeybindHoldClear(widget)
-            local keyBg = self:_anim(widget, "toggle.key.bg", Theme.Surface, 16)
-            local keyOutline =
-                self:_anim(widget, "toggle.key.outline", widget.listening and self.Accent or Theme.Outline, 16)
-            local keyText = self:_anim(widget, "toggle.key.text", Theme.Text, 16)
-            local kY = y + math.floor(0 * scale)
-            local scaledKeyTextSize = math.floor(keyTextSize * scale + 0.5)
-            local yOfs = scale > 1 and -math.floor((scale - 1) * 3) or 0
-            self:_square(keyX, kY, keyW, keyH, keyBg, true, 1, 2, z + 1)
-            self:_square(keyX, kY, keyW, keyH, keyOutline, false, 1, 2, z + 2)
-            self:_text(
-                fitTextToWidth(keyLabel, keyW - math.floor(10 * scale), keyTextSize, Theme.Font),
-                keyX + math.floor(keyW / 2),
-                y + math.floor(keyH / 2) - math.floor(scaledKeyTextSize / 2) - yOfs,
-                keyText,
-                keyTextSize,
-                Theme.Font,
-                true,
-                true,
-                z + 3
-            )
-            if not disabled and self:_click(keyX, kY, keyW, keyH) then
-                widget.listening = true
-                widget._keybindCleared = false
-                self.KeyListenTarget = widget
-                self.KeyListenStarted = tick()
-                self.BlockClicks = true
-                self:_claimInteraction(widget)
-            end
+            self:_renderKeybindButton(widget, keyX, y, keyW, keyH, keyLabel, keyTextSize, z, "toggle.",
+                Theme.Surface, Theme.Outline)
         end
         if addonCount > 0 and addonStartX then
             local ax = addonStartX
@@ -2498,29 +2458,7 @@ function GalaxObsidian:CreateWindow(options)
                 if addon.visible ~= false then
                     local aw = addonWidths[i] or addonSize
                     if addon.type == "keybind" then
-                        local kLabel = addon.listening and "..." or (addon.value and keyName(addon.value) or "?")
-                        self:_handleKeybindHoldClear(addon)
-                        self:_square(ax, y, aw, addonSize, Theme.Surface, true, 1, 2, z + 1)
-                        self:_square(ax, y, aw, addonSize, addon.listening and self.Accent or Theme.Outline, false, 1, 2, z + 2)
-                        local scaledKbTextSize = math.floor(keyTextSize * scale + 0.5)
-                        local yOfs = scale > 1 and -math.floor((scale - 1) * 3) or 0
-                        self:_text(
-                            fitTextToWidth(kLabel, aw - math.floor(10 * scale), keyTextSize, Theme.Font),
-                            ax + math.floor(aw / 2),
-                            y + math.floor(addonSize / 2) - math.floor(scaledKbTextSize / 2) - yOfs,
-                            Theme.Text, keyTextSize, Theme.Font, true, true, z + 3
-                        )
-                        if addon.disabled ~= true and self.Mouse2Clicked and self:_over(ax, y, aw, addonSize) then
-                            self:_openKeybindModePopup(addon, ax, y, aw)
-                        end
-                        if addon.disabled ~= true and self:_click(ax, y, aw, addonSize) then
-                            addon.listening = true
-                            addon._keybindCleared = false
-                            self.KeyListenTarget = addon
-                            self.KeyListenStarted = tick()
-                            self.BlockClicks = true
-                            self:_claimInteraction(addon)
-                        end
+                        self:_renderAddonKeybind(addon, ax, y, aw, addonSize, keyTextSize, z, false)
                     else
                         self:_renderColorSwatch(addon, ax, y + math.floor(0 * scale), addonSize, z + 1)
                     end
@@ -2544,10 +2482,7 @@ function GalaxObsidian:CreateWindow(options)
         self:_square(switchX, switchY, switchW, switchH, borderColor, false, disabled and 0.55 or 1, switchH, z + 2)
         self:_circle(thumbX, switchY + switchH / 2, thumbR, thumbColor, true, 1, z + 3)
         if not disabled and self:_focusClick(x, y, w, math.floor(21 * scale), widget) then
-            widget.value = not widget.value
-            self:_syncToggleKeypickerAddons(widget)
-            safeCall(widget.callback, widget.value)
-            safeCall(widget.changed, widget.value)
+            self:_flipWidget(widget)
             self:_releaseInteraction(widget)
         end
     end
@@ -2648,8 +2583,7 @@ function GalaxObsidian:CreateWindow(options)
             end
             if widget.value ~= nextValue then
                 widget.value = nextValue
-                safeCall(widget.callback, widget.value)
-                safeCall(widget.changed, widget.value)
+                _fire(widget, widget.value)
             end
         elseif self.SliderTarget == widget then
             self.SliderTarget = nil
@@ -2773,7 +2707,7 @@ function GalaxObsidian:CreateWindow(options)
         local labelTextSize = 14
         local scaledLabelTextSize = math.floor(labelTextSize * scale + 0.5)
         local widgetH = math.floor(24 * scale)
-        local yOfs = scale > 1 and -math.floor((scale - 1) * 3) or 0
+        local yOfs = _yOfs(scale)
         self:_text(
             fitTextToWidth(widget.label, w - keyW - math.floor(10 * scale), labelTextSize, Theme.Font),
             x,
@@ -2803,12 +2737,7 @@ function GalaxObsidian:CreateWindow(options)
             self:_openKeybindModePopup(widget, keyX, keyBtnY, keyW)
         end
         if not disabled and self:_click(keyX, keyBtnY, keyW, keyH) then
-            widget.listening = true
-            widget._keybindCleared = false
-            self.KeyListenTarget = widget
-            self.KeyListenStarted = tick()
-            self.BlockClicks = true
-            self:_claimInteraction(widget)
+            self:_startListening(widget)
         end
     end
 
@@ -2881,7 +2810,7 @@ function GalaxObsidian:CreateWindow(options)
         local boxY = y + math.floor(3 * scale)
         local keyboxTextSize = 14
         local scaledKeyboxTextSize = math.floor(keyboxTextSize * scale + 0.5)
-        local yOfs = scale > 1 and -math.floor((scale - 1) * 3) or 0
+        local yOfs = _yOfs(scale)
         local textY = boxY + math.floor((boxH - scaledKeyboxTextSize) / 2) - yOfs
         local focused = self.TextTarget == widget
         widget.hitbox = { x = x, y = boxY, w = boxW, h = boxH }
@@ -3014,7 +2943,7 @@ function GalaxObsidian:CreateWindow(options)
         local btnY = y + math.floor(0 * scale)
         local btnTextSize = 14
         local scaledBtnTextSize = math.floor(btnTextSize * scale + 0.5)
-        local yOfs = scale > 1 and -math.floor((scale - 1) * 3) or 0
+        local yOfs = _yOfs(scale)
         local btnTextY = btnY + math.floor((btnH - scaledBtnTextSize) / 2) - yOfs
         local over = not disabled and self:_hover(x, btnY, w, btnH, widget)
         local buttonBg = self:_anim(
@@ -3184,7 +3113,7 @@ function GalaxObsidian:CreateWindow(options)
             local labelMaxW = addonCount > 0 and (addonStartX - x - math.floor(6 * scale)) or w
             local textSize = widget.size or 14
             local scaledLabelTextSize = math.floor(textSize * scale + 0.5)
-            local yOfs = scale > 1 and -math.floor((scale - 1) * 3) or 0
+            local yOfs = _yOfs(scale)
             local lineCount
             if widget.doesWrap ~= false then
                 local lines = wrapTextLines(widget.text or "", math.max(math.floor(50 * scale), labelMaxW), textSize, 8, Theme.Font)
@@ -3219,44 +3148,7 @@ function GalaxObsidian:CreateWindow(options)
                     if addon.visible ~= false then
                         local aw = addonWidths[i] or addonSize
                         if addon.type == "keybind" then
-                            local keyLabel = addon.listening and "..." or (addon.value and keyName(addon.value) or "?")
-                            self:_handleKeybindHoldClear(addon)
-                            self:_square(ax, y, aw, addonSize, Theme.Surface, true, 1, 2, z + 1)
-                            self:_square(
-                                ax,
-                                y,
-                                aw,
-                                addonSize,
-                                addon.listening and self.Accent or Theme.Outline,
-                                false,
-                                1,
-                                2,
-                                z + 2
-                            )
-                            local scaledAddonTextSize = math.floor(addonTextSize * scale + 0.5)
-                            local yOfs = scale > 1 and -math.floor((scale - 1) * 3) or 0
-                            self:_text(
-                                fitTextToWidth(keyLabel, aw - math.floor(10 * scale), addonTextSize, Theme.Font),
-                                ax + math.floor(aw / 2),
-                                y + math.floor(addonSize / 2) - math.floor(scaledAddonTextSize / 2) - yOfs,
-                                Theme.Text,
-                                addonTextSize,
-                                Theme.Font,
-                                true,
-                                true,
-                                z + 3
-                            )
-                            if addon.disabled ~= true and self.Mouse2Clicked and (not self._focus or self._focus == addon) and self:_over(ax, y, aw, addonSize) then
-                                self:_openKeybindModePopup(addon, ax, y, aw)
-                            end
-                            if addon.disabled ~= true and self:_click(ax, y, aw, addonSize) then
-                                addon.listening = true
-                                addon._keybindCleared = false
-                                self.KeyListenTarget = addon
-                                self.KeyListenStarted = tick()
-                                self.BlockClicks = true
-                                self:_claimInteraction(addon)
-                            end
+                            self:_renderAddonKeybind(addon, ax, y, aw, addonSize, addonTextSize, z, true)
                         else
                             self:_renderColorSwatch(addon, ax, y, addonSize, z + 1)
                         end
@@ -3709,18 +3601,15 @@ function GalaxObsidian:CreateWindow(options)
                                 list[#list + 1] = item
                             end
                         end
-                        safeCall(widget.callback, list)
-                        safeCall(widget.changed, list)
+                        _fire(widget, list)
                     end
                 else
                     if selected and widget.allowNull == true then
                         widget.value = nil
-                        safeCall(widget.callback, widget.value)
-                        safeCall(widget.changed, widget.value)
+                        _fire(widget, widget.value)
                     else
                         widget.value = option
-                        safeCall(widget.callback, widget.value)
-                        safeCall(widget.changed, widget.value)
+                        _fire(widget, widget.value)
                     end
                 end
                 self.Mouse1Clicked = false
@@ -3765,7 +3654,7 @@ function GalaxObsidian:CreateWindow(options)
         if widget.title then
             local titleCenter = y + pad + math.floor(titleH / 2)
             local scaledTitleSize = math.floor(14 * scale)
-            local yOfs = scale > 1 and -math.floor((scale-1)*3) or 0
+            local yOfs = _yOfs(scale)
             self:_text(
                 fitTextToWidth(widget.title, info.w - pad * 2, 14, Theme.Font),
                 x + pad,
@@ -3814,8 +3703,7 @@ function GalaxObsidian:CreateWindow(options)
                 widget.transparency = clamp((mouse.Y - hueInnerY) / barInnerH, 0, 1)
             end
             if widget.value ~= oldVal or widget.transparency ~= oldAlpha then
-                safeCall(widget.callback, widget.value, widget.transparency)
-                safeCall(widget.changed, widget.value, widget.transparency)
+                _fire(widget, widget.value, widget.transparency)
             end
         end
         self:_square(svX, svY, svSize, svSize, Theme.Background, true, 1, 4, z + 2)
@@ -3880,7 +3768,7 @@ function GalaxObsidian:CreateWindow(options)
         local boxW = (info.w - pad * 2 - math.floor(8 * scale)) / 2
         local boxTextSize = 14
         local scaledBoxTextSize = math.floor(boxTextSize * scale + 0.5)
-        local yOfs = scale > 1 and -math.floor((scale-1)*3) or 0
+        local yOfs = _yOfs(scale)
         local boxTextY = infoY + math.floor(boxH / 2) - math.floor(scaledBoxTextSize / 2) - yOfs
         local hexBoxX = x + pad
         local rgbBoxX = x + pad + boxW + math.floor(8 * scale)
@@ -3949,7 +3837,7 @@ function GalaxObsidian:CreateWindow(options)
                     checked = mode == "Always" or active,
                     widget = widget,
                 }
-            elseif (widget.type == "toggle" or widget.type == "checkbox") and widget.keybind then
+            elseif (_isToggle(widget)) and widget.keybind then
                 rows[#rows + 1] = {
                     text = TextManager:FormatKeybind(widget.keybind, widget.label or "Toggle", "Toggle"),
                     toggle = true,
@@ -4046,21 +3934,18 @@ function GalaxObsidian:CreateWindow(options)
                     end
                     if self:_click(cbX, cbY, cbSize, cbSize) then
                         local target = row.widget
-                        if target and (target.type == "toggle" or target.type == "checkbox") then
+                        if target and _isToggle(target) then
                             target.value = not target.value
-                            safeCall(target.callback, target.value)
-                            safeCall(target.changed, target.value)
+                            _fire(target, target.value)
                         elseif target and target.type == "keybind" then
-                            if target.parent and (target.parent.type == "toggle" or target.parent.type == "checkbox") then
+                            if target.parent and _isToggle(target.parent) then
                                 if target.mode == "Always" then
                                     target.mode = "Toggle"
                                     target.parent.value = not target.parent.value
-                                    safeCall(target.parent.callback, target.parent.value)
-                                    safeCall(target.parent.changed, target.parent.value)
+                                    _fire(target.parent, target.parent.value)
                                 else
                                     target.parent.value = not target.parent.value
-                                    safeCall(target.parent.callback, target.parent.value)
-                                    safeCall(target.parent.changed, target.parent.value)
+                                    _fire(target.parent, target.parent.value)
                                 end
                             elseif target.mode == "Always" then
                                 target.mode = "Toggle"
@@ -4077,7 +3962,7 @@ function GalaxObsidian:CreateWindow(options)
                 end
                 local textColor = self:_anim(self, "keybindMenu.text." .. tostring(i), row.checked and Theme.Text or Theme.Muted, 16)
                 local scaledRowTextSize = math.floor(14 * scale + 0.5)
-                local yOfs = scale > 1 and -math.floor((scale - 1) * 3) or 0
+                local yOfs = _yOfs(scale)
                 self:_text(
                     fitTextToWidth(row.text, width - (textX - x) - math.floor(10 * scale), 14, Theme.Font),
                     textX,
@@ -4150,12 +4035,12 @@ function GalaxObsidian:CreateWindow(options)
                 self:_drawIcon("check", x + math.floor(12 * scale), ry + math.floor(rowH / 2), math.floor(10 * scale), self.Accent, z + 3)
             end
             local scaledModeTextSize = math.floor(14 * scale + 0.5)
-            local yOfs = scale > 1 and -math.floor((scale - 1) * 3) or 0
+            local yOfs = _yOfs(scale)
             self:_text(mode, x + math.floor(22 * scale), ry + math.floor(rowH / 2) - math.floor(scaledModeTextSize / 2) - yOfs, selected and Theme.Text or Theme.Muted, 14, Drawing.Fonts.Monospace, false, true, z + 3)
             if self:_click(x + math.floor(3 * scale), ry, w - math.floor(6 * scale), rowH - 1, target) then
                 target.mode = mode
                 target._state = false
-                safeCall(target.changed, target.value, target.modifiers)
+                _fire(target, false)
                 self:_releaseInteraction(target)
                 self.KeybindModePopup = nil
                 self.KeybindModeTarget = nil
@@ -4198,7 +4083,7 @@ function GalaxObsidian:CreateWindow(options)
                 self:_square(bgX, bgY, tw, th, Theme.SoftOutline, false, 1, 4, -2)
                 local textSize = 14
                 local scaledTextSize = math.floor(textSize * scale + 0.5)
-                local yOfs = scale > 1 and -math.floor((scale - 1) * 3) or 0
+                local yOfs = _yOfs(scale)
                 self:_text(
                     tostring(text),
                     bgX + math.floor(10 * scale),
@@ -4397,7 +4282,7 @@ function GalaxObsidian:CreateWindow(options)
         self:_line(x, y + h - bottomH, x + w, y + h - bottomH, Theme.BottombarBorder, 1, chromeZ + 2)
         local footerTextSize = 14
         local scaledFooterTextSize = math.floor(footerTextSize * scale + 0.5)
-        local yOfs = scale > 1 and -math.floor((scale - 1) * 3) or 0
+        local yOfs = _yOfs(scale)
         local footerText = fitTextToWidth(self.Footer or "", w - math.floor(10 * scale), footerTextSize, Drawing.Fonts.Monospace)
         local footerX = x + math.floor((w - estimateTextWidth(footerText, footerTextSize, Drawing.Fonts.Monospace)) / 2)
         self:_text(
@@ -4423,7 +4308,7 @@ function GalaxObsidian:CreateWindow(options)
         end
         local chromeTitleSize = 20
         local scaledChromeTitleSize = math.floor(chromeTitleSize * scale + 0.5)
-        local yOfs = scale > 1 and -math.floor((scale - 1) * 3) or 0
+        local yOfs = _yOfs(scale)
         local iconMax = math.floor(30 * scale)
         local iconW, iconH = 0, 0
         if self.IconReady and self.IconData then
@@ -4991,8 +4876,7 @@ function GalaxObsidian:CreateWindow(options)
                             end,
                             Set = function(_, value)
                                 child.value = value == true
-                                safeCall(child.callback, child.value)
-                                safeCall(child.changed, child.value)
+                                _fire(child, child.value)
                             end,
                             SetValue = function(selfHandle, value)
                                 return selfHandle:Set(value)
@@ -5056,8 +4940,7 @@ function GalaxObsidian:CreateWindow(options)
                     Set = function(_, value)
                         widget.value = value == true
                         Window:_syncToggleKeypickerAddons(widget)
-                        safeCall(widget.callback, widget.value)
-                        safeCall(widget.changed, widget.value)
+                        _fire(widget, widget.value)
                     end,
                     SetKey = function(_, key)
                         widget.keybind = key
@@ -5096,8 +4979,7 @@ function GalaxObsidian:CreateWindow(options)
                     Set = function(_, value)
                         widget.value = value == true
                         Window:_syncToggleKeypickerAddons(widget)
-                        safeCall(widget.callback, widget.value)
-                        safeCall(widget.changed, widget.value)
+                        _fire(widget, widget.value)
                     end,
                     SetKey = function(_, key)
                         widget.keybind = key
@@ -5413,15 +5295,13 @@ function GalaxObsidian:CreateWindow(options)
                         widget.value = color
                         widget.transparency = widget.transparencyEnabled and (transparency or 0) or 0
                         widget.hue, widget.sat, widget.vib = rgbToHsv(color)
-                        safeCall(widget.callback, widget.value, widget.transparency)
-                        safeCall(widget.changed, widget.value, widget.transparency)
+                        _fire(widget, widget.value, widget.transparency)
                     end,
                     SetValueRGB = function(_, color, transparency)
                         widget.value = color
                         widget.transparency = widget.transparencyEnabled and (transparency or 0) or 0
                         widget.hue, widget.sat, widget.vib = rgbToHsv(color)
-                        safeCall(widget.callback, widget.value, widget.transparency)
-                        safeCall(widget.changed, widget.value, widget.transparency)
+                        _fire(widget, widget.value, widget.transparency)
                     end,
                 })
                 return handle
@@ -5471,15 +5351,13 @@ function GalaxObsidian:CreateWindow(options)
                             widget.value = color
                             widget.transparency = widget.transparencyEnabled and (transparency or 0) or 0
                             widget.hue, widget.sat, widget.vib = rgbToHsv(color)
-                            safeCall(widget.callback, widget.value, widget.transparency)
-                            safeCall(widget.changed, widget.value, widget.transparency)
+                            _fire(widget, widget.value, widget.transparency)
                         end,
                         SetValueRGB = function(_, color, transparency)
                             widget.value = color
                             widget.transparency = widget.transparencyEnabled and (transparency or 0) or 0
                             widget.hue, widget.sat, widget.vib = rgbToHsv(color)
-                            safeCall(widget.callback, widget.value, widget.transparency)
-                            safeCall(widget.changed, widget.value, widget.transparency)
+                            _fire(widget, widget.value, widget.transparency)
                         end,
                     })
                 end
@@ -5628,3 +5506,4 @@ _G.Galax = _G.Galax or {}
 _G.Galax["Library.lua"] = GalaxObsidian
 
 return GalaxObsidian
+
