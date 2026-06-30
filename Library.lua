@@ -1198,27 +1198,54 @@ function GalaxObsidian:CreateWindow(options)
         for _, object in ipairs(self.Pool.Square) do
             if object.Visible then
                 object.Position = object.Position + delta
+                local d = drawingMeta[object]
+                if d then
+                    d.x = (d.x or 0) + dx
+                    d.y = (d.y or 0) + dy
+                end
             end
         end
         for _, object in ipairs(self.Pool.Text) do
             if object.Visible then
                 object.Position = object.Position + delta
+                local d = drawingMeta[object]
+                if d then
+                    d.px = (d.px or 0) + dx
+                    d.py = (d.py or 0) + dy
+                end
             end
         end
         for _, object in ipairs(self.Pool.Circle) do
             if object.Visible then
                 object.Position = object.Position + delta
+                local d = drawingMeta[object]
+                if d then
+                    d.x = (d.x or 0) + dx
+                    d.y = (d.y or 0) + dy
+                end
             end
         end
         for _, object in ipairs(self.Pool.Image) do
             if object.Visible then
                 object.Position = object.Position + delta
+                local d = drawingMeta[object]
+                if d then
+                    d.x = (d.x or 0) + dx
+                    d.y = (d.y or 0) + dy
+                end
             end
         end
         for _, object in ipairs(self.Pool.Line) do
             if object.Visible then
                 object.From = object.From + delta
                 object.To = object.To + delta
+                local d = drawingMeta[object]
+                if d then
+                    d.x1 = (d.x1 or 0) + dx
+                    d.y1 = (d.y1 or 0) + dy
+                    d.x2 = (d.x2 or 0) + dx
+                    d.y2 = (d.y2 or 0) + dy
+                end
             end
         end
     end
@@ -1645,12 +1672,14 @@ function GalaxObsidian:CreateWindow(options)
             return nil
         end
         setrobloxinput(not shouldBlock)
-        task.spawn(function()
-            task.wait(0.1)
-            pcall(mouse1click)
-        end)
-        self.Mouse1Clicked = false
-        self.Mouse1Held = false
+        if shouldBlock or not self._clickthroughActive then
+            task.spawn(function()
+                task.wait(0.1)
+                pcall(mouse1click)
+            end)
+            self.Mouse1Clicked = false
+            self.Mouse1Held = false
+        end
         self.LastRobloxInputBlocked = shouldBlock
     end
 
@@ -4351,6 +4380,7 @@ function GalaxObsidian:CreateWindow(options)
         end
         local x, y = self.Position.X, self.Position.Y
         local w, h = self.Size.X, self.Size.Y
+        local prevX, prevY = x, y
         local scale = self:GetScale()
         local layout = self:_windowLayout(x, y, w, h, scale)
         local sidebarW = layout.sidebarW
@@ -4403,6 +4433,7 @@ function GalaxObsidian:CreateWindow(options)
             end
         end
 
+        self:_shiftAllVisible(x - prevX, y - prevY)
         layout = self:_windowLayout(x, y, w, h, scale)
         sidebarW = layout.sidebarW
         topH = layout.topH
