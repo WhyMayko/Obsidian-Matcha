@@ -961,7 +961,6 @@ function GalaxObsidian:CreateWindow(options)
         ),
         MinSize = resolvedMinSize,
         DPIScale = initialDPIScale,
-        _lastDPIScale = initialDPIScale,
         Resizable = options.Resizable ~= false,
         MenuKey = options.MenuKey or 0x70,
         Position = Vector2.new(options.X or 180, options.Y or 130),
@@ -1700,7 +1699,7 @@ function GalaxObsidian:CreateWindow(options)
         return AnimationManager:Approach(owner or self, key, target, speed or 14)
     end
     function Window:_hotInteraction()
-        return self.DragOffset ~= nil or self.ResizeOffset ~= nil or self.ScrollTarget ~= nil or self._resizing
+        return self.DragOffset ~= nil or self.ResizeOffset ~= nil or self.ScrollTarget ~= nil
     end
     function Window:_animOrSnap(owner, key, target, speed, snap)
         if snap or self:_hotInteraction() then
@@ -4355,11 +4354,6 @@ function GalaxObsidian:CreateWindow(options)
             self:_hideUnused()
             return nil
         end
-        self._resizing = nil
-        if self._lastDPIScale ~= self.DPIScale then
-            self._resizing = true
-            self._lastDPIScale = self.DPIScale
-        end
         local x, y = self.Position.X, self.Position.Y
         local w, h = self.Size.X, self.Size.Y
         local prevX, prevY = x, y
@@ -4773,6 +4767,13 @@ function GalaxObsidian:CreateWindow(options)
         self.LogicalSize = logical
         self.Size = newSize
         self.Position = Vector2.new(math.floor(center.X - newSize.X / 2 + 0.5), math.floor(center.Y - newSize.Y / 2 + 0.5))
+        for _, tab in ipairs(self.Tabs) do
+            for _, section in ipairs(tab.Sections) do
+                for _, widget in ipairs(section.widgets) do
+                    AnimationManager:Reset(widget, "slider.fill")
+                end
+            end
+        end
         GalaxObsidian.DPIScale = percent
     end
     function Window:GetTheme()
