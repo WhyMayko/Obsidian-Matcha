@@ -209,6 +209,11 @@ local function hsvToRgb(h, s, v)
     return r, g, b
 end
 
+local function _scaled(x, s) return math.floor(x * s + 0.5) end
+local function _yOfs(s) return s > 1 and -math.floor((s - 1) * 3) or 0 end
+local function _isToggle(w) return w.type == "toggle" or w.type == "checkbox" end
+local function _fire(w, ...) safeCall(w.callback, ...); safeCall(w.changed, ...) end
+
 local function makeHandle(widget)
     local handle = {}
     handle.Widget = widget
@@ -1767,11 +1772,6 @@ function GalaxObsidian:CreateWindow(options)
             end
         end
     end
-
-    local function _scaled(x, s) return math.floor(x * s + 0.5) end
-    local function _yOfs(s) return s > 1 and -math.floor((s - 1) * 3) or 0 end
-    local function _isToggle(w) return w.type == "toggle" or w.type == "checkbox" end
-    local function _fire(w, ...) safeCall(w.callback, ...); safeCall(w.changed, ...) end
 
     function Window:_startListening(target)
         target.listening = true
