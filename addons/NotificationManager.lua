@@ -164,10 +164,11 @@ function NotificationManager:RenderNotifications(window)
 		slide = 1 - ((1 - slide) * (1 - slide))
 		local x = hiddenX + (finalX - hiddenX) * slide
 		local y = startY + stackY
-		local remaining = clamp((notif.expires - now) / notif.duration, 0, 1)
+		local safeDuration = math.max(notif.duration, 0.001)
+		local remaining = clamp((notif.expires - now) / safeDuration, 0, 1)
 
 		local over = window:_over(x, y, currentNotifW, notifH)
-		if over and window.Mouse1Clicked then
+		if over and not window.BlockClicks and window.Mouse1Clicked then
 			if notif._onClick then
 				local ok, err = pcall(notif._onClick)
 				if not ok then error("NotificationManager _onClick: " .. tostring(err), 2) end

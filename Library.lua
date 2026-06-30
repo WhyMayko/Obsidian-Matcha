@@ -1706,7 +1706,7 @@ function GalaxObsidian:CreateWindow(options)
             AnimationManager:Reset(owner or self, key)
             return target
         end
-        return self:_anim(owner, key, target, speed)
+        return self:_animOrSnap(owner, key, target, speed)
     end
     function Window:_openKeybindModePopup(widget, x, y, w)
         if not widget or widget.disabled == true then
@@ -2500,9 +2500,9 @@ function GalaxObsidian:CreateWindow(options)
     function Window:_renderKeybindButton(widget, x, y, w, h, label, ts, z, pfx, bg, ol)
         self:_handleKeybindHoldClear(widget)
         local sc = self:GetScale()
-        self:_square(x, y, w, h, self:_anim(widget, pfx.."key.bg", bg, 16), true, 1, 2, z + 1)
-        self:_square(x, y, w, h, self:_anim(widget, pfx.."key.outline", widget.listening and self.Accent or ol, 16), false, 1, 2, z + 2)
-        local txt = self:_anim(widget, pfx.."key.text", Theme.Text, 16)
+        self:_square(x, y, w, h, self:_animOrSnap(widget, pfx.."key.bg", bg, 16), true, 1, 2, z + 1)
+        self:_square(x, y, w, h, self:_animOrSnap(widget, pfx.."key.outline", widget.listening and self.Accent or ol, 16), false, 1, 2, z + 2)
+        local txt = self:_animOrSnap(widget, pfx.."key.text", Theme.Text, 16)
         self:_text(fitTextToWidth(label, w - math.floor(10 * sc), ts, Theme.Font), x + math.floor(w / 2), y + math.floor(h / 2) - math.floor(_scaled(ts, sc) / 2) - _yOfs(sc), txt, ts, Theme.Font, true, true, z + 3)
         if widget.disabled ~= true and self:_click(x, y, w, h) then self:_startListening(widget) end
     end
@@ -2535,14 +2535,14 @@ function GalaxObsidian:CreateWindow(options)
         local keyX = keyLabel and (x + w - keyW) or nil
         local labelMaxW = keyLabel and (w - keyW - math.floor(34 * scale)) or (w - math.floor(26 * scale))
         local overBox = not disabled and self:_hover(x, y, w, math.floor(18 * scale), widget)
-        local checkBoxBg = self:_anim(widget, "checkbox.bg", overBox and Theme.Surface2 or Theme.Main, 16)
-        local checkBoxOutline = self:_anim(
+        local checkBoxBg = self:_animOrSnap(widget, "checkbox.bg", overBox and Theme.Surface2 or Theme.Main, 16)
+        local checkBoxOutline = self:_animOrSnap(
             widget,
             "checkbox.outline",
             widget.value and Theme.Outline2 or (overBox and Theme.Outline2 or Theme.Outline),
             16
         )
-        local checkText = self:_anim(widget, "checkbox.text", widget.value and Theme.Text or Theme.Muted or Theme.DimText, 16)
+        local checkText = self:_animOrSnap(widget, "checkbox.text", widget.value and Theme.Text or Theme.Muted or Theme.DimText, 16)
         self:_tooltip(widget, x, y, w, math.floor(21 * scale), widget)
         local boxY = y + math.floor(2 * scale)
         local boxSize = math.floor(14 * scale)
@@ -2608,7 +2608,7 @@ function GalaxObsidian:CreateWindow(options)
         local addonAreaW = addonCount > 0 and (addonTotalW + (addonCount - 1) * addonGap + math.floor(4 * scale)) or 0
         local addonStartX = switchX - addonAreaW - math.floor(6 * scale)
         local keyX = addonStartX - keyW - math.floor(6 * scale)
-        local toggleText = self:_anim(widget, "toggle.text", widget.value and Theme.Text or Theme.Muted or Theme.DimText, 16)
+        local toggleText = self:_animOrSnap(widget, "toggle.text", widget.value and Theme.Text or Theme.Muted or Theme.DimText, 16)
         self:_tooltip(widget, x, y, w, math.floor(21 * scale), widget)
         self:_text(
             fitTextToWidth(widget.label, w - switchW - keyW - addonAreaW - math.floor(18 * scale), 14, Theme.Font),
@@ -2648,9 +2648,9 @@ function GalaxObsidian:CreateWindow(options)
         local thumbProgress =
             self:_animOrSnap(widget, "toggle.thumbProgress", widget.value and 1 or 0, 18, self:_hotInteraction())
         local thumbX = thumbMinX + (thumbMaxX - thumbMinX) * thumbProgress
-        local trackColor = self:_anim(widget, "toggle.track", targetTrack, 16)
-        local borderColor = self:_anim(widget, "toggle.border", targetBorder, 16)
-        local thumbColor = self:_anim(widget, "toggle.thumbColor", targetThumb, 16)
+        local trackColor = self:_animOrSnap(widget, "toggle.track", targetTrack, 16)
+        local borderColor = self:_animOrSnap(widget, "toggle.border", targetBorder, 16)
+        local thumbColor = self:_animOrSnap(widget, "toggle.thumbColor", targetThumb, 16)
         self:_square(switchX, switchY, switchW, switchH, trackColor, true, disabled and 0.55 or 1, switchH, z + 1)
         self:_square(switchX, switchY, switchW, switchH, borderColor, false, disabled and 0.55 or 1, switchH, z + 2)
         self:_circle(thumbX, switchY + switchH / 2, thumbR, thumbColor, true, 1, z + 3)
@@ -2691,7 +2691,7 @@ function GalaxObsidian:CreateWindow(options)
         if not compact then
             self:_tooltip(widget, x, y, w, math.floor(33 * scale), widget)
             local sliderLabelText =
-                self:_anim(widget, "slider.label.text", disabled and Theme.DimText or Theme.Text, 16)
+                self:_animOrSnap(widget, "slider.label.text", disabled and Theme.DimText or Theme.Text, 16)
             self:_text(
                 fitTextToWidth(widget.label, w, 14, Theme.Font),
                 x,
@@ -2714,14 +2714,8 @@ function GalaxObsidian:CreateWindow(options)
         if widget.max ~= widget.min then
             percent = clamp((widget.value - widget.min) / (widget.max - widget.min), 0, 1)
         end
-        local fillW
-        if self:_hotInteraction() then
-            AnimationManager:Reset(widget, "slider.fill")
-            fillW = math.floor(barW * percent + 0.5)
-        else
-            fillW = math.floor(self:_anim(widget, "slider.fill", barW * percent, 18) + 0.5)
-        end
-        local sliderFillColor = self:_anim(widget, "slider.fillColor", disabled and Theme.Outline2 or self.Accent, 16)
+        local fillW = math.floor(self:_animOrSnap(widget, "slider.fill", barW * percent, 18) + 0.5)
+        local sliderFillColor = self:_animOrSnap(widget, "slider.fillColor", disabled and Theme.Outline2 or self.Accent, 16)
         self:_square(barX, barY, barW, barH, Theme.Main, true, disabled and 0.45 or 1, 3, z + 1)
         self:_square(barX, barY, barW, barH, Theme.Outline, false, disabled and 0.45 or 1, 3, z + 2)
         if fillW > 0 then
@@ -2729,7 +2723,7 @@ function GalaxObsidian:CreateWindow(options)
         end
         local centeredValueW = estimateTextWidth(valueText, 14, Theme.Font)
         local scaledValTextSize = math.floor(14 * scale + 0.5)
-        local sliderValueText = self:_anim(widget, "slider.value.text", disabled and Theme.DimText or Theme.Text, 16)
+        local sliderValueText = self:_animOrSnap(widget, "slider.value.text", disabled and Theme.DimText or Theme.Text, 16)
         self:_text(
             valueText,
             barX + math.floor((barW - centeredValueW) / 2),
@@ -2792,16 +2786,16 @@ function GalaxObsidian:CreateWindow(options)
         local showSearchText = searchable and isOpen
         local buttonDisplay = showSearchText and searchText or display
         local buttonPlaceholder = showSearchText and "Search..." or ""
-        local dropdownBg = self:_anim(widget, "dropdown.bg", Theme.Surface, 16)
+        local dropdownBg = self:_animOrSnap(widget, "dropdown.bg", Theme.Surface, 16)
         local dropdownOutline =
-            self:_anim(widget, "dropdown.outline", Theme.Outline, 16)
-        local dropdownIcon = self:_anim(
+            self:_animOrSnap(widget, "dropdown.outline", Theme.Outline, 16)
+        local dropdownIcon = self:_animOrSnap(
             widget,
             "dropdown.icon",
             disabled and Theme.DimText or (isOpen and Theme.Text or Theme.Muted),
             16
         )
-        local dropdownLabel = self:_anim(widget, "dropdown.label.text", disabled and Theme.Muted or Theme.Text, 16)
+        local dropdownLabel = self:_animOrSnap(widget, "dropdown.label.text", disabled and Theme.Muted or Theme.Text, 16)
         local scale = self:GetScale()
         local boxY = y + math.floor(18 * scale)
         local boxH = math.floor(21 * scale)
@@ -2869,8 +2863,8 @@ function GalaxObsidian:CreateWindow(options)
         local keyW = math.max(math.floor(40 * scale), math.floor(estimateTextWidth(label, keyTextSize, Theme.Font) + math.floor(26 * scale)))
         local keyX = x + w - keyW
         local overKey = not disabled and self:_hover(keyX, keyBtnY, keyW, keyH, widget)
-        local keyBg = self:_anim(widget, "keybind.bg", overKey and Theme.Surface2 or Theme.Surface, 16)
-        local keyOutline = self:_anim(
+        local keyBg = self:_animOrSnap(widget, "keybind.bg", overKey and Theme.Surface2 or Theme.Surface, 16)
+        local keyOutline = self:_animOrSnap(
             widget,
             "keybind.outline",
             widget.listening and self.Accent or (overKey and Theme.Outline2 or Theme.Outline),
@@ -2923,8 +2917,8 @@ function GalaxObsidian:CreateWindow(options)
         local disabled = widget.disabled == true
         widget.hitbox = { x = x, y = boxY, w = w, h = boxH }
         local overBox = not disabled and self:_hover(x, boxY, w, boxH, widget)
-        local boxBg = self:_anim(widget, "textbox.bg", overBox and Theme.Surface2 or Theme.Surface, 16)
-        local boxOutline = self:_anim(
+        local boxBg = self:_animOrSnap(widget, "textbox.bg", overBox and Theme.Surface2 or Theme.Surface, 16)
+        local boxOutline = self:_animOrSnap(
             widget,
             "textbox.outline",
             focused and self.Accent or (overBox and Theme.Outline2 or Theme.Outline),
@@ -3119,20 +3113,20 @@ function GalaxObsidian:CreateWindow(options)
         local yOfs = _yOfs(scale)
         local btnTextY = btnY + math.floor((btnH - scaledBtnTextSize) / 2) - yOfs
         local over = not disabled and self:_hover(x, btnY, w, btnH, widget)
-        local buttonBg = self:_anim(
+        local buttonBg = self:_animOrSnap(
             widget,
             "button.bg",
             disabled and Theme.Background or Theme.Surface,
             16
         )
-        local buttonOutline = self:_anim(
+        local buttonOutline = self:_animOrSnap(
             widget,
             "button.outline",
             disabled and Theme.SoftOutline or Theme.Outline,
             16
         )
         local buttonText =
-            self:_anim(widget, "button.text", disabled and Theme.DimText or (over and Theme.Text or Theme.Muted), 16)
+            self:_animOrSnap(widget, "button.text", disabled and Theme.DimText or (over and Theme.Text or Theme.Muted), 16)
         self:_tooltip(widget, x, btnY, w, btnH, widget)
         self:_square(x, btnY, w, btnH, buttonBg, true, 1, 3, z + 1)
         self:_square(x, btnY, w, btnH, buttonOutline, false, 1, 3, z + 2)
@@ -3197,13 +3191,13 @@ function GalaxObsidian:CreateWindow(options)
             local tw = (i == count) and (w - tabW * (i - 1)) or tabW
             local active = (widget.active or 1) == i
             local over = self:_hover(tx, barY, tw, tabBarClickH, widget)
-            local tabBg = self:_anim(
+            local tabBg = self:_animOrSnap(
                 widget,
                 "sectiontab." .. tostring(i) .. ".bg",
                 active and Theme.Surface or Theme.Sidebar,
                 16
             )
-            local tabText = self:_anim(
+            local tabText = self:_animOrSnap(
                 widget,
                 "sectiontab." .. tostring(i) .. ".text",
                 active and Theme.Text or Theme.Muted,
@@ -3522,8 +3516,8 @@ function GalaxObsidian:CreateWindow(options)
             end
         end
         local animScroll = {
-            Left = self:_anim(tab, "scroll.Left", scrollState.Left, 22),
-            Right = self:_anim(tab, "scroll.Right", scrollState.Right, 22),
+            Left = self:_animOrSnap(tab, "scroll.Left", scrollState.Left, 22),
+            Right = self:_animOrSnap(tab, "scroll.Right", scrollState.Right, 22),
         }
 
         local function renderColumnScroll(sideName, trackX)
@@ -3545,7 +3539,7 @@ function GalaxObsidian:CreateWindow(options)
             local visualScroll = animScroll[sideName]
             local thumbY = trackY + math.floor((visualScroll / maxScroll) * thumbRange + 0.5)
             local thumbColor =
-                self:_anim(owner, "columnScroll.thumb", self.ScrollTarget == owner and Theme.Muted or Theme.Outline, 18)
+                self:_animOrSnap(owner, "columnScroll.thumb", self.ScrollTarget == owner and Theme.Muted or Theme.Outline, 18)
             self:_square(trackX, trackY, trackW, trackH, Theme.Background, true, 1, 5, z + 30)
             self:_square(trackX, trackY, trackW, trackH, Theme.Outline, false, 1, 5, z + 31)
             self:_square(trackX + 1, thumbY, trackW - 2, thumbH, thumbColor, true, 1, 5, z + 32)
@@ -3675,7 +3669,7 @@ function GalaxObsidian:CreateWindow(options)
         info.x, info.y = self:_clampToViewport(info.x, info.y, info.w, height, 6, true)
         widget._dropdownScroll = math.max(0, math.min(widget._dropdownScroll or 0, totalCount - visibleCount))
         local scrollOffset = widget._dropdownScroll
-        local visualDropdownScroll = self:_anim(widget, "dropdown.scroll.offset", scrollOffset, 18)
+        local visualDropdownScroll = self:_animOrSnap(widget, "dropdown.scroll.offset", scrollOffset, 18)
         if hasScroll then
             local trackX = info.x + info.w - scrollBarW - math.floor(2 * scale)
             local trackY = info.y + math.floor(2 * scale)
@@ -3683,7 +3677,7 @@ function GalaxObsidian:CreateWindow(options)
             local thumbH = math.max(16, math.floor(trackH * visibleCount / totalCount))
             local thumbRange = math.max(1, trackH - thumbH)
             local thumbY = trackY + math.floor((visualDropdownScroll / (totalCount - visibleCount)) * thumbRange + 0.5)
-            local thumbColor = self:_anim(
+            local thumbColor = self:_animOrSnap(
                 widget,
                 "dropdown.scroll.thumb",
                 self.ScrollTarget == widget and Theme.Muted or Theme.Outline,
@@ -3733,8 +3727,8 @@ function GalaxObsidian:CreateWindow(options)
             local optionX = info.x + listPad
             local optionW = listW - listPad - 2
             local optionKey = "dropdown.option." .. tostring(optionIndex)
-            local optionBg = self:_anim(widget, optionKey .. ".bg", selected and Theme.Surface2 or Theme.Background, 18)
-            local optionText = self:_anim(
+            local optionBg = self:_animOrSnap(widget, optionKey .. ".bg", selected and Theme.Surface2 or Theme.Background, 18)
+            local optionText = self:_animOrSnap(
                 widget,
                 optionKey .. ".text",
                 (selected and not isDisabled) and Theme.Text or (isDisabled and Theme.DimText or Theme.Muted),
@@ -4097,9 +4091,9 @@ function GalaxObsidian:CreateWindow(options)
                     local cbY = ry + math.floor((rowH - cbSize) / 2)
                     local rowKey = "keybindMenu.checkbox." .. tostring(i)
                     local checkboxBg =
-                        self:_anim(self, rowKey .. ".bg", row.checked and Theme.Surface or Theme.Main, 16)
+                        self:_animOrSnap(self, rowKey .. ".bg", row.checked and Theme.Surface or Theme.Main, 16)
                     local checkboxOutline =
-                        self:_anim(self, rowKey .. ".outline", row.checked and Theme.Outline2 or Theme.Outline, 16)
+                        self:_animOrSnap(self, rowKey .. ".outline", row.checked and Theme.Outline2 or Theme.Outline, 16)
                     self:_square(cbX, cbY, cbSize, cbSize, checkboxBg, true, 1, 2, 2)
                     self:_square(cbX, cbY, cbSize, cbSize, checkboxOutline, false, 1, 2, 3)
                     if row.checked then
@@ -4133,7 +4127,7 @@ function GalaxObsidian:CreateWindow(options)
                     end
                     textX = x + math.floor(28 * scale)
                 end
-                local textColor = self:_anim(self, "keybindMenu.text." .. tostring(i), row.checked and Theme.Text or Theme.Muted, 16)
+                local textColor = self:_animOrSnap(self, "keybindMenu.text." .. tostring(i), row.checked and Theme.Text or Theme.Muted, 16)
                 local scaledRowTextSize = math.floor(14 * scale + 0.5)
                 local yOfs = _yOfs(scale)
                 self:_text(
@@ -4353,6 +4347,7 @@ function GalaxObsidian:CreateWindow(options)
                 self:_renderKeybindModePopup()
                 self:_renderDraggableLabels()
                 NotificationManager:RenderNotifications(self)
+                GalaxObsidian.DialogManager:RenderDialogs(self)
                 self:_renderTooltip()
                 self._winAlpha = saved
             end

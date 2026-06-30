@@ -61,7 +61,9 @@ function ValueWatcher:Update()
 		if id then
 			local option = Library.Options and Library.Options[id]
 			local toggle = Library.Toggles and Library.Toggles[id]
-			local value = (option and option.Value) or (toggle and toggle.Value) or nil
+			local value
+			if option then value = option.Value
+			elseif toggle then value = toggle.Value end
 			if value ~= watcher.lastValue then
 				watcher.lastValue = value
 				local ok, err = pcall(watcher.callback, value, id)

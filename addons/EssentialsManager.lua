@@ -72,7 +72,9 @@ function EssentialsManager:BuildSection(tab)
 		})
 
 	Library.Options.MenuKeybind:OnChanged(function(Value)
-		Library.ActiveWindow.MenuKey = Value
+		if Library.ActiveWindow then
+			Library.ActiveWindow.MenuKey = Value
+		end
 	end)
 
 	Library.ToggleKeybind = Library.Options.MenuKeybind

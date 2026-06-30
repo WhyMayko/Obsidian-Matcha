@@ -350,7 +350,7 @@ function IconManager:Draw(window, name, x, y, size, color, z, options)
 	local point, scale = makeScale(x or 0, y or 0, size or 24)
 	local thickness = options.Thickness or options.StrokeWidth or math.max(1, math.floor((size or 24) / 24 * self.DefaultStrokeWidth + 0.5))
 
-	return icon(window, point, color, thickness, z, scale) == true
+	return not not icon(window, point, color, thickness, z, scale)
 end
 
 function IconManager:Register(name, draw)

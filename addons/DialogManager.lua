@@ -109,6 +109,7 @@ function DialogManager:RenderDialogs(window)
 		end
 
 		local btnStartX = dx + math.floor((dw - totalBtnW) / 2)
+		window:_releaseInteraction(nil, true)
 		for i, btn in ipairs(dialog.buttons) do
 			local bx = btnStartX
 			for j = 1, i - 1 do
@@ -131,7 +132,7 @@ function DialogManager:RenderDialogs(window)
 				14, Drawing.Fonts.Monospace, true, false, z + 6
 			)
 
-			if hovered and window:_focusClick(bx, btnY, bw, btnH, dialog) then
+			if hovered and window:_click(bx, btnY, bw, btnH, dialog) then
 				if btn.Callback then
 					local ok, err = pcall(btn.Callback, dialog)
 					if not ok then error("DialogManager btn.Callback: " .. tostring(err), 2) end
