@@ -521,11 +521,19 @@ function GalaxObsidian:Unload()
     self.Unloaded = true
     for _, cb in ipairs(self.UnloadCallbacks) do
         local ok, err = pcall(cb)
-        if not ok then error("Unload callback: " .. tostring(err), 2) end
+        if not ok then warn("[GalaxObsidian] Unload callback error: " .. tostring(err)) end
     end
     if self.ActiveWindow then
-        self.ActiveWindow:Destroy()
-        self.ActiveWindow = nil
+        local win = self.ActiveWindow
+        win:_setOpen(false)
+        win._unloading = true
+        task.spawn(function()
+            while win._winAlpha and win._winAlpha > 0.001 do
+                task.wait(0.016)
+            end
+            win:Destroy()
+            self.ActiveWindow = nil
+        end)
     end
     self.Options = {}
     self.Toggles = {}
@@ -967,6 +975,7 @@ function GalaxObsidian:CreateWindow(options)
         KeybindMenuWidth = options.KeybindMenuWidth or keybindMenuOptions.Width,
         NotifySide = options.NotifySide or "Right",
         Open = options.StartMinimized ~= true,
+        _winAlpha = options.StartMinimized == true and 0 or 1,
         Running = true,
         Tabs = {},
         ActiveTab = nil,
@@ -1258,9 +1267,11 @@ function GalaxObsidian:CreateWindow(options)
             object.Corner = corner or 0
             d.corner = corner
         end
-        if d.trans ~= transparency then
-            object.Transparency = transparency or 1
+        local effectiveTrans = (transparency or 1) * (self._winAlpha or 1)
+        if d.trans ~= transparency or d.winAlpha ~= self._winAlpha then
+            object.Transparency = effectiveTrans
             d.trans = transparency
+            d.winAlpha = self._winAlpha
         end
         if d.z ~= z then
             object.ZIndex = z or 1
@@ -1309,11 +1320,14 @@ function GalaxObsidian:CreateWindow(options)
             d.font = resolvedFont
         end
         object.Center = false
+        if d.winAlpha ~= self._winAlpha then
+            object.Transparency = 1 * (self._winAlpha or 1)
+            d.winAlpha = self._winAlpha
+        end
         if d.outline ~= outline then
             object.Outline = outline == true
             d.outline = outline
         end
-        object.Transparency = 1
         if d.z ~= z then
             object.ZIndex = z or 5
             d.z = z
@@ -1346,7 +1360,10 @@ function GalaxObsidian:CreateWindow(options)
             object.Thickness = thickness or 1
             d.thick = thickness
         end
-        object.Transparency = 1
+        if d.winAlpha ~= self._winAlpha then
+            object.Transparency = 1 * (self._winAlpha or 1)
+            d.winAlpha = self._winAlpha
+        end
         if d.z ~= z then
             object.ZIndex = z or 4
             d.z = z
@@ -1389,7 +1406,10 @@ function GalaxObsidian:CreateWindow(options)
             d.thick = thickness
         end
         object.NumSides = 24
-        object.Transparency = 1
+        if d.winAlpha ~= self._winAlpha then
+            object.Transparency = 1 * (self._winAlpha or 1)
+            d.winAlpha = self._winAlpha
+        end
         if d.z ~= z then
             object.ZIndex = z or 5
             d.z = z
@@ -1429,7 +1449,10 @@ function GalaxObsidian:CreateWindow(options)
             object.Rounding = rounding or 0
             d.round = rounding
         end
-        object.Transparency = 1
+        if d.winAlpha ~= self._winAlpha then
+            object.Transparency = 1 * (self._winAlpha or 1)
+            d.winAlpha = self._winAlpha
+        end
         if d.z ~= z then
             object.ZIndex = z or 6
             d.z = z
@@ -4298,7 +4321,7 @@ function GalaxObsidian:CreateWindow(options)
         self:_resetPool()
         self.BlockClicks = false
         self.TooltipText = nil
-        if not self.Open then
+        if not self.Open and (self._winAlpha or 1) <= 0.001 then
             self:_renderKeybindMenu()
             self:_renderKeybindModePopup()
             self:_renderDraggableLabels()
@@ -5604,6 +5627,7 @@ function GalaxObsidian:CreateWindow(options)
             task.wait(waitTime)
             if isrbxactive() then
                 Window:_updateInput()
+                Window._winAlpha = Window:_anim(Window, "win_alpha", Window.Open and 1 or 0, 10)
                 local ok, err = pcall(function() Window:_render() end)
                 if not ok then
                     warn("[GalaxObsidian] Render error: " .. tostring(err))
