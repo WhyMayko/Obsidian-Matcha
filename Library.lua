@@ -4244,7 +4244,7 @@ function GalaxObsidian:CreateWindow(options)
             end
         end
 
-        self:_hidePool()
+        -- drag moves objects naturally via full redraw
 
         layout = self:_windowLayout(x, y, w, h, scale)
         sidebarW = layout.sidebarW
