@@ -1417,7 +1417,26 @@ function GalaxObsidian:CreateWindow(options)
     end
 
     function Window:_click(x, y, w, h, owner)
-        return self.Mouse1Clicked and not self.BlockClicks and self:_hover(x, y, w, h, owner)
+        if not self.Mouse1Clicked or self.BlockClicks then
+            return false
+        end
+        local scale = self:GetScale()
+        local dropdown = self.DropdownTarget
+        local popup = dropdown and dropdown.popup
+        if dropdown and dropdown ~= owner and popup then
+            local popupH = popup.h or (math.floor(4 * scale) + math.min(#dropdown.options, dropdown.maxVisible or 6) * math.floor(21 * scale))
+            if self:_over(popup.x, popup.y - math.floor(22 * scale), popup.w, popupH + math.floor(22 * scale)) then
+                return false
+            end
+        end
+        local picker = self.ColorPickerTarget
+        local pickerPopup = picker and picker.popup
+        if picker and picker ~= owner and pickerPopup then
+            if self:_over(pickerPopup.x, pickerPopup.y - math.floor(22 * scale), pickerPopup.w, pickerPopup.h + math.floor(22 * scale)) then
+                return false
+            end
+        end
+        return self:_hover(x, y, w, h, owner)
     end
     function Window:_focusClick(x, y, w, h, owner)
         if not self:_clipAllowsBox(y, h) then
@@ -2542,7 +2561,7 @@ function GalaxObsidian:CreateWindow(options)
             percent = clamp((widget.value - widget.min) / (widget.max - widget.min), 0, 1)
         end
         local fillW
-        if self:_hotInteraction() then
+        if self:_hotInteraction() or self._scaleChanged then
             AnimationManager:Reset(widget, "slider.fill")
             fillW = math.floor(barW * percent + 0.5)
         else
@@ -4180,6 +4199,8 @@ function GalaxObsidian:CreateWindow(options)
         local w, h = self.Size.X, self.Size.Y
         local prevX, prevY, prevW, prevH = x, y, w, h
         local scale = self:GetScale()
+        self._scaleChanged = self._lastScale ~= nil and self._lastScale ~= scale
+        self._lastScale = scale
         local layout = self:_windowLayout(x, y, w, h, scale)
         local sidebarW = layout.sidebarW
         local topH = layout.topH
