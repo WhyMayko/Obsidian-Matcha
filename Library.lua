@@ -285,6 +285,8 @@ local function makeHandle(widget)
                 widget.value = value
             end
             safeCall(widget.changed, widget.value, widget.modifiers)
+        elseif widget.type == "label" then
+            widget.text = tostring(value or "")
         end
     end
     function handle:SetValue(value)
