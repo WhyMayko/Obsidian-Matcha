@@ -53,19 +53,19 @@ local function readTable(path)
 
 	local source = readfile(path)
 	if type(source) ~= "string" then
-		error("WebhookManager readTable: file read failed for " .. path, 2)
+		error("WebhookManager: file read failed for " .. path, 2)
 	end
 
 	local ok, data = pcall(function() return HttpService:JSONDecode(source) end)
 	if not ok then
-		error("WebhookManager readTable: failed to decode JSON from " .. path, 2)
+		error("WebhookManager: failed to decode JSON from " .. path, 2)
 	end
 
 	if type(data) == "table" then
 		return data
 	end
 
-	error("WebhookManager readTable: decoded JSON is not a table for " .. path, 2)
+	error("WebhookManager: decoded JSON is not a table for " .. path, 2)
 end
 
 local function deepCopy(t)
