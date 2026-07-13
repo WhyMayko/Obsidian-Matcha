@@ -2,7 +2,7 @@ local WebhookManager = {
 	Library = nil,
 	Webhooks = {},
 	Templates = {},
-	DefaultWebhook = { Name = "GalaxHub", Url = "https://galax-team.vercel.app/Webhook" },
+	DefaultWebhook = { Name = "Galax Hub", Webhook = "https://galax-team.vercel.app/Webhook" },
 	AutoloadWebhook = nil,
 	ProxyUrl = "https://galax-team.vercel.app/Webhook",
 }
@@ -103,10 +103,10 @@ function WebhookManager:Add(name, url)
 	if not name or not url then
 		return false, "name and url required"
 	end
-	self.Webhooks[name] = { Name = name, Url = url }
+	self.Webhooks[name] = { Name = name, Webhook = url }
 
 	local path = WebhookFolder .. "/" .. fileName(name)
-	local ok, err = writeTable(path, { Name = name, Url = url })
+	local ok, err = writeTable(path, { Name = name, Webhook = url })
 	if not ok then
 		self.Webhooks[name] = nil
 		return false, err
@@ -128,6 +128,9 @@ function WebhookManager:GetTemplate(name)
 end
 
 function WebhookManager:GetCurrent()
+	if self.LoadedWebhook then
+		return self.LoadedWebhook
+	end
 	if self.AutoloadWebhook then
 		local name = self.AutoloadWebhook.Name
 		local data = self.Webhooks[name]
@@ -207,8 +210,8 @@ function WebhookManager:Refresh()
 		local baseName = pathText:match("([^/\\]+)$") or pathText
 		if baseName:match("%.txt$") then
 			local data = readTable(pathText)
-			if data and data.Name and data.Url then
-				self.Webhooks[data.Name] = { Name = data.Name, Url = data.Url }
+			if data and data.Name and data.Webhook then
+				self.Webhooks[data.Name] = { Name = data.Name, Webhook = data.Webhook }
 			end
 		end
 	end
@@ -241,7 +244,7 @@ end
 
 function WebhookManager:GetAutoloadWebhook()
 	local saved = readTable(DefaultWebhookFile)
-	if saved and saved.Name and saved.Url then
+	if saved and saved.Name and saved.Webhook then
 		self.AutoloadWebhook = saved
 	end
 
@@ -273,13 +276,14 @@ function WebhookManager:SetDefault(name)
 	end
 
 	self.AutoloadWebhook = data
-	return writeTable(DefaultWebhookFile, { Name = data.Name, Url = data.Url })
+	return writeTable(DefaultWebhookFile, { Name = data.Name, Webhook = data.Webhook })
 end
 
 function WebhookManager:ResetDefault()
 	self.AutoloadWebhook = nil
+	self.LoadedWebhook = nil
 
-	writeTable(DefaultWebhookFile, {})
+	writeTable(DefaultWebhookFile, self.DefaultWebhook)
 
 	return true
 end
@@ -315,10 +319,9 @@ function WebhookManager:BuildWebhookSection(tab)
 	})
 
 	testSection:AddButton("Send Test", function()
-		local webhook = self:GetCurrent()
-		if not webhook or not webhook.Url then
-			Library:Notify("No webhook selected", 4)
-			return
+		local current = self:GetCurrent()
+		if not current then
+			error("No webhook loaded")
 		end
 
 		local message = Options and Options.WebhookManager_TestMessage and Options.WebhookManager_TestMessage.Value or "Test from GalaxHub"
@@ -328,9 +331,9 @@ function WebhookManager:BuildWebhookSection(tab)
 
 		local ok, err = self:Test(nil, message)
 		if ok then
-			Library:Notify(string.format("Test sent to %q", webhook.Name), 4)
+			Library:Notify(string.format("Test sent to %q", current.Name), 4)
 		else
-			Library:Notify("Test failed: " .. tostring(err), 4)
+			error("Test failed: " .. tostring(err))
 		end
 	end)
 
@@ -341,7 +344,17 @@ function WebhookManager:BuildWebhookSection(tab)
 		end
 	end
 
+	local function updateCurrentLabel()
+		if self.WebhookCurrentLabel then
+			local current = self:GetCurrent()
+			local name = current and current.Name or "None"
+			self.WebhookCurrentLabel:SetText("Current webhook: " .. tostring(name))
+		end
+	end
+
 	local webhookSection = tab:AddRightGroupbox("Webhooks")
+
+	self.WebhookCurrentLabel = webhookSection:AddLabel("Current webhook: " .. tostring(self:GetCurrent() and self:GetCurrent().Name or "None"))
 
 	webhookSection:AddDropdown("WebhookManager_WebhookList", {
 		Text = "Webhook list",
@@ -349,31 +362,24 @@ function WebhookManager:BuildWebhookSection(tab)
 		AllowNull = true,
 	})
 
-	webhookSection:AddButton("Set as Default", function()
+	webhookSection:AddButton("Load", function()
 		local name = Options.WebhookManager_WebhookList:Get()
 		if not name then
-			Library:Notify("No webhook selected", 4)
-			return
+			error("No webhook selected")
 		end
 
-		local ok, err = self:SetDefault(name)
-		if not ok then
-			Library:Notify("Failed to set default: " .. tostring(err), 4)
-			return
+		local data = self.Webhooks[name]
+		if not data then
+			error("Webhook not found: " .. tostring(name))
 		end
 
-		Library:Notify(string.format("Default webhook set to %q", name), 4)
-		if self.AutoloadWebhookLabel then
-			self.AutoloadWebhookLabel:SetText("Current autoload: " .. tostring(self:GetAutoloadWebhook()))
-		end
-	end)
-
-	webhookSection:AddButton("Refresh list", function()
-		refreshWebhookList()
+		self.LoadedWebhook = data
+		Library:Notify(string.format("Loaded webhook %q", name), 4)
+		updateCurrentLabel()
 	end)
 
 	webhookSection:AddButton({
-		Text = "Delete webhook",
+		Text = "Delete",
 		DoubleClick = true,
 		Func = function()
 			local name = Options.WebhookManager_WebhookList:Get()
@@ -383,28 +389,43 @@ function WebhookManager:BuildWebhookSection(tab)
 
 			local ok, err = self:Delete(name)
 			if not ok then
-				Library:Notify("Failed to delete webhook: " .. tostring(err), 4)
-				return
+				error("Failed to delete webhook: " .. tostring(err))
+			end
+
+			if self.LoadedWebhook and self.LoadedWebhook.Name == name then
+				self.LoadedWebhook = nil
 			end
 
 			Library:Notify(string.format("Deleted webhook %q", name), 4)
 			refreshWebhookList()
-
-			if self.AutoloadWebhookLabel then
-				self.AutoloadWebhookLabel:SetText("Current autoload: " .. tostring(self:GetAutoloadWebhook()))
-			end
+			updateCurrentLabel()
 		end
 	})
 
-	webhookSection:AddButton("Reset Default", function()
-		self:ResetDefault()
-		Library:Notify("Default webhook reset to GalaxHub", 4)
-		if self.AutoloadWebhookLabel then
-			self.AutoloadWebhookLabel:SetText("Current autoload: " .. tostring(self:GetAutoloadWebhook()))
-		end
+	webhookSection:AddButton("Refresh", function()
+		refreshWebhookList()
 	end)
 
-	self.AutoloadWebhookLabel = webhookSection:AddLabel("Current autoload: " .. tostring(self:GetAutoloadWebhook()))
+	webhookSection:AddButton("Set as autoload", function()
+		local name = Options.WebhookManager_WebhookList:Get()
+		if not name then
+			error("No webhook selected")
+		end
+
+		local ok, err = self:SetDefault(name)
+		if not ok then
+			error("Failed to set autoload: " .. tostring(err))
+		end
+
+		Library:Notify(string.format("Autoload set to %q", name), 4)
+		updateCurrentLabel()
+	end)
+
+	webhookSection:AddButton("Reset autoload", function()
+		self:ResetDefault()
+		Library:Notify("Autoload reset to default", 4)
+		updateCurrentLabel()
+	end)
 
 	self:LoadAutoload()
 end
@@ -426,6 +447,12 @@ _G.webhook.load = function(name, url)
 	end
 	print(string.format('webhook.load: loaded %q', name))
 	return true
+end
+
+-- Ensure default webhook file exists
+ensureFolder(WebhookFolder)
+if not isfile(DefaultWebhookFile) then
+	writeTable(DefaultWebhookFile, WebhookManager.DefaultWebhook)
 end
 
 return WebhookManager

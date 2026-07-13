@@ -8,7 +8,7 @@ local SaveManager = {
 
 local SettingsFolder = "Galax/Obsidian/Settings"
 local ConfigFolder = SettingsFolder .. "/Configs"
-local DefaultConfigFile = SettingsFolder .. "/DefaultConfig.lua"
+local DefaultConfigFile = SettingsFolder .. "/DefaultConfig.txt"
 
 local HttpService = game:GetService("HttpService")
 
