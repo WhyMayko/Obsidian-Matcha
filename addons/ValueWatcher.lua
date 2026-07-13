@@ -64,7 +64,7 @@ function ValueWatcher:Update()
 			local value
 			if option then value = option.Value
 			elseif toggle then value = toggle.Value end
-			if value ~= watcher.lastValue then
+				if value ~= watcher.lastValue then
 				watcher.lastValue = value
 				local ok, err = pcall(watcher.callback, value, id)
 				if not ok then error("ValueWatcher callback: " .. tostring(err), 2) end

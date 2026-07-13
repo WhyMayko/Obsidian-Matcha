@@ -2074,6 +2074,7 @@ function GalaxObsidian:CreateWindow(options)
         local hue, sat, vib = rgbToHsv(default)
         return {
             type = "colorpicker",
+            isAddon = true,
             id = name,
             label = info.Text or info.Label or info.Title or tostring(name or "Color"),
             title = info.Title,
@@ -2096,6 +2097,7 @@ function GalaxObsidian:CreateWindow(options)
         info = info or {}
         local addon = {
             type = "keybind",
+            isAddon = true,
             id = name,
             label = info.Text or info.Label or tostring(name or "Keybind"),
             value = info.Default,
@@ -3350,9 +3352,9 @@ function GalaxObsidian:CreateWindow(options)
                 layouts[#layouts + 1] = { section = section, side = sideName, x = sx, y = sy, w = columnW, h = sh }
 
                 if useRight then
-                    rightY = rightY + sh + math.floor(2 * scale)
+                    rightY = rightY + sh + math.floor(6 * scale)
                 else
-                    leftY = leftY + sh + math.floor(2 * scale)
+                    leftY = leftY + sh + math.floor(6 * scale)
                 end
             end
         end

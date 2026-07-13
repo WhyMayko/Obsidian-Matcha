@@ -138,6 +138,7 @@ function SaveManager:Save(name)
 	local data = {}
 
 	for index, option in pairs(Library.Options or {}) do
+		if option.Widget and option.Widget.isAddon then continue end
 		if self:IsAllowedIndex(index) and option.Get and _configurableTypes[option.Type] then
 			if option.Type == "KeyPicker" or option.Type == "Keybind" then
 				data[index] = { Key = option:Get(), Mode = option.Mode, Modifiers = option.Modifiers }
@@ -151,6 +152,7 @@ function SaveManager:Save(name)
 	end
 
 	for index, toggle in pairs(Library.Toggles or {}) do
+		if toggle.Widget and toggle.Widget.isAddon then continue end
 		if self:IsAllowedIndex(index) and toggle.Get and _configurableTypes[toggle.Type] then
 			data[index] = { toggle:Get() }
 		end
@@ -180,6 +182,7 @@ function SaveManager:Load(name)
 
 	for index, values in pairs(data) do
 		local object = self:IsAllowedIndex(index) and ((Library.Options or {})[index] or (Library.Toggles or {})[index])
+		if object and object.Widget and object.Widget.isAddon then continue end
 
 		if object then
 			if object.Type == "ColorPicker" and object.SetValueRGB then
