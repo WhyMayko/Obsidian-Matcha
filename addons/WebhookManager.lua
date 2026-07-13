@@ -171,15 +171,10 @@ function WebhookManager:SendPayload(url, payload)
 	end
 
 	local body = HttpService:JSONEncode(payload)
-
-	local ok, err = pcall(function()
-		return HttpService:PostAsync(url, body, Enum.HttpContentType.ApplicationJson, false)
-	end)
-
-	if not ok then
-		return false, tostring(err)
+	local resp = httppost(url, body)
+	if resp == "" then
+		return false, "request failed or unreachable host"
 	end
-
 	return true, "sent"
 end
 
