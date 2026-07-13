@@ -149,14 +149,14 @@ function WebhookManager:Compile(templateName, variables)
 
 	local payload = compileTable(template, variables or {})
 
-	if payload.Embeds then
-		for i, embed in ipairs(payload.Embeds) do
+	if payload.embeds then
+		for i, embed in ipairs(payload.embeds) do
 			if type(embed) == "table" then
-				if embed.Footer and type(embed.Footer) == "table" then
-					embed.Footer.Text = compilePlaceholders(embed.Footer.Text, variables or {})
+				if embed.footer and type(embed.footer) == "table" then
+					embed.footer.text = compilePlaceholders(embed.footer.text, variables or {})
 				end
-				if embed.Author and type(embed.Author) == "table" then
-					embed.Author.Name = compilePlaceholders(embed.Author.Name, variables or {})
+				if embed.author and type(embed.author) == "table" then
+					embed.author.name = compilePlaceholders(embed.author.name, variables or {})
 				end
 			end
 		end
@@ -171,11 +171,25 @@ function WebhookManager:SendPayload(url, payload)
 	end
 
 	local body = HttpService:JSONEncode(payload)
-	local resp = httppost(url, body)
+	local resp = httppost(url, body, "application/json", {
+		["User-Agent"] = "Roblox/WinInet",
+	})
 	if resp == "" then
 		return false, "request failed or unreachable host"
 	end
-	return true, "sent"
+
+	local ok, data = pcall(function()
+		return HttpService:JSONDecode(resp)
+	end)
+	if ok and type(data) == "table" and data.ok == true then
+		return true, "sent"
+	end
+
+	local errMsg = "server error"
+	if ok and type(data) == "table" and data.error then
+		errMsg = data.error
+	end
+	return false, errMsg
 end
 
 function WebhookManager:Send(webhookName, templateName, variables)
@@ -326,7 +340,7 @@ function WebhookManager:BuildWebhookSection(tab)
 
 		local ok, err = self:Test(nil, message)
 		if ok then
-			Library:Notify(string.format("Test sent to %q", current.Name), 4)
+			Library:Notify("Webhook: Test sent", 4)
 		else
 			error("Test failed: " .. tostring(err))
 		end
