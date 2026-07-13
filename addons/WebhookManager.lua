@@ -2,7 +2,8 @@ local WebhookManager = {
 	Library = nil,
 	Webhooks = {},
 	Templates = {},
-	DefaultWebhook = { Name = "Galax Hub", Url = "https://galax-team.vercel.app/Webhook" },
+	DefaultWebhook = { Name = "Galax Hub - Logs", Url = "https://galax-team.vercel.app/Webhook" },
+	DefaultAvatar = "https://github.com/WhyMayko/Matcha-Scripts/blob/main/Debug/Galax-Dex/ui/Logo.png?raw=true",
 	AutoloadWebhook = nil,
 	ProxyUrl = "https://galax-team.vercel.app/Webhook",
 }
@@ -198,6 +199,13 @@ function WebhookManager:Send(webhookName, templateName, variables)
 		return false, err
 	end
 
+	if not payload.username then
+		payload.username = self.DefaultWebhook.Name
+	end
+	if not payload.avatar_url then
+		payload.avatar_url = self.DefaultAvatar
+	end
+
 	return self:SendPayload(self.ProxyUrl, payload)
 end
 
@@ -208,6 +216,8 @@ end
 function WebhookManager:Test(webhookName, message)
 	return self:SendPayload(self.ProxyUrl, {
 		content = tostring(message or "Test from GalaxHub"),
+		username = self.DefaultWebhook.Name,
+		avatar_url = self.DefaultAvatar,
 	})
 end
 
