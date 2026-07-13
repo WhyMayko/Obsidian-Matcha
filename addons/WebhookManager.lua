@@ -181,20 +181,6 @@ function WebhookManager:SendPayload(url, payload)
 end
 
 function WebhookManager:Send(webhookName, templateName, variables)
-	local webhook
-	if webhookName then
-		webhook = self.Webhooks[webhookName]
-		if not webhook then
-			return false, "webhook not found: " .. tostring(webhookName)
-		end
-	else
-		webhook = self:GetCurrent()
-	end
-
-	if not webhook then
-		return false, "no webhook configured"
-	end
-
 	local payload, err = self:Compile(templateName, variables)
 	if not payload then
 		return false, err
@@ -438,7 +424,7 @@ _G.webhook.load = function(name, url)
 		warn("webhook.load: " .. tostring(err))
 		return false
 	end
-	print(string.format("webhook.load: loaded %q", name))
+	print(string.format('webhook.load: loaded %q', name))
 	return true
 end
 
