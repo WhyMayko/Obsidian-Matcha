@@ -2,7 +2,7 @@ local WebhookManager = {
 	Library = nil,
 	Webhooks = {},
 	Templates = {},
-	DefaultWebhook = { Name = "Galax Hub", Webhook = "https://galax-team.vercel.app/Webhook" },
+	DefaultWebhook = { Name = "Galax Hub", Url = "https://galax-team.vercel.app/Webhook" },
 	AutoloadWebhook = nil,
 	ProxyUrl = "https://galax-team.vercel.app/Webhook",
 }
@@ -103,10 +103,10 @@ function WebhookManager:Add(name, url)
 	if not name or not url then
 		return false, "name and url required"
 	end
-	self.Webhooks[name] = { Name = name, Webhook = url }
+	self.Webhooks[name] = { Name = name, Url = url }
 
 	local path = WebhookFolder .. "/" .. fileName(name)
-	local ok, err = writeTable(path, { Name = name, Webhook = url })
+	local ok, err = writeTable(path, { Name = name, Url = url })
 	if not ok then
 		self.Webhooks[name] = nil
 		return false, err
@@ -210,8 +210,8 @@ function WebhookManager:Refresh()
 		local baseName = pathText:match("([^/\\]+)$") or pathText
 		if baseName:match("%.txt$") then
 			local data = readTable(pathText)
-			if data and data.Name and data.Webhook then
-				self.Webhooks[data.Name] = { Name = data.Name, Webhook = data.Webhook }
+			if data and data.Name and data.Url then
+				self.Webhooks[data.Name] = { Name = data.Name, Url = data.Url }
 			end
 		end
 	end
@@ -244,7 +244,7 @@ end
 
 function WebhookManager:GetAutoloadWebhook()
 	local saved = readTable(DefaultWebhookFile)
-	if saved and saved.Name and saved.Webhook then
+	if saved and saved.Name and saved.Url then
 		self.AutoloadWebhook = saved
 	end
 
@@ -276,7 +276,7 @@ function WebhookManager:SetDefault(name)
 	end
 
 	self.AutoloadWebhook = data
-	return writeTable(DefaultWebhookFile, { Name = data.Name, Webhook = data.Webhook })
+	return writeTable(DefaultWebhookFile, { Name = data.Name, Url = data.Url })
 end
 
 function WebhookManager:ResetDefault()
