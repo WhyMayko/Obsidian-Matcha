@@ -205,13 +205,12 @@ function GroupGuard:Stop()
 	self.Running = false
 end
 
-function GroupGuard:AddTab(window)
+function GroupGuard:BuildSection(tab)
 	local Library = self.Library
 	if not Library then
 		error("GroupGuard: call SetLibrary first!", 2)
 	end
 
-	local tab = window:AddTab("Group", "users")
 	local detector = tab:AddLeftGroupbox("Rank Detector")
 	local settings = tab:AddRightGroupbox("Settings")
 
@@ -245,8 +244,6 @@ function GroupGuard:AddTab(window)
 	})
 
 	self:RefreshRanks()
-
-	return tab
 end
 
 function GroupGuard:RefreshRanks()
