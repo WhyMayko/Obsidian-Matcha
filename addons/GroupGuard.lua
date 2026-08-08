@@ -1,6 +1,6 @@
 local GroupGuard = {
 	Library = nil,
-	GroupId = 416091513,
+	GroupId = nil,
 	DefaultAction = "Notify",
 	Running = false,
 	Busy = false,
@@ -48,8 +48,30 @@ local function safeName(uid)
 	return tostring(uid)
 end
 
+local function guarantee(o, name)
+	if not o then
+		assert(false, string.format("GroupGuard: %s is required!", tostring(name)))
+	end
+end
+
+local function requireGroup(self)
+	guarantee(self.GroupId, "SetGroup(groupId) before use")
+end
+
 function GroupGuard:SetLibrary(library)
 	self.Library = library
+end
+
+function GroupGuard:SetGroup(groupId)
+	local gid = type(groupId) == "number" and groupId or tonumber(tostring(groupId or ""))
+	if not gid then
+		error("GroupGuard: SetGroup needs a group id!", 2)
+	end
+	self.GroupId = gid
+	self:ResetState()
+	if self.Library and self.Library.Options and self.Library.Options.GroupGuard_Ranks then
+		self:RefreshRanks()
+	end
 end
 
 function GroupGuard:ResetState()
@@ -59,6 +81,7 @@ function GroupGuard:ResetState()
 end
 
 function GroupGuard:Ranks()
+	requireGroup(self)
 	local data = fetchJson(string.format("https://groups.roblox.com/v1/groups/%d/roles", self.GroupId))
 	local out = {}
 	if data and type(data.roles) == "table" then
@@ -73,6 +96,7 @@ function GroupGuard:Ranks()
 end
 
 function GroupGuard:MembershipRole(userId)
+	requireGroup(self)
 	local data = fetchJson(string.format("https://groups.roblox.com/v1/users/%d/groups/roles", userId))
 	if data and type(data.data) == "table" then
 		for _, entry in ipairs(data.data) do
@@ -142,6 +166,7 @@ function GroupGuard:Start()
 	if self.Running then
 		return
 	end
+	requireGroup(self)
 	self:ResetState()
 	self.Running = true
 	self.Busy = false
