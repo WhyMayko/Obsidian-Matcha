@@ -225,6 +225,17 @@ function GroupGuard:BuildSection(tab)
 		self:RefreshRanks()
 	end)
 
+	local testButton = detector:AddButton("Test", function()
+		testButton:SetVisible(false)
+		local action = self.Library.Options.GroupGuard_Action:Get()
+		if action == "Notify" or action == "Kick + Notify" then
+			self.Library:Notify("User ( Test )", "Group Guard", 5)
+		end
+		if action == "Kick" or action == "Kick + Notify" then
+			self:DoKick()
+		end
+	end)
+
 	settings:AddToggle("GroupGuard_Enabled", {
 		Text = "Enabled",
 		Default = false,
