@@ -190,9 +190,7 @@ function GroupGuard:BuildSection(tab)
 		self:RefreshRanks()
 	end)
 
-	local testButton
-	testButton = detector:AddButton("Test", function()
-		testButton:SetVisible(false)
+	detector:AddButton("Test", function()
 		self:Trigger("User", "Test")
 	end)
 
