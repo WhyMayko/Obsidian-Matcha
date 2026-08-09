@@ -1,7 +1,6 @@
 local GroupGuard = {
 	Library = nil,
 	GroupId = nil,
-	DefaultAction = "Notify",
 	Running = false,
 	Busy = false,
 	Fetched = {},
@@ -11,14 +10,6 @@ local GroupGuard = {
 
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
-
-local OffsetUrls = {
-	"https://offsets.imtheo.lol/Offsets.json",
-	"https://offsets.femboythighs.org/Offsets.json",
-	"https://raw.githubusercontent.com/WhyMayko/Matcha-Scripts/refs/heads/main/Offsets/Offsets.json",
-}
-
-local KickValue = 214481945688787
 
 local function fetchJson(url)
 	local ok, raw = pcall(function() return game:HttpGet(url) end)
@@ -110,28 +101,8 @@ function GroupGuard:MembershipRole(userId)
 	return nil
 end
 
-function GroupGuard:UserIdOffset()
-	for _, url in ipairs(OffsetUrls) do
-		local data = fetchJson(url)
-		local o = data and (data.Offsets or data)
-		if o and type(o.Player) == "table" and o.Player.UserId then
-			return o.Player.UserId
-		end
-	end
-	return nil
-end
-
-function GroupGuard:DoKick()
-	local uidOff = self:UserIdOffset()
-	if not uidOff then
-		error("GroupGuard: no offsets source, cannot kick!")
-	end
-	local lp = Players.LocalPlayer
-	local addr = lp and lp.Address
-	if not addr then
-		error("GroupGuard: local player not ready!")
-	end
-	memory_write("uintptr_t", addr + uidOff, KickValue)
+function GroupGuard:Trigger(name, role)
+	self.Library:Notify(string.format("%s ( %s )", name, role), 5)
 end
 
 function GroupGuard:handleMember(uid, role)
@@ -153,13 +124,7 @@ function GroupGuard:handleMember(uid, role)
 		return
 	end
 	self.Acted[uid] = true
-	local action = Options and Options.GroupGuard_Action and Options.GroupGuard_Action:Get() or self.DefaultAction
-	if action == "Notify" or action == "Kick + Notify" then
-		self.Library:Notify(string.format("%s ( %s )", safeName(uid), role), "Group Guard", 5)
-	end
-	if action == "Kick" or action == "Kick + Notify" then
-		self:DoKick()
-	end
+	self:Trigger(safeName(uid), role)
 end
 
 function GroupGuard:Start()
@@ -225,15 +190,10 @@ function GroupGuard:BuildSection(tab)
 		self:RefreshRanks()
 	end)
 
-	local testButton = detector:AddButton("Test", function()
+	local testButton
+	testButton = detector:AddButton("Test", function()
 		testButton:SetVisible(false)
-		local action = self.Library.Options.GroupGuard_Action:Get()
-		if action == "Notify" or action == "Kick + Notify" then
-			self.Library:Notify("User ( Test )", "Group Guard", 5)
-		end
-		if action == "Kick" or action == "Kick + Notify" then
-			self:DoKick()
-		end
+		self:Trigger("User", "Test")
 	end)
 
 	settings:AddToggle("GroupGuard_Enabled", {
@@ -246,12 +206,6 @@ function GroupGuard:BuildSection(tab)
 				self:Stop()
 			end
 		end,
-	})
-
-	settings:AddDropdown("GroupGuard_Action", {
-		Text = "Action on join",
-		Values = { "Notify", "Kick", "Kick + Notify" },
-		Default = "Notify",
 	})
 
 	self:RefreshRanks()
